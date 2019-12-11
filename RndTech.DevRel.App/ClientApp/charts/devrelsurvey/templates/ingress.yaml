@@ -1,0 +1,17 @@
+{{- $dot := . }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{.Values.nameproject}}-{{.Values.nameapp}}
+  namespace: {{.Values.nameproject}}
+spec:
+  rules:
+    {{- range .Values.host.hostnames}}
+    - host: {{ . | quote }}
+      http:
+        paths:
+        - path: {{$dot.Values.host.path}}
+          backend:
+            serviceName: {{$dot.Values.nameproject}}-{{$dot.Values.nameapp}}
+            servicePort: 80
+    {{- end }}
