@@ -34,7 +34,7 @@ namespace RndTech.DevRel.App.Model
 						var companyScore = new CompanyScore
 						{
 							IntervieweeId = csv.GetField<int>(0),
-							CompanyName = cs[0],
+							CompanyName = cs[0].Trim('"'),
 							IsKnown = cs[1].Trim().StartsWith("Знаю"),
 							IsWanted = cs[1].Trim().Equals("Знаю и хочу работать"),
 							Age = csv.GetField<int>(8),
@@ -108,8 +108,8 @@ namespace RndTech.DevRel.App.Model
 				result.Add(new CompanyModel
 								{
 									Name = company,
-									KnownLevel = companyScoresArray.Count(cs => cs.IsKnown || cs.IsWanted) / companyScoresArray.Length,
-									WantedLevel = companyScoresArray.Count(cs => cs.IsWanted) / companyScoresArray.Length
+									KnownLevel = companyScoresArray.Count(cs => cs.IsKnown || cs.IsWanted) / (double) companyScoresArray.Length,
+									WantedLevel = companyScoresArray.Count(cs => cs.IsWanted) / (double) companyScoresArray.Length
 								});
 			}
 

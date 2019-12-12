@@ -8,11 +8,20 @@ export interface Filter {
 }
 
 export const selectedCompanies = [
-    'Контур'
+    'Контур',
+    'Киноплан (Точка Кипения)',
+    'Arcadia',
+    'Devexperts',
+    'Distillery',
+    'Oggetto',
+    'Rnd soft (+Winvestor)',
+    'TradingView (eSignal)',
+    'Umbrella IT',
+    'WIS Software'
 ]
 
 export const defaultFilter: Filter = {
-    cities: ['Ростов-на-Дону'],
+    cities: ['Ростов-на-Дону, Ростовская область, Россия'],
     educations: [],
     languages: [],
     professions: [],

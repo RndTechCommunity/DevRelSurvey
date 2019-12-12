@@ -17,7 +17,7 @@ namespace RndTech.DevRel.App.Controllers
 		}
 
 		[Route("known-and-wanted")]
-		public List<CompanyModel> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages)
+		public Dictionary<string, CompanyModel> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages)
 		{
 			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities).ToList();
 			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations).ToList();
@@ -32,7 +32,7 @@ namespace RndTech.DevRel.App.Controllers
 				programmingLanguageFilter: languagesFilter, 
 				professionFilter: professionFilter,
 				experienceLevelFilter: experienceLevelFilter,
-				agesFilter: ageFilter);
+				agesFilter: ageFilter).ToDictionary(cm => cm.Name, cm => cm);
 		}
 	}
 }

@@ -36,7 +36,12 @@ const companyFillColorMap = {
     'Яндекс': 'rgb(249, 219, 103)',
     'JetBrains': 'rgb(173, 81, 140)',
     'Тинькофф': 'rgb(64, 71, 86)',
-    'Avito': 'rgb(163, 204, 74)'
+    'Avito': 'rgb(163, 204, 74)',
+    'ЦентрИнвест': 'rgb(57, 163, 28)',
+    'TradingView (eSignal)': 'rgb(31, 150, 243)',
+    'Umbrella IT': 'rgb(0, 80, 255)',
+    'WIS Software': 'rgb(109, 213, 68)',
+    'INOSTUDIO': 'rgb(189, 33, 47)'
 }
 
 type Props = {
@@ -46,26 +51,21 @@ type Props = {
 
 type State = {
     isReady: boolean,
-    isSingleCity: boolean,
     companyEntries: CompanyEntry[]
     companies: string[],
     selectedCompanies: string[]
 }
 
 type CompanyEntry = {
-    city: string,
     company: string,
-    isKnown: number,
-    isWanted: number,
-    isKnownRatio: number,
-    isWantedRatio: number,
+    knownLevel: number,
+    wantedLevel: number,
     error: number
 }
 
 class KnownAndWantedPage extends React.Component<Props, State> {
     state: State = {
         isReady: false,
-        isSingleCity: false,
         companyEntries: [],
         companies: [],
         selectedCompanies
@@ -89,10 +89,9 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         return getKnownAndWantedData(filter)
             .then(data => {
                 const companyEntries = KnownAndWantedPage.calculateEntries(data)
-                const companies = KnownAndWantedPage.calculateList(companyEntries)
-
+                const companies = KnownAndWantedPage.calculateList(companyEntries).sort()
+                
                 this.setState({
-                    isSingleCity: Object.keys(data).length === 1,
                     companyEntries,
                     companies
                 })
@@ -118,7 +117,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
 
         const data = entries.map(x => ({
             ...x,
-            label: this.renderLabel(x.company, x.city)
+            label: this.renderLabel(x.company)
         }))
 
         return (
@@ -142,7 +141,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 position: 'center',
                                 dy: 20
                             }}
-                            dataKey='isKnownRatio'
+                            dataKey='knownLevel'
                             type='number'
                             domain={[0, 1]}
                             tickCount={11}
@@ -156,9 +155,9 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 angle: -90,
                                 dx: 20
                             }}
-                            dataKey='isWantedRatio'
+                            dataKey='wantedLevel'
                             type='number'
-                            domain={[0, 1]}
+                            domain={[0, 0.3]}
                             tickCount={11}
                             tickFormatter={toPercent}
                             axisLine={false}
@@ -176,9 +175,9 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     renderCompanyEntry(entry: CompanyEntry & { cx: number, cy: number }) {
-        const { company, city, error, cx, cy } = entry
+        const { company, error, cx, cy } = entry
 
-        const errorSize = error * cx / entry.isKnownRatio
+        const errorSize = error * cx / entry.knownLevel
 
         return (
             <g fill={KnownAndWantedPage.getFillColor(company)}>
@@ -190,9 +189,6 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                     <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
                         {company}
                     </text>
-                    <text x={6} y={0} dy={10} textAnchor='left'>
-                        {city}
-                    </text>
                 </g>
             </g>
         )
@@ -202,16 +198,9 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         return companyFillColorMap[company] || defaultFillColor
     }
 
-    renderLabel(company: string, city: string) {
-        const { isSingleCity, selectedCompanies } = this.state
-
+    renderLabel(company: string) {
         const parts = company.split(' ')
-
-        return isSingleCity
-            ? parts.join('\u00A0')
-            : selectedCompanies.length === 1
-                ? city
-                : [...parts, '×', city].join('\u00A0')
+        return parts.join('\u00A0')
     }
 
     static calculateEntries(data: KnownAndWantedData): CompanyEntry[] {
@@ -221,18 +210,10 @@ class KnownAndWantedPage extends React.Component<Props, State> {
 
         return Object
             .keys(data)
-            .map(city => Object
-                .keys(data[city])
-                .map(company => ({
-                    city,
+            .map(company => ({
                     company,
-                    ...data[city][company]
+                    ...data[company]
                 }))
-            )
-            .reduce((all, current) => [
-                ...all,
-                ...current
-            ], [])
     }
 
     static calculateList(entries: CompanyEntry[]): string[] {

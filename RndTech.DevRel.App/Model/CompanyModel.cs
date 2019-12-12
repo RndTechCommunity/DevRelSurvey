@@ -10,6 +10,6 @@ namespace RndTech.DevRel.App.Model
 		public string Name { get; set; }
 		public double KnownLevel { get; set; }
 		public double WantedLevel { get; set; }
-		public double ConfidenceLevel { get; set; } = 0;
+		public double Error { get; set; } = 0;
 	}
 }

@@ -11,7 +11,6 @@ export function    getAges() {
     return api
         .get('/cities')
         .then(response => new Array(end - start + 1).fill(undefined).map((_, i) => i + start).map(String))
-        // return new Array(end - start + 1).fill(undefined).map((_, i) => i + start)
 }
 
 export function getCities() {
@@ -67,14 +66,10 @@ export function getMeta(filter: Filter): Promise<MetaData> {
 }
 
 export type KnownAndWantedData = {
-    [city: string]: {
-        [company: string]: {
-            isKnown: number,
-            isWanted: number,
-            isKnownRatio: number,
-            isWantedRatio: number,
-            error: number
-        }
+    [company: string]: {
+        knownLevel: number,
+        wantedLevel: number,
+        error: number
     }
 }
 
