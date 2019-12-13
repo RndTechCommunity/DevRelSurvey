@@ -44,10 +44,6 @@ const items: MenuItem[] = [
         id: 'known-and-wanted',
         title: 'Узнаваемость и привлекательность'
     },
-    {
-        id: 'selection-factors',
-        title: 'Критерии выбора'
-    }
 ]
 
 class Menu extends React.Component<Props> {

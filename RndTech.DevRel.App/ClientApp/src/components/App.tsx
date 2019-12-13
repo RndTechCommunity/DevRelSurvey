@@ -5,7 +5,6 @@ import FiltersSidePage from './filters/FiltersSidePage'
 import Menu, { MenuId } from './Menu'
 import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
-import SelectionFactorsPage from './pages/SelectionFactorsPage'
 
 const styles = {
     app: {
@@ -44,8 +43,7 @@ class App extends React.Component<Props, State> {
         let content =
             tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
                 tab === 'known-and-wanted' ? <KnownAndWantedPage filter={filter} /> :
-                    tab === 'selection-factors' ? <SelectionFactorsPage filter={filter} /> :
-                        null
+                    null
 
         return (
             <div className={classes.app}>
