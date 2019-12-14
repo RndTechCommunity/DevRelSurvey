@@ -56,7 +56,8 @@ export function getProgrammingLanguages() {
 }
 
 export type MetaData = {
-    count: number
+    count: number,
+    sources: any
 }
 
 export function getMeta(filter: Filter): Promise<MetaData> {

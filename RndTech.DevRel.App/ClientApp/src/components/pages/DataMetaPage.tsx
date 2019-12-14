@@ -3,7 +3,6 @@ import Loader from '@skbkontur/react-ui/components/Loader/Loader'
 import * as React from 'react'
 import injectSheet, { CSSProperties } from 'react-jss'
 import { getMeta, MetaData } from '../../api'
-import { toPercent } from '../../format'
 import { Filter } from '../filters/Filter'
 import Plural from '../Plural'
 
@@ -49,7 +48,8 @@ class SelectionFactorsPage extends React.Component<Props, State> {
     state: State = {
         isReady: false,
         data: {
-            count: 0
+            count: 0,
+            sources : []
         }
     }
 
@@ -89,20 +89,18 @@ class SelectionFactorsPage extends React.Component<Props, State> {
                         &nbsp;в выборке
                     </h2>
                     <div className={classes.groupRow}>
-                        {this.renderGroup('Каналы', 'channels')}
-                        <span>&nbsp;</span>
                         {this.renderGroup('Города', 'cities')}
                         <span>&nbsp;</span>
-                        {this.renderGroup('Специальности', 'specialities')}
+                        {this.renderGroup('Возраст', 'ages')}
                         <span>&nbsp;</span>
-                        {this.renderGroup('Языки', 'languages')}
+                        {this.renderGroup('Образование', 'education')}
                     </div>
                     <div className={classes.groupRow}>
                         {this.renderGroup('Уровни', 'levels')}
                         <span>&nbsp;</span>
-                        {this.renderGroup('Опыт', 'experiences')}
+                        {this.renderGroup('Профессии', 'professions')}
                         <span>&nbsp;</span>
-                        {this.renderGroup('Возраст', 'ages')}
+                        {this.renderGroup('Языки', 'languages')}
                     </div>
                 </div>
             </Loader>
@@ -121,16 +119,16 @@ class SelectionFactorsPage extends React.Component<Props, State> {
                 }</h2>
                 <table className={classes.table}>
                     <tbody>
-                    {Object.keys(data[key]).map(i => {
+                        {Object.keys(data.sources[key]).map(i => {
                         const rowClass =
-                            data[key][i] > 0.10 ? classes.important :
-                                data[key][i] < 0.05 ? classes.unimportant : null
+                            data.sources[key][i] > 0.10 ? classes.important :
+                                data.sources[key][i] < 0.05 ? classes.unimportant : null
 
                         return (
                             <tr key={i} className={rowClass}>
                                 <td>{i}</td>
                                 <td className={classes.ratio}>
-                                    {toPercent(data[key][i])}
+                                    {data.sources[key][i]}
                                 </td>
                             </tr>
                         )

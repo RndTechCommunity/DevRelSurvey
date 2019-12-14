@@ -34,5 +34,24 @@ namespace RndTech.DevRel.App.Controllers
 				experienceLevelFilter: experienceLevelFilter,
 				agesFilter: ageFilter).ToDictionary(cm => cm.Name, cm => cm);
 		}
+
+		[Route("meta")]
+		public MetaModel GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages)
+		{
+			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities).ToList();
+			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations).ToList();
+			var languagesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(languages).ToList();
+			var professionFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(professions).ToList();
+			var experienceLevelFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(experiences).ToList();
+			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages).Select(a => int.Parse(a)).ToList();
+
+			return InMemoryDbContext.GetMeta(
+				citiesFilter: citiesFilter,
+				educationFilter: educationFilter,
+				programmingLanguageFilter: languagesFilter,
+				professionFilter: professionFilter,
+				experienceLevelFilter: experienceLevelFilter,
+				agesFilter: ageFilter);
+		}
 	}
 }

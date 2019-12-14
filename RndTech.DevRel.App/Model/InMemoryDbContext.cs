@@ -55,6 +55,45 @@ namespace RndTech.DevRel.App.Model
 			}
 		}
 
+		public static MetaModel GetMeta(
+			List<int> agesFilter = null,
+			List<string> citiesFilter = null,
+			List<string> educationFilter = null,
+			List<string> experienceLevelFilter = null,
+			List<int> experienceYearsFilter = null,
+			List<string> professionFilter = null,
+			List<string> programmingLanguageFilter = null,
+			List<string> companySourcesFilter = null,
+			bool? isCommunityFilter = null,
+			List<string> communitySourcesFilter = null)
+		{
+			var meta = new MetaModel();
+			var data = new Dictionary<string, Dictionary<string, int>>();
+			// Фильтруем выборку по фильтрам
+			var scores = FilterSource(_scores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter);
+
+			// Группируем по респондентам
+			var interviewees = scores.GroupBy(s => s.IntervieweeId);
+
+			// Теперь надо сделать по каждой группе выборку кого и сколько
+			// Города cities
+			data.Add("cities", interviewees.Select(i => i.FirstOrDefault()?.City).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Возраста ages
+			data.Add("ages", interviewees.Select(i => i.FirstOrDefault()?.Age).GroupBy(c => c).ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Count()));
+			// Образование education
+			data.Add("education", interviewees.Select(i => i.FirstOrDefault()?.Education).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Уровни levels
+			data.Add("levels", interviewees.Select(i => i.FirstOrDefault()?.ExperienceLevel).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Профессии professions
+			data.Add("professions", interviewees.Select(i => i.FirstOrDefault()?.Profession).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Языки программирования languages
+			data.Add("languages", interviewees.SelectMany(i => i.FirstOrDefault()?.ProgrammingLanguages).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+
+			meta.count = interviewees.Count();
+			meta.sources = data;
+			return meta;
+		}
+
 		public static List<CompanyModel> GetCompanyModels(
 			List<int> agesFilter = null, 
 			List<string> citiesFilter = null, 
@@ -73,35 +112,7 @@ namespace RndTech.DevRel.App.Model
 			{
 				var companyScores = _scores.Where(s => s.CompanyName == company);
 
-				if (agesFilter != null && agesFilter.Any())
-					companyScores = companyScores.Where(cs => agesFilter.Contains(cs.Age));
-
-				if (citiesFilter != null && citiesFilter.Any())
-					companyScores = companyScores.Where(cs => citiesFilter.Contains(cs.City));
-
-				if (educationFilter != null && educationFilter.Any())
-					companyScores = companyScores.Where(cs => educationFilter.Contains(cs.Education));
-
-				if (experienceLevelFilter != null && experienceLevelFilter.Any())
-					companyScores = companyScores.Where(cs => experienceLevelFilter.Contains(cs.ExperienceLevel));
-
-				if (experienceYearsFilter != null && experienceYearsFilter.Any())
-					companyScores = companyScores.Where(cs => experienceYearsFilter.Contains(cs.ExperienceYears));
-
-				if (professionFilter != null && professionFilter.Any())
-					companyScores = companyScores.Where(cs => professionFilter.Contains(cs.Profession));
-
-				if (programmingLanguageFilter != null && programmingLanguageFilter.Any())
-					companyScores = companyScores.Where(cs => programmingLanguageFilter.Intersect(cs.ProgrammingLanguages).Any());
-
-				if (companySourcesFilter != null && companySourcesFilter.Any())
-					companyScores = companyScores.Where(cs => companySourcesFilter.Intersect(cs.CompanySources).Any());
-
-				if (isCommunityFilter.HasValue)
-					companyScores = companyScores.Where(cs => cs.IsCommunity == isCommunityFilter.Value);
-
-				if (communitySourcesFilter != null && communitySourcesFilter.Any())
-					companyScores = companyScores.Where(cs => communitySourcesFilter.Intersect(cs.CompanySources).Any());
+				companyScores = FilterSource(companyScores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter);
 
 				// Инстанцируем чтобы быстро считать
 				var companyScoresArray = companyScores.ToArray();
@@ -114,6 +125,52 @@ namespace RndTech.DevRel.App.Model
 			}
 
 			return result;
+		}
+
+		private static IEnumerable<CompanyScore> FilterSource(
+			IEnumerable<CompanyScore> source,
+			List<int> agesFilter,
+			List<string> citiesFilter,
+			List<string> educationFilter,
+			List<string> experienceLevelFilter,
+			List<int> experienceYearsFilter,
+			List<string> professionFilter,
+			List<string> programmingLanguageFilter,
+			List<string> companySourcesFilter,
+			bool? isCommunityFilter,
+			List<string> communitySourcesFilter)
+		{
+			if (agesFilter != null && agesFilter.Any())
+				source = source.Where(cs => agesFilter.Contains(cs.Age));
+
+			if (citiesFilter != null && citiesFilter.Any())
+				source = source.Where(cs => citiesFilter.Contains(cs.City));
+
+			if (educationFilter != null && educationFilter.Any())
+				source = source.Where(cs => educationFilter.Contains(cs.Education));
+
+			if (experienceLevelFilter != null && experienceLevelFilter.Any())
+				source = source.Where(cs => experienceLevelFilter.Contains(cs.ExperienceLevel));
+
+			if (experienceYearsFilter != null && experienceYearsFilter.Any())
+				source = source.Where(cs => experienceYearsFilter.Contains(cs.ExperienceYears));
+
+			if (professionFilter != null && professionFilter.Any())
+				source = source.Where(cs => professionFilter.Contains(cs.Profession));
+
+			if (programmingLanguageFilter != null && programmingLanguageFilter.Any())
+				source = source.Where(cs => programmingLanguageFilter.Intersect(cs.ProgrammingLanguages).Any());
+
+			if (companySourcesFilter != null && companySourcesFilter.Any())
+				source = source.Where(cs => companySourcesFilter.Intersect(cs.CompanySources).Any());
+
+			if (isCommunityFilter.HasValue)
+				source = source.Where(cs => cs.IsCommunity == isCommunityFilter.Value);
+
+			if (communitySourcesFilter != null && communitySourcesFilter.Any())
+				source = source.Where(cs => communitySourcesFilter.Intersect(cs.CompanySources).Any());
+
+			return source;
 		}
 	}
 }
