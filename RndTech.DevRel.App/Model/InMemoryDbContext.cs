@@ -35,8 +35,8 @@ namespace RndTech.DevRel.App.Model
 						{
 							IntervieweeId = csv.GetField<int>(0),
 							CompanyName = cs[0].Trim('"'),
-							IsKnown = cs[1].Trim().StartsWith("Знаю"),
-							IsWanted = cs[1].Trim().Equals("Знаю и хочу работать"),
+							IsKnown = cs[1].Trim().StartsWith("Знаю") || cs[1].Trim().Equals("Слышал"),
+							IsWanted = cs[1].Trim().Equals("Знаю и хочу работать") || cs[1].Trim().Equals("Знаю и уважаю"),
 							Age = csv.GetField<int>(8),
 							City = csv.GetField<string>(7),
 							Education = csv.GetField<string>(9),
