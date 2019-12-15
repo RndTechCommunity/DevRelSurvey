@@ -53,6 +53,7 @@ type State = {
     isReady: boolean,
     companyEntries: CompanyEntry[]
     companies: string[],
+    maxWantedLevel: number,
     selectedCompanies: string[]
 }
 
@@ -68,6 +69,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         isReady: false,
         companyEntries: [],
         companies: [],
+        maxWantedLevel: 0.3,
         selectedCompanies
     }
 
@@ -90,10 +92,11 @@ class KnownAndWantedPage extends React.Component<Props, State> {
             .then(data => {
                 const companyEntries = KnownAndWantedPage.calculateEntries(data)
                 const companies = KnownAndWantedPage.calculateList(companyEntries).sort()
-                
+                const maxWantedLevel = Math.max.apply(null, companyEntries.map(ce => ce.wantedLevel)) + 0.05;
                 this.setState({
                     companyEntries,
-                    companies
+                    companies,
+                    maxWantedLevel
                 })
             })
     }
@@ -104,6 +107,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
             isReady,
             companyEntries,
             companies,
+            maxWantedLevel,
             selectedCompanies
         } = this.state
 
@@ -157,7 +161,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             }}
                             dataKey='wantedLevel'
                             type='number'
-                            domain={[0, 0.3]}
+                            domain={[0, maxWantedLevel]}
                             tickCount={11}
                             tickFormatter={toPercent}
                             axisLine={false}
