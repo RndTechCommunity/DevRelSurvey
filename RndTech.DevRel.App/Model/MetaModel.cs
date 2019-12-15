@@ -8,6 +8,7 @@ namespace RndTech.DevRel.App.Model
 	public class MetaModel
 	{
 		public int count { get; set; }
+		public int Total { get; set; }
 		public Dictionary<string, Dictionary<string, int>> sources { get; set; }
 	}
 }

@@ -88,8 +88,16 @@ namespace RndTech.DevRel.App.Model
 			data.Add("professions", interviewees.Select(i => i.FirstOrDefault()?.Profession).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 			// Языки программирования languages
 			data.Add("languages", interviewees.SelectMany(i => i.FirstOrDefault()?.ProgrammingLanguages).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Ходит ли человек на митапы
+			data.Add("isCommunity", interviewees.Select(i => i.FirstOrDefault()?.IsCommunity).GroupBy(c => c).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key == true ? "Да" : "Нет", kvp => kvp.Count()));
+			// Откуда узнают информацию о компаниях
+			data.Add("companySources", interviewees.SelectMany(i => i.FirstOrDefault()?.CompanySources).GroupBy(c => c).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			// Откуда узнают информацию о митапах
+			data.Add("communitySource", interviewees.SelectMany(i => i.FirstOrDefault()?.CommunitySource).GroupBy(c => c).Where(g => !string.IsNullOrEmpty(g.Key)).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+
 
 			meta.count = interviewees.Count();
+			meta.Total = _scores.GroupBy(s => s.IntervieweeId).Count();
 			meta.sources = data;
 			return meta;
 		}

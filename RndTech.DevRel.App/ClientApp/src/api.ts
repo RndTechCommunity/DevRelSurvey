@@ -60,6 +60,7 @@ export function getProgrammingLanguages() {
 
 export type MetaData = {
     count: number,
+    total: number,
     sources: any
 }
 

@@ -49,6 +49,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         isReady: false,
         data: {
             count: 0,
+            total: 0,
             sources : []
         }
     }
@@ -86,7 +87,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
                     <h2>
                         {data.count}
                         &nbsp;<Plural n={data.count} one='участник' few='участника' many='участников' />
-                        &nbsp;в выборке
+                        &nbsp;в выборке (из {data.total})
                     </h2>
                     <div className={classes.groupRow}>
                         {this.renderGroup('Города', 'cities')}
@@ -101,6 +102,13 @@ class SelectionFactorsPage extends React.Component<Props, State> {
                         {this.renderGroup('Профессии', 'professions')}
                         <span>&nbsp;</span>
                         {this.renderGroup('Языки', 'languages')}
+                    </div>
+                    <div className={classes.groupRow}>
+                        {this.renderGroup('Источники информации о компаниях', 'companySources')}
+                        <span>&nbsp;</span>
+                        {this.renderGroup('Ходят ли на митапы', 'isCommunity')}
+                        <span>&nbsp;</span>
+                        {this.renderGroup('Откуда узнают о митапах', 'communitySource')}
                     </div>
                 </div>
             </Loader>
