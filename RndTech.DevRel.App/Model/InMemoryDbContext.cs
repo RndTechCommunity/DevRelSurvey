@@ -11,12 +11,22 @@ namespace RndTech.DevRel.App.Model
 	public static class InMemoryDbContext
 	{
 		private static List<CompanyScore> _scores = new List<CompanyScore>();
+		private static IEnumerable<string> _companyNames;
 
-		public static List<string> GetCities() => _scores.Select(s => s.City).GroupBy(c => c).Where(g => g.Count() > 5).Select(g => g.Key).Distinct().ToList();
-		public static List<string> GetEducations() => _scores.Select(s => s.Education).Distinct().ToList();
-		public static List<string> GetExperienceLevels() => _scores.Select(s => s.ExperienceLevel).Distinct().ToList();
-		public static List<string> GetProfessions() => _scores.Select(s => s.Profession).Distinct().ToList();
-		public static List<string> GetProgrammingLanguages() => _scores.SelectMany(s => s.ProgrammingLanguages).Distinct().OrderBy(l => l).ToList();
+		private static List<string> _cities;
+		public static List<string> GetCities() => _cities ?? (_cities = _scores.Select(s => s.City).GroupBy(c => c).Where(g => g.Count() > 5).Select(g => g.Key).Distinct().ToList());
+
+		private static List<string> _educations;
+		public static List<string> GetEducations() => _educations ?? (_educations = _scores.Select(s => s.Education).Distinct().ToList());
+
+		private static List<string> _experienceLevels;
+		public static List<string> GetExperienceLevels() => _experienceLevels ?? (_experienceLevels = _scores.Select(s => s.ExperienceLevel).Distinct().ToList());
+
+		private static List<string> _professions;
+		public static List<string> GetProfessions() => _professions ?? (_professions = _scores.Select(s => s.Profession).Distinct().ToList());
+
+		private static List<string> _languages;
+		public static List<string> GetProgrammingLanguages() => _languages = (_languages ?? _scores.SelectMany(s => s.ProgrammingLanguages).Distinct().OrderBy(l => l).ToList());
 		public static List<string> GetCompanySources() => _scores.SelectMany(s => s.CompanySources).Distinct().ToList();
 		public static List<string> GetCommunitySources() => _scores.SelectMany(s => s.CommunitySource).Distinct().ToList();
 
@@ -53,6 +63,8 @@ namespace RndTech.DevRel.App.Model
 					}
 				}
 			}
+
+			_companyNames = _scores.Select(s => s.CompanyName).Distinct();
 		}
 
 		public static MetaModel GetMeta(
@@ -119,7 +131,7 @@ namespace RndTech.DevRel.App.Model
 
 			var errorLevel = 0.0441 + (interviewees < 70 ? (interviewees < 50 ? (interviewees < 18 ? 0.05 : 0.03) : 0.01) : 0);
 
-			var companyNames = _scores.Select(s => s.CompanyName).Distinct();
+			var companyNames = _companyNames;
 			var result = new List<CompanyModel>();
 			foreach(var company in companyNames)
 			{
