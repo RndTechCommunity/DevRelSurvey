@@ -1,4 +1,5 @@
 import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
+import Checkbox from '@skbkontur/react-ui/components/Checkbox/Checkbox'
 import Loader from '@skbkontur/react-ui/components/Loader/Loader'
 import * as React from 'react'
 import injectSheet, { CSSProperties } from 'react-jss'
@@ -54,6 +55,7 @@ type State = {
     companyEntries: CompanyEntry[]
     companies: string[],
     maxWantedLevel: number,
+    useError: boolean,
     selectedCompanies: string[]
 }
 
@@ -70,7 +72,8 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         companyEntries: [],
         companies: [],
         maxWantedLevel: 0.3,
-        selectedCompanies
+        useError: false,
+        selectedCompanies,
     }
 
     componentDidMount() {
@@ -108,7 +111,8 @@ class KnownAndWantedPage extends React.Component<Props, State> {
             companyEntries,
             companies,
             maxWantedLevel,
-            selectedCompanies
+            selectedCompanies,
+            useError
         } = this.state
 
         if (!isReady) {
@@ -134,6 +138,9 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             selected={selectedCompanies}
                             onChange={selectedCompanies => this.setState({ selectedCompanies })}
                         />
+                        <Checkbox checked={useError} onChange={(_, v) => this.setState({ useError : v })}>
+                            Отображать доверительный интервал
+                        </Checkbox>
                     </Gapped>
                 </div>
                 <ResponsiveContainer aspect={1.5} width={1100}>
@@ -181,7 +188,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     renderCompanyEntry(entry: CompanyEntry & { cx: number, cy: number }) {
         const { company, error, cx, cy } = entry
 
-        const errorSize = error * cx / entry.knownLevel
+        const errorSize = (this.state.useError ? error : 0) * cx / entry.knownLevel
 
         return (
             <g fill={KnownAndWantedPage.getFillColor(company)}>

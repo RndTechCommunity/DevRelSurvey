@@ -114,11 +114,16 @@ namespace RndTech.DevRel.App.Model
 			bool? isCommunityFilter = null, 
 			List<string> communitySourcesFilter = null)
 		{
+			var scores = FilterSource(_scores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter).ToArray();
+			var interviewees = scores.GroupBy(s => s.IntervieweeId).Count();
+
+			var errorLevel = 0.0441 + (interviewees < 70 ? (interviewees < 50 ? (interviewees < 18 ? 0.05 : 0.03) : 0.01) : 0);
+
 			var companyNames = _scores.Select(s => s.CompanyName).Distinct();
 			var result = new List<CompanyModel>();
 			foreach(var company in companyNames)
 			{
-				var companyScores = _scores.Where(s => s.CompanyName == company);
+				var companyScores = scores.Where(s => s.CompanyName == company);
 
 				companyScores = FilterSource(companyScores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter);
 
@@ -128,8 +133,9 @@ namespace RndTech.DevRel.App.Model
 								{
 									Name = company,
 									KnownLevel = companyScoresArray.Count(cs => cs.IsKnown || cs.IsWanted) / (double) companyScoresArray.Length,
-									WantedLevel = companyScoresArray.Count(cs => cs.IsWanted) / (double) companyScoresArray.Length
-								});
+									WantedLevel = companyScoresArray.Count(cs => cs.IsWanted) / (double) companyScoresArray.Length,
+									Error = errorLevel
+				});
 			}
 
 			return result;
