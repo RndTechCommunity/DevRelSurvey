@@ -59,7 +59,13 @@ class App extends React.Component<Props, State> {
                     </p>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button use='success' onClick={this.modalClose}>Поехали</Button>
+                    
+                    <Button use='success' onClick={this.modalClose}>
+                        Посмотреть результаты
+                        </Button>
+                    <Button use='link' onClick={() => window.open('http://bit.ly/2LVvuWS', '_blank')}>
+                        Пройти опрос
+                    </Button>
                 </Modal.Footer>
             </Modal>
         );
