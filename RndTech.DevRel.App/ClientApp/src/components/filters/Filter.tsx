@@ -20,7 +20,8 @@ export const selectedCompanies = [
     'Umbrella IT',
     'WIS Software',
     'ЦентрИнвест',
-    'uKit (uCoz)'
+    'uKit (uCoz)',
+    'INOSTUDIO'
 ]
 
 export const defaultFilter: Filter = {
