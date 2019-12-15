@@ -24,7 +24,10 @@ namespace RndTech.DevRel.App.Controllers
 			var languagesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(languages).ToList();
 			var professionFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(professions).ToList();
 			var experienceLevelFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(experiences).ToList();
-			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages).Select(a => int.Parse(a)).ToList();
+			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages)
+				.Select(age => int.Parse(age.Substring(0, 2)))
+				.SelectMany(af => Enumerable.Range(af, 5))
+				.ToList();
 
 			return InMemoryDbContext.GetCompanyModels(
 				citiesFilter: citiesFilter, 
@@ -43,7 +46,10 @@ namespace RndTech.DevRel.App.Controllers
 			var languagesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(languages).ToList();
 			var professionFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(professions).ToList();
 			var experienceLevelFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(experiences).ToList();
-			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages).Select(a => int.Parse(a)).ToList();
+			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages)
+				.Select(age => int.Parse(age.Substring(0, 2)))
+				.SelectMany(af => Enumerable.Range(af, 5))
+				.ToList();
 
 			return InMemoryDbContext.GetMeta(
 				citiesFilter: citiesFilter,

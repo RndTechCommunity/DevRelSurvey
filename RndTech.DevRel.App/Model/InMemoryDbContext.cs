@@ -77,17 +77,17 @@ namespace RndTech.DevRel.App.Model
 
 			// Теперь надо сделать по каждой группе выборку кого и сколько
 			// Города cities
-			data.Add("cities", interviewees.Select(i => i.FirstOrDefault()?.City).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			data.Add("cities", interviewees.Select(i => i.FirstOrDefault()?.City).GroupBy(c => c).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 			// Возраста ages
-			data.Add("ages", interviewees.Select(i => i.FirstOrDefault()?.Age).GroupBy(c => c).ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Count()));
+			data.Add("ages", interviewees.Select(i => i.FirstOrDefault()?.Age).GroupBy(c => c / 5).OrderBy(c => c.Key).ToDictionary(kvp => $"{kvp.Key * 5} - {kvp.Key * 5 + 4}", kvp => kvp.Count()));
 			// Образование education
-			data.Add("education", interviewees.Select(i => i.FirstOrDefault()?.Education).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			data.Add("education", interviewees.Select(i => i.FirstOrDefault()?.Education).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 			// Уровни levels
-			data.Add("levels", interviewees.Select(i => i.FirstOrDefault()?.ExperienceLevel).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			data.Add("levels", interviewees.Select(i => i.FirstOrDefault()?.ExperienceLevel).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 			// Профессии professions
 			data.Add("professions", interviewees.Select(i => i.FirstOrDefault()?.Profession).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 			// Языки программирования languages
-			data.Add("languages", interviewees.SelectMany(i => i.FirstOrDefault()?.ProgrammingLanguages).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			data.Add("languages", interviewees.SelectMany(i => i.FirstOrDefault()?.ProgrammingLanguages).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
 
 			meta.count = interviewees.Count();
 			meta.sources = data;

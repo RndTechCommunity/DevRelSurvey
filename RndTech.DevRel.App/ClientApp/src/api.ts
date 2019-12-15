@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios'
+﻿import axios, { AxiosRequestConfig } from 'axios'
 import { Filter } from './components/filters/Filter'
 
 const api = axios.create({
@@ -6,11 +6,14 @@ const api = axios.create({
 })
 
 export function    getAges() {
-    const start = 16
-    const end = 50
+    const start = 3
+    const end = 11
     return api
         .get('/cities')
-        .then(response => new Array(end - start + 1).fill(undefined).map((_, i) => i + start).map(String))
+        .then(response => new Array(end - start + 1)
+            .fill(undefined)
+            .map((_, i) => (i + start) * 5)
+            .map((_, i) => String(_) + ' - ' + String(_ + 4) + ' лет'))
 }
 
 export function getCities() {
