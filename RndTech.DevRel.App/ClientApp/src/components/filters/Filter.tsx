@@ -18,7 +18,9 @@ export const selectedCompanies = [
     'Rnd soft (+Winvestor)',
     'TradingView (eSignal)',
     'Umbrella IT',
-    'WIS Software'
+    'WIS Software',
+    'ЦентрИнвест',
+    'uKit (uCoz)'
 ]
 
 export const defaultFilter: Filter = {
