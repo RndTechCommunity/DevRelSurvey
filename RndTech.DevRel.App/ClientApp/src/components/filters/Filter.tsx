@@ -4,7 +4,8 @@ export interface Filter {
     languages: string[],
     professions: string[],
     experiences: string[],
-    ages: string[]
+    ages: string[],
+    isCommunity: string
 }
 
 export const selectedCompanies = [
@@ -26,5 +27,6 @@ export const defaultFilter: Filter = {
     languages: [],
     professions: [],
     experiences: [],
-    ages: []
+    ages: [],
+    isCommunity: 'Неважно'
 }

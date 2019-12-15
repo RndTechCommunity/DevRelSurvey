@@ -1,5 +1,6 @@
 import Button from '@skbkontur/react-ui/components/Button/Button'
 import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
+import Switcher from '@skbkontur/react-ui/components/Switcher/Switcher'
 import SidePage from '@skbkontur/react-ui/components/SidePage/SidePage'
 import * as React from 'react'
 import injectSheet from 'react-jss'
@@ -160,7 +161,24 @@ class FiltersSidePage extends React.Component<Props, State> {
                                     }}
                                 />
                             </div>
-                            
+                            {/* Ходит ли на митапы */}
+                            <div className={classes.row}>
+                                <span>Посещает митапы</span>
+                                <Switcher
+                                    label=''
+                                    items={['Да', 'Нет', 'Неважно']}
+                                    value={this.state.isCommunity}
+                                    onChange={(_, isCommunity) => {
+                                        const state = {
+                                            ...this.state,
+                                            isCommunity
+                                        }
+
+                                        this.notify(state)
+                                        this.setState({ isCommunity })
+                                    }}
+                                />
+                            </div>
                         </Gapped>
                     </SidePage.Container>
                 </SidePage.Body>

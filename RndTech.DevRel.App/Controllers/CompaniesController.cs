@@ -17,7 +17,7 @@ namespace RndTech.DevRel.App.Controllers
 		}
 
 		[Route("known-and-wanted")]
-		public Dictionary<string, CompanyModel> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages)
+		public Dictionary<string, CompanyModel> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
 		{
 			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities).ToList();
 			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations).ToList();
@@ -28,6 +28,8 @@ namespace RndTech.DevRel.App.Controllers
 				.Select(age => int.Parse(age.Substring(0, 2)))
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToList();
+			isCommunity = isCommunity.Trim('"');
+			bool? communityFilter = isCommunity == "Да" ? true : (isCommunity == "Нет" ? (bool?)false : null);
 
 			return InMemoryDbContext.GetCompanyModels(
 				citiesFilter: citiesFilter, 
@@ -35,11 +37,12 @@ namespace RndTech.DevRel.App.Controllers
 				programmingLanguageFilter: languagesFilter, 
 				professionFilter: professionFilter,
 				experienceLevelFilter: experienceLevelFilter,
-				agesFilter: ageFilter).ToDictionary(cm => cm.Name, cm => cm);
+				agesFilter: ageFilter,
+				isCommunityFilter: communityFilter).ToDictionary(cm => cm.Name, cm => cm);
 		}
 
 		[Route("meta")]
-		public MetaModel GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages)
+		public MetaModel GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
 		{
 			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities).ToList();
 			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations).ToList();
@@ -50,6 +53,8 @@ namespace RndTech.DevRel.App.Controllers
 				.Select(age => int.Parse(age.Substring(0, 2)))
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToList();
+			isCommunity = isCommunity.Trim('"');
+			bool? communityFilter = isCommunity == "Да" ? true : (isCommunity == "Нет" ? (bool?) false : null);
 
 			return InMemoryDbContext.GetMeta(
 				citiesFilter: citiesFilter,
@@ -57,7 +62,8 @@ namespace RndTech.DevRel.App.Controllers
 				programmingLanguageFilter: languagesFilter,
 				professionFilter: professionFilter,
 				experienceLevelFilter: experienceLevelFilter,
-				agesFilter: ageFilter);
+				agesFilter: ageFilter,
+				isCommunityFilter: communityFilter);
 		}
 	}
 }
