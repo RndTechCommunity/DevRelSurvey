@@ -1,6 +1,7 @@
 import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
 import Checkbox from '@skbkontur/react-ui/components/Checkbox/Checkbox'
 import Loader from '@skbkontur/react-ui/components/Loader/Loader'
+import Tooltip from '@skbkontur/react-ui/components/Tooltip/Tooltip'
 import * as React from 'react'
 import injectSheet, { CSSProperties } from 'react-jss'
 import {
@@ -104,6 +105,21 @@ class KnownAndWantedPage extends React.Component<Props, State> {
             })
     }
 
+    renderTooltip = () => (
+        <div
+            style={{
+                width: 250,
+                fontSize: 14,
+                fontFamily: 'Segoe UI',
+            }}
+        >
+            Если эта опция включена, то для каждой компании отображается область, 
+            в которую с 95% вероятностью попадает её узнаваемость и привлекательность.
+            Данные считаются по формуле доверительного интервала для генерального среднего.
+
+        </div>
+    );
+
     render() {
         const { classes } = this.props
         const {
@@ -138,9 +154,11 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             selected={selectedCompanies}
                             onChange={selectedCompanies => this.setState({ selectedCompanies })}
                         />
-                        <Checkbox checked={useError} onChange={(_, v) => this.setState({ useError : v })}>
-                            Отображать доверительный интервал
-                        </Checkbox>
+                        <Tooltip render={this.renderTooltip} pos='right top'>
+                            <Checkbox checked={useError} onChange={(_, v) => this.setState({ useError : v })}>
+                                Отображать доверительный интервал
+                            </Checkbox>
+                        </Tooltip>
                     </Gapped>
                 </div>
                 <ResponsiveContainer aspect={1.5} width={1100}>
