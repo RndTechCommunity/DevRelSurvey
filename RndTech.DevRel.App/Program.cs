@@ -19,6 +19,7 @@ namespace RndTech.DevRel.App
 
 		public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
 			WebHost.CreateDefaultBuilder(args)
+				.ConfigureAppConfiguration(builder => builder.AddJsonFile("appsettings.Heroku.json"))
 				.UseStartup<Startup>();
 	}
 }

@@ -1,3 +1,5 @@
+using System.IO;
+using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -5,7 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using RndTech.DevRel.App.Model;
+using RndTech.DevRel.App.Model.Survey2020;
 
 namespace RndTech.DevRel.App
 {
@@ -22,7 +26,8 @@ namespace RndTech.DevRel.App
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-
+			services.Configure<Survey2020SftpCredentials>(Configuration.GetSection("Survey2020SftpCredentials"));
+			
 			// In production, the React files will be served from this directory
 			services.AddSpaStaticFiles(configuration =>
 			{
@@ -63,6 +68,7 @@ namespace RndTech.DevRel.App
 					spa.UseReactDevelopmentServer(npmScript: "start");
 				}
 			});
+
 			InMemoryDbContext.AddCsv("testdata.csv");
 		}
 	}

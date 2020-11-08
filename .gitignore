@@ -338,3 +338,7 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+# ignore appsettings configuration files
+**/appsettings.development.json
+**/appsettings.heroku.json
+**/appsettings.production.json
