@@ -2,6 +2,7 @@
 using CsvHelper.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -38,7 +39,7 @@ namespace RndTech.DevRel.App.Model
 		public static void AddCsv(string filePath)
 		{
 			using (var reader = new StreamReader(filePath))
-			using (var csv = new CsvReader(reader, new Configuration() { BadDataFound = null, Delimiter = "," }))
+			using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { BadDataFound = null, Delimiter = "," }))
 			{
 				while (csv.Read())
 				{

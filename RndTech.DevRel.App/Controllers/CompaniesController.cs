@@ -1,14 +1,23 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RndTech.DevRel.App.Model;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-	
+using System.Threading.Tasks;
+using Enyim.Caching;
+using Newtonsoft.Json;
+
 namespace RndTech.DevRel.App.Controllers
 {
 	[Route("api/")]
 	public class CompanyController : Controller
 	{
+		private readonly IMemcachedClient cache;
+
+		public CompanyController(IMemcachedClient cache)
+		{
+			this.cache = cache;
+		}
+		
 		[Route("all-companies")]
 		public List<CompanyModel> All()
 		{
@@ -16,14 +25,19 @@ namespace RndTech.DevRel.App.Controllers
 		}
 
 		[Route("known-and-wanted")]
-		public Dictionary<string, CompanyModel> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
+		public async Task<Dictionary<string, CompanyModel>> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
 		{
-			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities);
-			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations);
-			var languagesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(languages);
-			var professionFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(professions);
-			var experienceLevelFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(experiences);
-			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages)
+			var key = $"COMPANIES_{cities}_{educations}_{languages}_{professions}_{experiences}_{ages}_{isCommunity}".Replace(" ", "");
+			var cachedResult = await cache.GetAsync<Dictionary<string, CompanyModel>>(key);
+			if (cachedResult.Success)
+				return cachedResult.Value;
+
+			var citiesFilter = JsonConvert.DeserializeObject<string[]>(cities);
+			var educationFilter = JsonConvert.DeserializeObject<string[]>(educations);
+			var languagesFilter = JsonConvert.DeserializeObject<string[]>(languages);
+			var professionFilter = JsonConvert.DeserializeObject<string[]>(professions);
+			var experienceLevelFilter = JsonConvert.DeserializeObject<string[]>(experiences);
+			var ageFilter = JsonConvert.DeserializeObject<string[]>(ages)
 				.Select(age => int.Parse(age.Substring(0, 2)))
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToArray();
@@ -38,18 +52,24 @@ namespace RndTech.DevRel.App.Controllers
 				experienceLevelFilter: experienceLevelFilter,
 				agesFilter: ageFilter,
 				isCommunityFilter: communityFilter).ToDictionary(cm => cm.Name, cm => cm);
+			await cache.AddAsync(key, r, 60 * 60 * 24);
 			return r;
 		}
 
 		[Route("meta")]
-		public MetaModel GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
+		public async Task<MetaModel> GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
 		{
-			var citiesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(cities);
-			var educationFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(educations);
-			var languagesFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(languages);
-			var professionFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(professions);
-			var experienceLevelFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(experiences);
-			var ageFilter = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>(ages)
+			var key = $"META_{cities}_{educations}_{languages}_{professions}_{experiences}_{ages}_{isCommunity}".Replace(" ", "");
+			var cachedResult = await cache.GetAsync<MetaModel>(key);
+			if (cachedResult.Success)
+				return cachedResult.Value;
+
+			var citiesFilter = JsonConvert.DeserializeObject<string[]>(cities);
+			var educationFilter = JsonConvert.DeserializeObject<string[]>(educations);
+			var languagesFilter = JsonConvert.DeserializeObject<string[]>(languages);
+			var professionFilter = JsonConvert.DeserializeObject<string[]>(professions);
+			var experienceLevelFilter = JsonConvert.DeserializeObject<string[]>(experiences);
+			var ageFilter = JsonConvert.DeserializeObject<string[]>(ages)
 				.Select(age => int.Parse(age.Substring(0, 2)))
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToArray();
@@ -64,6 +84,7 @@ namespace RndTech.DevRel.App.Controllers
 				experienceLevelFilter: experienceLevelFilter,
 				agesFilter: ageFilter,
 				isCommunityFilter: communityFilter);
+			await cache.AddAsync(key, r, 60 * 60 * 24);
 			return r;
 		}
 	}

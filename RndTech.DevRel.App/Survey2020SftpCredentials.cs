@@ -2,6 +2,8 @@
 {
     public class Survey2020SftpCredentials
     {
+        public const string ConfigKey = "Survey2020SftpCredentials";
+        
         public string Host { get; set; }
         public string Login { get; set; }
         public string Password { get; set; }
