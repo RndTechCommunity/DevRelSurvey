@@ -12,7 +12,9 @@ namespace RndTech.DevRel.App.Model
 	public static class InMemoryDbContext
 	{
 		private static List<CompanyScore> _scores = new List<CompanyScore>();
-		private static IEnumerable<string> _companyNames;
+		private static Dictionary<string, List<CompanyScore>> _companyScores = new Dictionary<string, List<CompanyScore>>();
+		private static int _total;
+		private static string[] _companyNames;
 
 		private static List<string> _cities;
 		public static List<string> GetCities() => _cities ?? (_cities = _scores.Select(s => s.City).GroupBy(c => c).Where(g => g.Count() > 5).Select(g => g.Key).Distinct().ToList());
@@ -27,9 +29,11 @@ namespace RndTech.DevRel.App.Model
 		public static List<string> GetProfessions() => _professions ?? (_professions = _scores.Select(s => s.Profession).Distinct().ToList());
 
 		private static List<string> _languages;
-		public static List<string> GetProgrammingLanguages() => _languages = (_languages ?? _scores.SelectMany(s => s.ProgrammingLanguages).Distinct().OrderBy(l => l).ToList());
-		public static List<string> GetCompanySources() => _scores.SelectMany(s => s.CompanySources).Distinct().ToList();
-		public static List<string> GetCommunitySources() => _scores.SelectMany(s => s.CommunitySource).Distinct().ToList();
+		public static List<string> GetProgrammingLanguages() => _languages ?? (_languages = _scores.SelectMany(s => s.ProgrammingLanguages).Distinct().OrderBy(l => l).ToList());
+		private static List<string> _companySources;
+		public static List<string> GetCompanySources() => _companySources ?? (_companySources = _scores.SelectMany(s => s.CompanySources).Distinct().ToList());
+		private static List<string> _communitySources;
+		public static List<string> GetCommunitySources() => _communitySources ?? (_communitySources = _scores.SelectMany(s => s.CommunitySource).Distinct().ToList());
 
 		public static void AddCsv(string filePath)
 		{
@@ -61,24 +65,28 @@ namespace RndTech.DevRel.App.Model
 						};
 
 						_scores.Add(companyScore);
+						if(!_companyScores.ContainsKey(companyScore.CompanyName))
+							_companyScores.Add(companyScore.CompanyName, new List<CompanyScore>());
+						_companyScores[companyScore.CompanyName].Add(companyScore);
 					}
 				}
 			}
 
-			_companyNames = _scores.Select(s => s.CompanyName).Distinct();
+			_companyNames = _scores.Select(s => s.CompanyName).Distinct().ToArray();
+			_total = _scores.GroupBy(s => s.IntervieweeId).Count();
 		}
 
 		public static MetaModel GetMeta(
-			List<int> agesFilter = null,
-			List<string> citiesFilter = null,
-			List<string> educationFilter = null,
-			List<string> experienceLevelFilter = null,
-			List<int> experienceYearsFilter = null,
-			List<string> professionFilter = null,
-			List<string> programmingLanguageFilter = null,
-			List<string> companySourcesFilter = null,
+			int[] agesFilter = null,
+			string[] citiesFilter = null,
+			string[] educationFilter = null,
+			string[] experienceLevelFilter = null,
+			int[] experienceYearsFilter = null,
+			string[] professionFilter = null,
+			string[] programmingLanguageFilter = null,
+			string[] companySourcesFilter = null,
 			bool? isCommunityFilter = null,
-			List<string> communitySourcesFilter = null)
+			string[] communitySourcesFilter = null)
 		{
 			var meta = new MetaModel();
 			var data = new Dictionary<string, Dictionary<string, int>>();
@@ -86,7 +94,7 @@ namespace RndTech.DevRel.App.Model
 			var scores = FilterSource(_scores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter);
 
 			// Группируем по респондентам
-			var interviewees = scores.GroupBy(s => s.IntervieweeId);
+			var interviewees = scores.GroupBy(s => s.IntervieweeId).ToArray();
 
 			// Теперь надо сделать по каждой группе выборку кого и сколько
 			// Города cities
@@ -110,38 +118,33 @@ namespace RndTech.DevRel.App.Model
 
 
 			meta.count = interviewees.Count();
-			meta.Total = _scores.GroupBy(s => s.IntervieweeId).Count();
+			meta.Total = _total;
 			meta.sources = data;
 			return meta;
 		}
 
 		public static List<CompanyModel> GetCompanyModels(
-			List<int> agesFilter = null, 
-			List<string> citiesFilter = null, 
-			List<string> educationFilter = null, 
-			List<string> experienceLevelFilter = null, 
-			List<int> experienceYearsFilter = null, 
-			List<string> professionFilter = null, 
-			List<string> programmingLanguageFilter = null, 
-			List<string> companySourcesFilter = null, 
+			int[] agesFilter = null, 
+			string[] citiesFilter = null, 
+			string[] educationFilter = null, 
+			string[] experienceLevelFilter = null, 
+			int[] experienceYearsFilter = null, 
+			string[] professionFilter = null, 
+			string[] programmingLanguageFilter = null, 
+			string[] companySourcesFilter = null, 
 			bool? isCommunityFilter = null, 
-			List<string> communitySourcesFilter = null)
+			string[] communitySourcesFilter = null)
 		{
-			var scores = FilterSource(_scores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter).ToArray();
 			//var interviewees = scores.GroupBy(s => s.IntervieweeId).Count();
 
 			var errorLevel = 0.0441 + 0.03; // +(interviewees < 70 ? (interviewees < 50 ? (interviewees < 18 ? 0.05 : 0.03) : 0.01) : 0);
 
-			var companyNames = _companyNames;
 			var result = new List<CompanyModel>();
-			foreach(var company in companyNames)
+			foreach(var company in _companyNames)
 			{
-				var companyScores = scores.Where(s => s.CompanyName == company);
+				var companyScores = _companyScores[company];
+				var companyScoresArray = FilterSource(companyScores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter).ToArray();
 
-				//companyScores = FilterSource(companyScores, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, experienceYearsFilter, professionFilter, programmingLanguageFilter, companySourcesFilter, isCommunityFilter, communitySourcesFilter);
-
-				// Инстанцируем чтобы быстро считать
-				var companyScoresArray = companyScores;//.ToArray();
 				result.Add(new CompanyModel
 								{
 									Name = company,
@@ -156,16 +159,16 @@ namespace RndTech.DevRel.App.Model
 
 		private static IEnumerable<CompanyScore> FilterSource(
 			IEnumerable<CompanyScore> source,
-			List<int> agesFilter,
-			List<string> citiesFilter,
-			List<string> educationFilter,
-			List<string> experienceLevelFilter,
-			List<int> experienceYearsFilter,
-			List<string> professionFilter,
-			List<string> programmingLanguageFilter,
-			List<string> companySourcesFilter,
+			int[] agesFilter,
+			string[] citiesFilter,
+			string[] educationFilter,
+			string[] experienceLevelFilter,
+			int[] experienceYearsFilter,
+			string[] professionFilter,
+			string[] programmingLanguageFilter,
+			string[] companySourcesFilter,
 			bool? isCommunityFilter,
-			List<string> communitySourcesFilter)
+			string[] communitySourcesFilter)
 		{
 			if (agesFilter != null && agesFilter.Any())
 				source = source.Where(cs => agesFilter.Contains(cs.Age));
