@@ -1,10 +1,14 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using RndTech.DevRel.App.DAL;
 using RndTech.DevRel.App.Model;
 
 namespace RndTech.DevRel.App
@@ -30,6 +34,12 @@ namespace RndTech.DevRel.App
 			{
 				configuration.RootPath = "ClientApp/build";
 			});
+
+			services.AddDbContext<SurveyDbContext>(
+				dbContextOptions => dbContextOptions
+					.UseMySql(
+						""
+					));
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

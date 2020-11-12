@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System;
+using Microsoft.AspNetCore.Mvc;
 using RndTech.DevRel.App.Model;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
+using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Controllers
 {
@@ -11,10 +13,12 @@ namespace RndTech.DevRel.App.Controllers
 	public class CompanyController : Controller
 	{
 		private const int CacheSeconds = 60 * 60 * 24;
+		private readonly SurveyDbContext dbContext;
 		private readonly IMemcachedClient cache;
 
-		public CompanyController(IMemcachedClient cache)
+		public CompanyController(SurveyDbContext dbContext, IMemcachedClient cache)
 		{
+			this.dbContext = dbContext;
 			this.cache = cache;
 		}
 		
@@ -39,6 +43,17 @@ namespace RndTech.DevRel.App.Controllers
 						programmingLanguageFilter: filter.languages,
 						professionFilter: filter.professions,
 						experienceLevelFilter: filter.experiences,
+
+			var xxx = SurveyService.GetCompanyModels(
+				dbContext,
+				agesFilter: ageFilter,
+				citiesFilter: citiesFilter,
+				educationFilter: educationFilter,
+				experienceLevelFilter: experienceLevelFilter,
+				professionFilter: professionFilter,
+				programmingLanguageFilter: languagesFilter,
+				isCommunityFilter: communityFilter);
+			return xxx.ToDictionary(cm => cm.Name, cm => cm);
 						agesFilter: ageFilter,
 						isCommunityFilter: communityFilter)
 					.ToDictionary(cm => cm.Name, cm => cm);
