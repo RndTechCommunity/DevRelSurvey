@@ -385,6 +385,7 @@ const surveyJSON = {
                         "Apsis",
                         "Arcadia",
                         "Auriga",
+                        "BETCITY",
                         "Cboss",
                         "ChilliCode",
                         "CloudLinux",

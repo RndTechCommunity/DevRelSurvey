@@ -1,10 +1,6 @@
-import ExportIcon from '@skbkontur/react-icons/Export'
-import FilterIcon from '@skbkontur/react-icons/Filter'
-import Button from '@skbkontur/react-ui/components/Button/Button'
-import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
-import Tabs from '@skbkontur/react-ui/components/Tabs/Tabs'
 import * as React from 'react'
-import injectSheet from 'react-jss'
+import injectSheet from 'react-jss';
+import { Tabs } from '@skbkontur/react-ui';
 
 const styles = {
     container: {
@@ -17,12 +13,14 @@ const styles = {
     }
 }
 
+const menuItemStyle = {
+    textDecoration: 'none'
+};
+
 type Props = {
     classes?: any,
     active: MenuId,
     onChange: (item: MenuId) => void,
-    onShowFilters: () => void,
-    onOpenDuplicate: () => void,
 }
 
 type MenuItem = {
@@ -32,7 +30,6 @@ type MenuItem = {
 
 export type MenuId =
     'known-and-wanted' |
-    'selection-factors' |
     'data-meta'
 
 const items: MenuItem[] = [
@@ -52,8 +49,6 @@ class Menu extends React.Component<Props> {
             classes,
             active,
             onChange,
-            onShowFilters,
-            onOpenDuplicate
         } = this.props
 
         return (
@@ -61,27 +56,13 @@ class Menu extends React.Component<Props> {
                 <div className={classes.menu}>
                     <Tabs
                         value={active}
-                        onChange={(_, active) => onChange(active as MenuId)}
+                        onValueChange={active => onChange(active as MenuId)}
                     >
                         {items.map(item => (
-                            <Tabs.Tab key={item.id} id={item.id}>{item.title}</Tabs.Tab>
+                            <Tabs.Tab style={menuItemStyle} key={item.id} id={item.id}>{item.title}</Tabs.Tab>
                         ))}
                     </Tabs>
                 </div>
-                <Gapped>
-                    <Button
-                        icon={<FilterIcon />}
-                        onClick={onShowFilters}
-                    >
-                        Фильтровать
-                    </Button>
-                    <Button
-                        icon={<ExportIcon />}
-                        onClick={onOpenDuplicate}
-                    >
-                        Дублировать
-                    </Button>
-                </Gapped>
             </div>
         )
     }

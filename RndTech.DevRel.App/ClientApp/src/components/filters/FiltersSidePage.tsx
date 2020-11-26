@@ -1,9 +1,5 @@
-import Button from '@skbkontur/react-ui/components/Button/Button'
-import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
-import Switcher from '@skbkontur/react-ui/components/Switcher/Switcher'
-import SidePage from '@skbkontur/react-ui/components/SidePage/SidePage'
 import * as React from 'react'
-import injectSheet from 'react-jss'
+import injectSheet from 'react-jss';
 import {
     getAges,
     getCities,
@@ -16,181 +12,225 @@ import {
 } from '../../api'
 import MultiSelect from '../MultiSelect'
 import {
-    defaultFilter,
+    topRostovFilter,
+    topTaganrogFilter,
+    topQAFilter,
+    topFrontendFilter,
+    topStudentsFilter,
     Filter,
 } from './Filter'
+import { Button, Dropdown, Icon, Nav, SelectPicker } from 'rsuite';
 
 const styles = {
     row: {
         display: 'grid',
         gridTemplateColumns: '1fr 2fr',
         lineHeight: '32px'
-    }
+    },
+    sideBar: {
+        maxWidth: '300px',
+        display: 'inline-block',
+        background: 'rgb(65, 70, 78)'
+    },
 }
 
 type Props = {
     classes?: any,
     filter: Filter,
     onSetFilter: (filter: Filter) => void,
-    onClose: () => void
+    onOpenDuplicate: () => void,
 }
 
 type State = Filter
 
 class FiltersSidePage extends React.Component<Props, State> {
     state = this.props.filter
+    isCommunityDataSource = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
 
     notify(state: State) {
         this.props.onSetFilter(state)
     }
 
-    reset() {
-        this.notify(defaultFilter)
-        this.setState(defaultFilter)
+    reset(newFilter: any) {
+        console.log(this.state)
+        this.notify(newFilter)
+        this.setState(newFilter)
     }
 
     render() {
-        const { classes, onClose } = this.props
+        const { onOpenDuplicate } = this.props
 
-        return (
-            <SidePage onClose={onClose}>
-                <SidePage.Header>Выборка данных</SidePage.Header>
-                <SidePage.Body>
-                    <SidePage.Container>
-                        <Gapped vertical={true}>
-                            {/* Город */}
-                            <div className={classes.row}>
-                                <span>Город</span>
-                                <MultiSelect
-                                    fetch={getCities}
-                                    selected={this.state.cities}
-                                    onChange={cities => {
-                                        const state = {
-                                            ...this.state,
-                                            cities
-                                        }
+        return (             
+            <Nav>
+                <Dropdown eventKey='1' open={true} title='Фильтры' icon={<Icon icon='filter' />}>
+                <Nav.Item eventKey='1-1' componentClass='span'>
+                            <MultiSelect
+                                fetch={getCities}
+                                placeholder='Город'
+                                selected={this.state.cities}
+                                onChange={cities => {
+                                    const state = {
+                                        ...this.state,
+                                        cities
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ cities })
-                                    }}
-                                />
-                            </div>
-                            {/* Возраст */}
-                            <div className={classes.row}>
-                                <span>Возраст</span>
-                                <MultiSelect
-                                    fetch={getAges}
-                                    selected={this.state.ages}
-                                    onChange={ages => {
-                                        const state = {
-                                            ...this.state,
-                                            ages
-                                        }
+                                    this.notify(state)
+                                    this.setState({ cities })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-2' componentClass='span'>
+                            <MultiSelect
+                                fetch={getAges}
+                                selected={this.state.ages}
+                                placeholder='Возраст'
+                                onChange={ages => {
+                                    const state = {
+                                        ...this.state,
+                                        ages
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ ages })
-                                    }}
-                                />
-                            </div>
-                            {/* Образование */}
-                            <div className={classes.row}>
-                                <span>Образование</span>
-                                <MultiSelect
-                                    fetch={getEducations}
-                                    selected={this.state.educations}
-                                    onChange={educations => {
-                                        const state = {
-                                            ...this.state,
-                                            educations
-                                        }
+                                    this.notify(state)
+                                    this.setState({ ages })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-3' componentClass='span'>
+                            <MultiSelect
+                                fetch={getEducations}
+                                selected={this.state.educations}
+                                placeholder='Образование'
+                                onChange={educations => {
+                                    const state = {
+                                        ...this.state,
+                                        educations
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ educations })
-                                    }}
-                                />
-                            </div>
-                            {/* СТАЖ НЕ РЕАЛИЗОВАН */}
-                            {/* Уровень */}
-                            <div className={classes.row}>
-                                <span>Уровень</span>
-                                <MultiSelect
-                                    fetch={getExperienceLevels}
-                                    selected={this.state.experiences}
-                                    onChange={experiences => {
-                                        const state = {
-                                            ...this.state,
-                                            experiences
-                                        }
+                                    this.notify(state)
+                                    this.setState({ educations })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-4' componentClass='span'>
+                            <MultiSelect
+                                fetch={getExperienceLevels}
+                                selected={this.state.experiences}
+                                placeholder='Опыт'
+                                onChange={experiences => {
+                                    const state = {
+                                        ...this.state,
+                                        experiences
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ experiences })
-                                    }}
-                                />
-                            </div>
-                            {/* Профессия */}
-                            <div className={classes.row}>
-                                <span>Профессия</span>
-                                <MultiSelect
-                                    fetch={getProfessions}
-                                    selected={this.state.professions}
-                                    onChange={professions => {
-                                        const state = {
-                                            ...this.state,
-                                            professions
-                                        }
+                                    this.notify(state)
+                                    this.setState({ experiences })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-5' componentClass='span'>
+                            <MultiSelect
+                                fetch={getProfessions}
+                                selected={this.state.professions}
+                                placeholder='Профессия'
+                                onChange={professions => {
+                                    const state = {
+                                        ...this.state,
+                                        professions
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ professions })
-                                    }}
-                                />
-                            </div>
-                            {/* Язык */}
-                            <div className={classes.row}>
-                                <span>Язык</span>
-                                <MultiSelect
-                                    fetch={getProgrammingLanguages}
-                                    selected={this.state.languages}
-                                    onChange={languages => {
-                                        const state = {
-                                            ...this.state,
-                                            languages
-                                        }
+                                    this.notify(state)
+                                    this.setState({ professions })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-6' componentClass='span'>
+                            <MultiSelect
+                                fetch={getProgrammingLanguages}
+                                placeholder='Язык'
+                                selected={this.state.languages}
+                                onChange={languages => {
+                                    const state = {
+                                        ...this.state,
+                                        languages
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ languages })
-                                    }}
-                                />
-                            </div>
-                            {/* Ходит ли на митапы */}
-                            <div className={classes.row}>
-                                <span>Посещает митапы</span>
-                                <Switcher
-                                    label=''
-                                    items={['Да', 'Нет', 'Неважно']}
-                                    value={this.state.isCommunity}
-                                    onChange={(_, isCommunity) => {
-                                        const state = {
-                                            ...this.state,
-                                            isCommunity
-                                        }
+                                    this.notify(state)
+                                    this.setState({ languages })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-7' componentClass='span'>
+                            <SelectPicker 
+                                block
+                                data={this.isCommunityDataSource}
+                                placeholder='Посещает митапы'
+                                value={this.state.isCommunity}
+                                onChange={isCommunity => {
+                                    const state = {
+                                        ...this.state,
+                                        isCommunity
+                                    }
 
-                                        this.notify(state)
-                                        this.setState({ isCommunity })
-                                    }}
-                                />
-                            </div>
-                        </Gapped>
-                    </SidePage.Container>
-                </SidePage.Body>
-                <SidePage.Footer>
-                    <Button
-                        disabled={JSON.stringify(this.state) === JSON.stringify(defaultFilter)}
-                        onClick={() => this.reset()}
-                    >
-                        Сбросить
+                                    this.notify(state)
+                                    this.setState({ isCommunity })
+                                }}
+                            />
+                </Nav.Item>
+                <Nav.Item eventKey='1-8' componentClass='span'>
+                    <Button appearance='link' onClick={onOpenDuplicate}>
+                        <Icon icon='copy-o' />
+                        Дублировать
                     </Button>
-                </SidePage.Footer>
-            </SidePage>
+                </Nav.Item>
+                </Dropdown>
+                <Dropdown eventKey='2' open={true} title='Популярные фильтры' icon={<Icon icon='fire' />}>
+                    <Dropdown.Item>
+                        <Button
+                            appearance='link'
+                            disabled={JSON.stringify(this.state) === JSON.stringify(topRostovFilter)}
+                            onClick={() => this.reset(topRostovFilter)}
+                        >
+                            Топ Ростова
+                        </Button>
+                    </Dropdown.Item>
+                    <Dropdown.Item>
+                        <Button
+                            appearance='link'
+                            disabled={JSON.stringify(this.state) === JSON.stringify(topTaganrogFilter)}
+                            onClick={() => this.reset(topTaganrogFilter)}
+                        >
+                            Топ Таганрога
+                        </Button>
+                    </Dropdown.Item>
+                    <Dropdown.Item>
+                        <Button
+                            appearance='link'
+                            disabled={JSON.stringify(this.state) === JSON.stringify(topQAFilter)}
+                            onClick={() => this.reset(topQAFilter)}
+                        >
+                            Какие компании знают QA
+                        </Button>
+                    </Dropdown.Item>
+                    <Dropdown.Item>
+                        <Button
+                            appearance='link'
+                            disabled={JSON.stringify(this.state) === JSON.stringify(topFrontendFilter)}
+                            onClick={() => this.reset(topFrontendFilter)}
+                        >
+                            Куда хотят фронтендеры
+                        </Button>
+                    </Dropdown.Item>
+                    <Dropdown.Item>
+                        <Button
+                            appearance='link'
+                            disabled={JSON.stringify(this.state) === JSON.stringify(topStudentsFilter)}
+                            onClick={() => this.reset(topStudentsFilter)}
+                        >
+                            Известные студентам
+                        </Button>
+                    </Dropdown.Item>
+                </Dropdown>
+            </Nav>
         )
     }
 }

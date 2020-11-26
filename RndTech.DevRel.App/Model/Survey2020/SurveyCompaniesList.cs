@@ -19,6 +19,7 @@ namespace RndTech.DevRel.App.Model.Survey2020
         public SurveyCompanyAnswer Apsis { get; set; } 
         public SurveyCompanyAnswer Arcadia { get; set; } 
         public SurveyCompanyAnswer Auriga { get; set; } 
+        public SurveyCompanyAnswer BETCITY { get; set; } 
         public SurveyCompanyAnswer Cboss { get; set; } 
         public SurveyCompanyAnswer ChilliCode { get; set; } 
         public SurveyCompanyAnswer CloudLinux { get; set; } 

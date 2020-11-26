@@ -1,9 +1,4 @@
-import Gapped from '@skbkontur/react-ui/components/Gapped/Gapped'
-import Checkbox from '@skbkontur/react-ui/components/Checkbox/Checkbox'
-import Loader from '@skbkontur/react-ui/components/Loader/Loader'
-import Tooltip from '@skbkontur/react-ui/components/Tooltip/Tooltip'
 import * as React from 'react'
-import injectSheet, { CSSProperties } from 'react-jss'
 import {
     CartesianGrid,
     Dot,
@@ -17,21 +12,23 @@ import { getKnownAndWantedData, KnownAndWantedData } from '../../api'
 import { toPercent } from '../../format'
 import { Filter, selectedCompanies } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
+import injectSheet from 'react-jss';
+import { Gapped } from '@skbkontur/react-ui';
+import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
+
+const defaultFillColor = '#AAAAAA'
 
 const styles = {
     container: {},
     companies: {
         position: 'absolute',
-        top: 15,
-        left: 15,
+        margin: '15px',
         zIndex: 1000
-    } as CSSProperties<Props>,
+    },
     chart: {
-        fontSize: '12px'
+        fontSize: '12px',
     }
 }
-
-const defaultFillColor = '#666'
 
 const companyFillColorMap = {
     'Контур': '#D70C17',
@@ -54,7 +51,7 @@ type Props = {
 type State = {
     isReady: boolean,
     companyEntries: CompanyEntry[]
-    companies: string[],
+    companies: { value: string; label: any; }[],
     maxWantedLevel: number,
     useError: boolean,
     selectedCompanies: string[]
@@ -77,9 +74,25 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         selectedCompanies,
     }
 
+    tooltip = (
+        <Tooltip>
+            Если эта опция включена, то для каждой компании отображается область,
+            в которую <b>с 95% вероятностью попадает её узнаваемость и привлекательность</b>.
+            Данные считаются по формуле доверительного интервала для генерального среднего.
+        </Tooltip>
+    );
+
+    _isMounted = false
+
     componentDidMount() {
+        this._isMounted = true;
+
         this.loadData(this.props.filter)
-            .then(() => this.setState({ isReady: true }))
+            .then(() => {
+                    if (this._isMounted) {
+                        this.setState({isReady: true})
+                    }
+                })
     }
 
     componentDidUpdate(prevProps: Props) {
@@ -87,38 +100,35 @@ class KnownAndWantedPage extends React.Component<Props, State> {
             this.setState({ isReady: false })
 
             this.loadData(this.props.filter)
-                .then(() => this.setState({ isReady: true }))
+                .then(() => {
+                    if (this._isMounted) {
+                        this.setState({isReady: true})
+                    }
+                })
         }
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     loadData(filter: Filter) {
         return getKnownAndWantedData(filter)
             .then(data => {
                 const companyEntries = KnownAndWantedPage.calculateEntries(data)
-                const companies = KnownAndWantedPage.calculateList(companyEntries).sort()
+                const companies = KnownAndWantedPage.calculateList(companyEntries).sort().map(x => ({
+                    value: x, label: x
+                }))
                 const maxWantedLevel = Math.max.apply(null, companyEntries.map(ce => ce.wantedLevel)) + 0.05;
-                this.setState({
-                    companyEntries,
-                    companies,
-                    maxWantedLevel
-                })
+                if (this._isMounted) {
+                    this.setState({
+                        companyEntries,
+                        companies,
+                        maxWantedLevel
+                    })
+                }
             })
     }
-
-    renderTooltip = () => (
-        <div
-            style={{
-                width: 250,
-                fontSize: 14,
-                fontFamily: 'Segoe UI',
-            }}
-        >
-            Если эта опция включена, то для каждой компании отображается область, 
-            в которую с 95% вероятностью попадает её узнаваемость и привлекательность.
-            Данные считаются по формуле доверительного интервала для генерального среднего.
-
-        </div>
-    );
 
     render() {
         const { classes } = this.props
@@ -132,7 +142,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         } = this.state
 
         if (!isReady) {
-            return null
+            return (<Loader content='Загрузка данных' center />)
         }
 
         const entries = selectedCompanies.length > 0
@@ -145,20 +155,21 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         }))
 
         return (
-            <Loader active={!isReady} className={classes.container}>
+            <div className={classes.container}>
                 <div className={classes.companies}>
                     <Gapped>
                         <span>Компании</span>
                         <MultiSelect
                             items={companies}
+                            placeholder='Компании'
                             selected={selectedCompanies}
                             onChange={selectedCompanies => this.setState({ selectedCompanies })}
                         />
-                        <Tooltip render={this.renderTooltip} pos='right top'>
-                            <Checkbox checked={useError} onChange={(_, v) => this.setState({ useError : v })}>
+                        <Whisper placement='top' trigger='hover' speaker={this.tooltip}>
+                            <Checkbox checked={useError} onChange={(v, ch, e) => this.setState({ useError : ch })}>
                                 Отображать доверительный интервал
                             </Checkbox>
-                        </Tooltip>
+                        </Whisper>
                     </Gapped>
                 </div>
                 <ResponsiveContainer aspect={1.5} width={1100}>
@@ -168,7 +179,8 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             label={{
                                 value: 'Узнаваемость',
                                 position: 'center',
-                                dy: 20
+                                dy: 20,
+                                fill: defaultFillColor
                             }}
                             dataKey='knownLevel'
                             type='number'
@@ -182,7 +194,8 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 value: 'Привлекательность',
                                 position: 'center',
                                 angle: -90,
-                                dx: 20
+                                dx: 20,
+                                fill: defaultFillColor
                             }}
                             dataKey='wantedLevel'
                             type='number'
@@ -199,7 +212,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                         />
                     </ScatterChart>
                 </ResponsiveContainer>
-            </Loader>
+            </div>
         )
     }
 

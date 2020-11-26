@@ -5,7 +5,7 @@ export interface Filter {
     professions: string[],
     experiences: string[],
     ages: string[],
-    isCommunity: string
+    isCommunity: string | any
 }
 
 export const selectedCompanies = [
@@ -24,12 +24,52 @@ export const selectedCompanies = [
     'INOSTUDIO'
 ]
 
-export const defaultFilter: Filter = {
+export const topRostovFilter: Filter = {
     cities: ['Ростов-на-Дону, Ростовская область, Россия'],
     educations: [],
     languages: [],
     professions: [],
     experiences: [],
     ages: [],
-    isCommunity: 'Неважно'
+    isCommunity: null
+}
+
+export const topTaganrogFilter: Filter = {
+    cities: ['Таганрог, Ростовская область, Россия'],
+    educations: [],
+    languages: [],
+    professions: [],
+    experiences: [],
+    ages: [],
+    isCommunity: null
+}
+
+export const topQAFilter: Filter = {
+    cities: [],
+    educations: [],
+    languages: [],
+    professions: ['QA, тестировщик'],
+    experiences: [],
+    ages: [],
+    isCommunity: null
+}
+
+export const topFrontendFilter: Filter = {
+    cities: [],
+    educations: [],
+    languages: [],
+    professions: ['Frontend-разработчик'],
+    experiences: [],
+    ages: [],
+    isCommunity: null
+}
+
+export const topStudentsFilter: Filter = {
+    cities: [],
+    educations: ['Высшее, в процессе получения'],
+    languages: [],
+    professions: [],
+    experiences: [],
+    ages: [],
+    isCommunity: null
 }

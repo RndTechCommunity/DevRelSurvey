@@ -1,142 +1,82 @@
 ﻿import * as React from 'react'
-import injectSheet, { CSSProperties } from 'react-jss'
-import { defaultFilter, Filter } from './filters/Filter'
-import FiltersSidePage from './filters/FiltersSidePage'
-import Menu, { MenuId } from './Menu'
-import DataMetaPage from './pages/DataMetaPage'
-import KnownAndWantedPage from './pages/KnownAndWantedPage'
-import Modal from '@skbkontur/react-ui/components/Modal/Modal'
-import Button from '@skbkontur/react-ui/components/Button/Button'
+import { Container, Content, Header, Icon, Nav, Navbar } from 'rsuite';
+import injectSheet from 'react-jss';
+import 'rsuite/lib/styles/themes/dark/index.less';
+import 'rsuite/dist/styles/rsuite-dark.css';
+import Results from './Results';
+import Partners from './Partners';
+import About from './About';
 
 const styles = {
-    app: {
-        display: 'flex',
-        flexDirection: 'column',
-        margin: 0,
-        minHeight: '100vh'
-    } as CSSProperties<Props>,
-    playground: {
-        flexGrow: 1,
-        padding: '50px 50px 25px'
+    barLogo: {
+        maxWidth: '100%',
+        maxHeight: '100%',
+        padding: '10px'
     }
 }
+
+export type SitePageId =
+    'page-results' |
+    'page-partners' |
+    'page-about'
 
 type Props = {
     classes?: any
 }
 
 type State = {
-    tab: MenuId,
-    modalOpened: boolean
-    filter: Filter,
-    areFiltersShown: boolean
+    tab: SitePageId,
 }
 
 class App extends React.Component<Props, State> {
     state: State = {
-        tab: App.restoreTab(),
-        filter: App.restoreFilter(),
-        areFiltersShown: false,
-        modalOpened: false
+        tab: 'page-results',
     }
-
-    modalWidth = window.innerWidth > 500 ? '40%' : '80%'
-
-    renderModal() {
-        return (
-            <Modal width={this.modalWidth} onClose={this.modalClose}>
-                <Modal.Header>Узнаваемость и привлекательность IT-компаний в Ростовской области</Modal.Header>
-                <Modal.Body>
-                    <p>Мы в IT-сообществе RndTech сделали исследование узнаваемости брендов IT-компаний в Ростове и
-                        Таганроге.
-                        В 2019 вы рассказали о нашей анкете 25 раз, а заполнили анкету больше 700 человек. 
-                        И мы спешим поделиться результатами с вами.
-                    </p>
-                    <p>На этом сайте можно посмотреть статистику местного IT-сообщества — на чём люди 
-                        программируют в 2019 году, кем работают и откуда узнают о митапах. 
-                        А ещё — какие компании они знают и в каких хотят работать.
-                    </p>
-                    <p>Прямо сейчас идёт новый опрос узнаваемости компаний в 2020 году! 
-                        Если вы уже проходили опрос в 2019 — пора сверить свои ощущения и обновить информацию. 
-                        Если проходите первый раз, то это ещё лучше, значит теперь у нас будет больше данных. 
-                        В этом году в качестве призов футболки, лицензии Jetbrains и билеты на RndTechConf.
-                    </p>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button use='success' onClick={() => window.open('https://devrel.rndtech.pro/2020.html', '_blank')}>
-                        Пройти опрос
-                    </Button>
-                    <Button use='link' onClick={this.modalClose}>
-                        Посмотреть результаты
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        );
-    }
-
+    
     render() {
         const { classes } = this.props
-        const { tab, filter, areFiltersShown } = this.state
+        const { tab } = this.state
 
         let content =
-            tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                tab === 'known-and-wanted' ? <KnownAndWantedPage filter={filter} /> :
-                    null
-
+             tab === 'page-results' ? <Results /> :
+                tab === 'page-partners' ? <Partners /> :
+                    tab === 'page-about' ? <About /> : null
+        
         return (
-            <div className={classes.app}>
-                <Menu
-                    active={tab}
-                    onChange={tab => this.setState({ tab })}
-                    onShowFilters={() => this.setState({ areFiltersShown: true })}
-                    onOpenDuplicate={() => this.openDuplicate()}
-                />
-                <div className={classes.playground}>
+            <Container className='App'>
+                <Header className='App-header'>
+                    <Navbar appearance='inverse'>
+                        <Navbar.Header>
+                            <img src={'rndtech-logo.png'} className={classes.barLogo} alt='logo' />
+                        </Navbar.Header>
+                        <Navbar.Body>
+                            <Nav onSelect={(key) => this.setState({ tab: key })}>
+                                <Nav.Item icon={<Icon icon='area-chart' />} eventKey='page-results'>
+                                    Результаты
+                                </Nav.Item>
+                                <Nav.Item icon={<Icon icon='heart' />} eventKey='page-partners'>
+                                    Партнеры
+                                </Nav.Item>
+                                <Nav.Item icon={<Icon icon='file-text' />} eventKey='page-about'>
+                                    О проекте
+                                </Nav.Item>
+                            </Nav>
+                            <Nav pullRight>
+                                <Nav.Item icon={<Icon icon='vk'/>} href='https://vk.com/rndtech' target='_blank' />
+                                <Nav.Item 
+                                    icon={<Icon icon='instagram'/>} 
+                                    href='https://www.instagram.com/rndtechpro/' 
+                                    target='_blank' 
+                                />
+                            </Nav>
+                        </Navbar.Body>
+                    </Navbar>
+                </Header>
+                <Content>
                     {content}
-                </div>
-                {areFiltersShown && (
-                    <FiltersSidePage
-                        filter={filter}
-                        onSetFilter={filter => this.setState({ filter })}
-                        onClose={() => this.setState({ areFiltersShown: false })}
-                    />
-                )}
-                {this.state.modalOpened && this.renderModal()}
-            </div>
+                </Content>
+            </Container>
         )
-    }
-
-    componentDidMount() {
-        this.setState({ modalOpened: true });
-    }
-
-    modalClose = () => this.setState({ modalOpened: false })
-
-    openDuplicate() {
-        const { tab, filter } = this.state
-
-        const uri = `?tab=${encodeURIComponent(JSON.stringify(tab))}` +
-            `&filter=${encodeURIComponent(JSON.stringify(filter))}`
-
-        window.open(uri, '_blank')
-    }
-
-    static restoreTab(): MenuId {
-        const params = new URLSearchParams(window.location.search);
-        const maybeTab = params.get('tab')
-
-        return maybeTab !== null
-            ? JSON.parse(decodeURIComponent(maybeTab)) as MenuId
-            : 'data-meta'
-    }
-
-    static restoreFilter(): Filter {
-        const params = new URLSearchParams(window.location.search);
-        const maybeFilter = params.get('filter')
-
-        return maybeFilter !== null
-            ? JSON.parse(decodeURIComponent(maybeFilter)) as Filter
-            : defaultFilter
     }
 }
 

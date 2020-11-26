@@ -12,7 +12,7 @@ namespace RndTech.DevRel.App
     /// <remarks>
     /// Uses the current System.Web.Caching.Cache to store each client request to the decorated route.
     /// </remarks>
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Method)]
     public class ThrottleAttribute : ActionFilterAttribute
     {
         private static IMemoryCache cache = new MemoryCache(new MemoryCacheOptions());
@@ -50,7 +50,7 @@ namespace RndTech.DevRel.App
             {
                 c.Result = new ContentResult {Content = Message.Replace("{n}", Seconds.ToString())};
                 // see 409 - http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-                c.HttpContext.Response.StatusCode = (int) HttpStatusCode.Conflict;
+                c.HttpContext.Response.StatusCode = (int) HttpStatusCode.Accepted;
             }
         }
     }

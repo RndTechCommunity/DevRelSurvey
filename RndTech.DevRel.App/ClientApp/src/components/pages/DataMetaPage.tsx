@@ -1,10 +1,10 @@
 import FilterIcon from '@skbkontur/react-icons/Filter'
-import Loader from '@skbkontur/react-ui/components/Loader/Loader'
 import * as React from 'react'
-import injectSheet, { CSSProperties } from 'react-jss'
 import { getMeta, MetaData } from '../../api'
 import { Filter } from '../filters/Filter'
 import Plural from '../Plural'
+import injectSheet from 'react-jss';
+import { Col, Container, Content, Grid, Loader, Row } from 'rsuite';
 
 const styles = {
     container: {
@@ -22,7 +22,7 @@ const styles = {
     },
     ratio: {
         textAlign: 'right'
-    } as CSSProperties<Props>,
+    },
     important: {
         color: '#228007'
     },
@@ -54,9 +54,16 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         }
     }
 
+    _isMounted = false;
+
     componentDidMount() {
+        this._isMounted = true;
         this.loadData(this.props.filter)
-            .then(() => this.setState({ isReady: true }))
+            .then(() => {
+                if (this._isMounted) {
+                    this.setState({isReady: true})
+                }
+            })
     }
 
     componentDidUpdate(prevProps: Props) {
@@ -64,13 +71,25 @@ class SelectionFactorsPage extends React.Component<Props, State> {
             this.setState({ isReady: false })
 
             this.loadData(this.props.filter)
-                .then(() => this.setState({ isReady: true }))
+                .then(() => {
+                    if (this._isMounted) {
+                        this.setState({isReady: true})
+                    }
+                })
         }
+    }
+
+    componentWillUnmount() {
+        this._isMounted = false;
     }
 
     loadData(filter: Filter) {
         return getMeta(filter)
-            .then(data => this.setState({ data }))
+            .then(data => {
+                if (this._isMounted) {
+                    this.setState({data})
+                }
+            })
     }
 
     render() {
@@ -78,40 +97,58 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         const { isReady, data } = this.state
 
         if (!isReady) {
-            return null
+            return (<Loader content='Загрузка данных' center />)
         }
 
         return (
-            <Loader active={!isReady} className={classes.container}>
-                <div className={classes.groups}>
-                    <h2>
-                        {data.count}
-                        &nbsp;<Plural n={data.count} one='участник' few='участника' many='участников' />
-                        &nbsp;в выборке (из {data.total})
-                    </h2>
-                    <div className={classes.groupRow}>
-                        {this.renderGroup('Города', 'cities')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Возраст', 'ages')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Образование', 'education')}
+            <Container>
+                <Content>
+                    <div className={classes.groups}>
+                        <h4>
+                            {data.count}
+                            &nbsp;<Plural n={data.count} one='участник' few='участника' many='участников' />
+                            &nbsp;в выборке (из {data.total})
+                        </h4>
+                        <Grid fluid>
+                            <Row gutter={36}>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Города', 'cities')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Возраст', 'ages')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Образование', 'education')}
+                                </Col>
+                            </Row>
+
+                            <Row gutter={36}>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Уровни', 'levels')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Профессии', 'professions')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Языки', 'languages')}
+                                </Col>
+                            </Row>
+
+                            <Row gutter={36}>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Источники информации о компаниях', 'companySources')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Ходят ли на митапы', 'isCommunity')}
+                                </Col>
+                                <Col xs={24} sm={24} md={8}>
+                                    {this.renderGroup('Откуда узнают о митапах', 'communitySource')}
+                                </Col>
+                            </Row>
+                        </Grid>
                     </div>
-                    <div className={classes.groupRow}>
-                        {this.renderGroup('Уровни', 'levels')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Профессии', 'professions')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Языки', 'languages')}
-                    </div>
-                    <div className={classes.groupRow}>
-                        {this.renderGroup('Источники информации о компаниях', 'companySources')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Ходят ли на митапы', 'isCommunity')}
-                        <span>&nbsp;</span>
-                        {this.renderGroup('Откуда узнают о митапах', 'communitySource')}
-                    </div>
-                </div>
-            </Loader>
+                </Content>
+            </Container>
         )
     }
 
@@ -121,10 +158,10 @@ class SelectionFactorsPage extends React.Component<Props, State> {
 
         return (
             <div key={title}>
-                <h2>{title} {filter[key] !== undefined && filter[key].length !== 0
+                <h3>{title} {filter[key] !== undefined && filter[key] !== null && filter[key].length !== 0
                     ? <span className={classes.icon}><FilterIcon /></span>
                     : ''
-                }</h2>
+                }</h3>
                 <table className={classes.table}>
                     <tbody>
                         {Object.keys(data.sources[key]).map(i => {
