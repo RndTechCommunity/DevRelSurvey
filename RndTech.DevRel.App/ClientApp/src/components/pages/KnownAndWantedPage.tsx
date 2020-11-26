@@ -16,6 +16,7 @@ import injectSheet from 'react-jss';
 import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
 
 const defaultFillColor = '#AAAAAA'
+const axesColor = '#81E2E7'
 
 const styles = {
     container: {},
@@ -42,15 +43,22 @@ const styles = {
 
 const companyFillColorMap = {
     'Контур': '#D70C17',
-    'Яндекс': 'rgb(249, 219, 103)',
-    'JetBrains': 'rgb(173, 81, 140)',
-    'Тинькофф': 'rgb(64, 71, 86)',
-    'Avito': 'rgb(163, 204, 74)',
-    'ЦентрИнвест': 'rgb(57, 163, 28)',
-    'TradingView (eSignal)': 'rgb(31, 150, 243)',
-    'Umbrella IT': 'rgb(0, 80, 255)',
-    'WIS Software': 'rgb(109, 213, 68)',
-    'INOSTUDIO': 'rgb(189, 33, 47)'
+    'Accenture': '#A100FF',
+    'Oggetto': '#FFDD00',
+    'Distillery': '#d8a462',
+    'Devexperts': '#f4511e',
+    'Rnd soft (+Winvestor)': '#ff8833',
+    'Arcadia': '#2eaecc',
+    'Usetech': '#92B700',
+    'Спецвузавтоматика': '#237BE7',
+    'uKit (uCoz)': '#338FFF',
+    'MentalStack': '#ffe13c',
+    'Reksoft': '#E22227',
+    'WebAnt': '#C21B75',
+    'Intellectika (Интеллектика)': '#03723A',
+    'Вебпрактик': '#FFBE01',
+    'Auriga': '#007BE0',
+    'ЦентрИнвест': 'rgb(57, 163, 28)'
 }
 
 type Props = {
@@ -205,7 +213,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 value: 'Узнаваемость',
                                 position: 'center',
                                 dy: 20,
-                                fill: defaultFillColor
+                                fill: axesColor
                             }}
                             dataKey='knownLevel'
                             type='number'
@@ -220,7 +228,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 position: 'center',
                                 angle: -90,
                                 dx: 20,
-                                fill: defaultFillColor
+                                fill: axesColor
                             }}
                             dataKey='wantedLevel'
                             type='number'
