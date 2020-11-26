@@ -10,7 +10,7 @@ import {
 } from 'recharts'
 import { getKnownAndWantedData, KnownAndWantedData } from '../../api'
 import { toPercent } from '../../format'
-import { Filter, selectedCompanies } from '../filters/Filter'
+import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
 import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
@@ -55,7 +55,11 @@ const companyFillColorMap = {
 
 type Props = {
     classes?: any,
-    filter: Filter
+    filter: Filter,
+    selectedCompanies: string[],
+    onCompaniesChanged: (filter: string[]) => void,
+    useError: boolean,
+    onUseErrorChanged: (filter: boolean) => void
 }
 
 type State = {
@@ -80,8 +84,8 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         companyEntries: [],
         companies: [],
         maxWantedLevel: 0.3,
-        useError: false,
-        selectedCompanies,
+        useError: this.props.useError,
+        selectedCompanies: this.props.selectedCompanies,
     }
 
     tooltip = (
@@ -141,7 +145,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     render() {
-        const { classes } = this.props
+        const { classes, onCompaniesChanged, onUseErrorChanged } = this.props
         const {
             isReady,
             companyEntries,
@@ -175,10 +179,19 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             items={companies}
                             placeholder='Компании'
                             selected={selectedCompanies}
-                            onChange={selectedCompanies => this.setState({ selectedCompanies })}
+                            onChange={selectedCompanies => {
+                                this.setState({selectedCompanies})
+                                onCompaniesChanged(selectedCompanies)
+                            }}
                         />
                         <Whisper placement='top' trigger='hover' speaker={this.tooltip}>
-                            <Checkbox checked={useError} onChange={(v, ch, e) => this.setState({ useError : ch })}>
+                            <Checkbox 
+                                checked={useError} 
+                                onChange={(v, ch, e) => {
+                                    this.setState({useError: ch})
+                                    onUseErrorChanged(ch)
+                                }}
+                            >
                                 Отображать доверительный интервал
                             </Checkbox>
                         </Whisper>

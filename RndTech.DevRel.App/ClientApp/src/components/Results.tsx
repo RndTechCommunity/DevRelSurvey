@@ -1,6 +1,6 @@
 ﻿import * as React from 'react'
 import injectSheet from 'react-jss';
-import { topRostovFilter, Filter } from './filters/Filter'
+import { topRostovFilter, Filter, selectedCompanies } from './filters/Filter'
 import Menu, { MenuId } from './Menu'
 import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
@@ -31,7 +31,9 @@ type State = {
     tab: MenuId,
     modalOpened: boolean
     filter: Filter,
-    areFiltersShown: boolean
+    areFiltersShown: boolean,
+    companiesFilter: string[]
+    useError: boolean
 }
 
 class App extends React.Component<Props, State> {
@@ -39,7 +41,9 @@ class App extends React.Component<Props, State> {
         tab: App.restoreTab(),
         filter: App.restoreFilter(),
         areFiltersShown: false,
-        modalOpened: this.props.modalOpened
+        modalOpened: this.props.modalOpened,
+        companiesFilter: selectedCompanies,
+        useError: false
     }
 
     renderModal() {
@@ -81,12 +85,19 @@ class App extends React.Component<Props, State> {
 
     render() {
         const { classes } = this.props
-        const { tab, filter } = this.state
+        const { tab, filter, companiesFilter, useError } = this.state
 
         let content =
             tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                tab === 'known-and-wanted' ? <KnownAndWantedPage filter={filter} /> :
-                    null
+                tab === 'known-and-wanted' ? 
+                    <KnownAndWantedPage 
+                        selectedCompanies={companiesFilter} 
+                        filter={filter}
+                        onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
+                        useError={useError}
+                        onUseErrorChanged={ue => this.setState({ useError: ue })}
+                    /> 
+                                                : null
 
         return (
             <Container>
