@@ -10,18 +10,22 @@ export interface Filter {
 
 export const selectedCompanies = [
     'Контур',
-    'Киноплан (Точка Кипения)',
+    'Accenture',
     'Arcadia',
     'Devexperts',
     'Distillery',
     'Oggetto',
     'Rnd soft (+Winvestor)',
-    'TradingView (eSignal)',
-    'Umbrella IT',
-    'WIS Software',
+    'Спецвузавтоматика',
+    'Usetech',
+    'Reksoft',
     'ЦентрИнвест',
     'uKit (uCoz)',
-    'INOSTUDIO'
+    'MentalStack',
+    'WebAnt',
+    'Вебпрактик',
+    'Intellectika (Интеллектика)',
+    'Auriga',
 ]
 
 export const topRostovFilter: Filter = {
