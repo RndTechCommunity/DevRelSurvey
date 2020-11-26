@@ -3,8 +3,6 @@
   "version": "0.2.0",
   "private": true,
   "dependencies": {
-    "@skbkontur/react-icons": "^4.3.2",
-    "@skbkontur/react-ui": "^2.9.0",
     "@types/react-virtualized": "^9.21.10",
     "axios": "^0.21.0",
     "classnames": "^2.2.6",

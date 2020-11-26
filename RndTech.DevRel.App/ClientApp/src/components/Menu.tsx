@@ -1,6 +1,6 @@
 import * as React from 'react'
 import injectSheet from 'react-jss';
-import { Tabs } from '@skbkontur/react-ui';
+import { Nav } from 'rsuite';
 
 const styles = {
     container: {
@@ -14,7 +14,6 @@ const styles = {
 }
 
 const menuItemStyle = {
-    textDecoration: 'none'
 };
 
 type Props = {
@@ -54,14 +53,17 @@ class Menu extends React.Component<Props> {
         return (
             <div className={classes.container}>
                 <div className={classes.menu}>
-                    <Tabs
-                        value={active}
-                        onValueChange={active => onChange(active as MenuId)}
-                    >
+                    <Nav activeKey={active} onSelect={(active: MenuId) => onChange(active)} appearance='subtle'>
                         {items.map(item => (
-                            <Tabs.Tab style={menuItemStyle} key={item.id} id={item.id}>{item.title}</Tabs.Tab>
+                            <Nav.Item 
+                                style={menuItemStyle} 
+                                eventKey={item.id}
+                                key={item.id}
+                            >
+                                {item.title}
+                            </Nav.Item>
                         ))}
-                    </Tabs>
+                    </Nav>
                 </div>
             </div>
         )
