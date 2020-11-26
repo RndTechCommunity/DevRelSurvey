@@ -1,10 +1,9 @@
-import FilterIcon from '@skbkontur/react-icons/Filter'
 import * as React from 'react'
 import { getMeta, MetaData } from '../../api'
 import { Filter } from '../filters/Filter'
 import Plural from '../Plural'
 import injectSheet from 'react-jss';
-import { Col, Container, Content, Grid, Loader, Row } from 'rsuite';
+import { Col, Container, Content, Grid, Icon, Loader, Row } from 'rsuite';
 
 const styles = {
     container: {
@@ -159,7 +158,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         return (
             <div key={title}>
                 <h3>{title} {filter[key] !== undefined && filter[key] !== null && filter[key].length !== 0
-                    ? <span className={classes.icon}><FilterIcon /></span>
+                    ? <Icon icon='filter' />
                     : ''
                 }</h3>
                 <table className={classes.table}>

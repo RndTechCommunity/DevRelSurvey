@@ -13,7 +13,6 @@ import { toPercent } from '../../format'
 import { Filter, selectedCompanies } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
-import { Gapped } from '@skbkontur/react-ui';
 import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
 
 const defaultFillColor = '#AAAAAA'
@@ -27,6 +26,17 @@ const styles = {
     },
     chart: {
         fontSize: '12px',
+    },
+    graphicFilter: {
+        display: 'flex',
+        textAlign: 'center',
+        verticalAlign: 'middle'
+    },
+    graphicFilterCompanies: {
+        paddingTop: '10px',
+        paddingBottom: '10px',
+        lineHeight: 1,
+        paddingRight: '10px'
     }
 }
 
@@ -157,8 +167,10 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         return (
             <div className={classes.container}>
                 <div className={classes.companies}>
-                    <Gapped>
-                        <span>Компании</span>
+                    <div className={classes.graphicFilter}>
+                        <div className={classes.graphicFilterCompanies}>
+                            <label>Компании</label>
+                        </div>
                         <MultiSelect
                             items={companies}
                             placeholder='Компании'
@@ -170,7 +182,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 Отображать доверительный интервал
                             </Checkbox>
                         </Whisper>
-                    </Gapped>
+                    </div>
                 </div>
                 <ResponsiveContainer aspect={1.5} width={1100}>
                     <ScatterChart margin={{ bottom: 10, right: 10 }} className={classes.chart}>
