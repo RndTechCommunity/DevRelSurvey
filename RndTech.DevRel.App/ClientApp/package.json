@@ -6,7 +6,7 @@
     "@skbkontur/react-icons": "^4.3.2",
     "@skbkontur/react-ui": "^2.9.0",
     "@types/react-virtualized": "^9.21.10",
-    "axios": "^0.21.0",
+    "axios": "^0.18.1",
     "classnames": "^2.2.6",
     "jss": "^10.5.0",
     "react": "^17.0.1",
