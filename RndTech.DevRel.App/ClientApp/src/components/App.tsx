@@ -26,19 +26,21 @@ type Props = {
 
 type State = {
     tab: SitePageId,
+    modalOpened: boolean
 }
 
 class App extends React.Component<Props, State> {
     state: State = {
         tab: 'page-results',
+        modalOpened: true
     }
     
     render() {
         const { classes } = this.props
-        const { tab } = this.state
+        const { tab, modalOpened } = this.state
 
         let content =
-             tab === 'page-results' ? <Results /> :
+             tab === 'page-results' ? <Results modalOpened={modalOpened} /> :
                 tab === 'page-partners' ? <Partners /> :
                     tab === 'page-about' ? <About /> : null
         
@@ -50,7 +52,7 @@ class App extends React.Component<Props, State> {
                             <img src={'rndtech-logo.png'} className={classes.barLogo} alt='logo' />
                         </Navbar.Header>
                         <Navbar.Body>
-                            <Nav onSelect={(key) => this.setState({ tab: key })}>
+                            <Nav onSelect={(key) => this.setState({ tab: key, modalOpened: false })}>
                                 <Nav.Item icon={<Icon icon='area-chart' />} eventKey='page-results'>
                                     Результаты
                                 </Nav.Item>

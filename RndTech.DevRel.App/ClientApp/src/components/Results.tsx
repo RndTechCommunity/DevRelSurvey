@@ -23,7 +23,8 @@ const styles = {
 }
 
 type Props = {
-    classes?: any
+    classes?: any,
+    modalOpened: boolean
 }
 
 type State = {
@@ -38,7 +39,7 @@ class App extends React.Component<Props, State> {
         tab: App.restoreTab(),
         filter: App.restoreFilter(),
         areFiltersShown: false,
-        modalOpened: false
+        modalOpened: this.props.modalOpened
     }
 
     renderModal() {
@@ -124,10 +125,6 @@ class App extends React.Component<Props, State> {
                 </Container>
             </Container>
     )
-    }
-
-    componentDidMount() {
-        this.setState({ modalOpened: true });
     }
 
     modalClose = () => this.setState({ modalOpened: false })
