@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
-using Newtonsoft.Json;
 
 namespace RndTech.DevRel.App.Controllers
 {
 	[Route("api/")]
 	public class CompanyController : Controller
 	{
+		private const int CacheSeconds = 60 * 60 * 24;
 		private readonly IMemcachedClient cache;
 
 		public CompanyController(IMemcachedClient cache)
@@ -25,67 +25,62 @@ namespace RndTech.DevRel.App.Controllers
 		}
 
 		[Route("known-and-wanted")]
-		public async Task<Dictionary<string, CompanyModel>> GetCompanies(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
+		[HttpPost]
+		public async Task<Dictionary<string, CompanyModel>> GetCompanies([FromBody] UserFilter filter)
 		{
-			var key = $"COMPANIES_{cities}_{educations}_{languages}_{professions}_{experiences}_{ages}_{isCommunity}".Replace(" ", "");
-			var cachedResult = await cache.GetAsync<Dictionary<string, CompanyModel>>(key);
-			if (cachedResult.Success)
-				return cachedResult.Value;
+			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			{
+				var ageFilter = GetAgeFilter(filter);
+				var communityFilter = GetCommunityFilter(filter);
 
-			var citiesFilter = JsonConvert.DeserializeObject<string[]>(cities);
-			var educationFilter = JsonConvert.DeserializeObject<string[]>(educations);
-			var languagesFilter = JsonConvert.DeserializeObject<string[]>(languages);
-			var professionFilter = JsonConvert.DeserializeObject<string[]>(professions);
-			var experienceLevelFilter = JsonConvert.DeserializeObject<string[]>(experiences);
-			var ageFilter = JsonConvert.DeserializeObject<string[]>(ages)
-				.Select(age => int.Parse(age.Substring(0, 2)))
-				.SelectMany(af => Enumerable.Range(af, 5))
-				.ToArray();
-			isCommunity = isCommunity.Trim('"');
-			bool? communityFilter = isCommunity == "Да" ? true : (isCommunity == "Нет" ? (bool?)false : null);
-
-			var r = InMemoryDbContext.GetCompanyModels(
-				citiesFilter: citiesFilter, 
-				educationFilter: educationFilter, 
-				programmingLanguageFilter: languagesFilter, 
-				professionFilter: professionFilter,
-				experienceLevelFilter: experienceLevelFilter,
-				agesFilter: ageFilter,
-				isCommunityFilter: communityFilter).ToDictionary(cm => cm.Name, cm => cm);
-			await cache.AddAsync(key, r, 60 * 60 * 24);
-			return r;
+				return InMemoryDbContext.GetCompanyModels(
+						citiesFilter: filter.cities,
+						educationFilter: filter.educations,
+						programmingLanguageFilter: filter.languages,
+						professionFilter: filter.professions,
+						experienceLevelFilter: filter.experiences,
+						agesFilter: ageFilter,
+						isCommunityFilter: communityFilter)
+					.ToDictionary(cm => cm.Name, cm => cm);
+			});
 		}
 
 		[Route("meta")]
-		public async Task<MetaModel> GetMeta(string cities, string educations, string languages, string professions, string experiences, string ages, string isCommunity)
+		[HttpPost]
+		public async Task<MetaModel> GetMeta([FromBody] UserFilter filter)
 		{
-			var key = $"META_{cities}_{educations}_{languages}_{professions}_{experiences}_{ages}_{isCommunity}".Replace(" ", "");
-			var cachedResult = await cache.GetAsync<MetaModel>(key);
-			if (cachedResult.Success)
-				return cachedResult.Value;
+			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			{
+				var ageFilter = GetAgeFilter(filter);
+				var communityFilter = GetCommunityFilter(filter);
 
-			var citiesFilter = JsonConvert.DeserializeObject<string[]>(cities);
-			var educationFilter = JsonConvert.DeserializeObject<string[]>(educations);
-			var languagesFilter = JsonConvert.DeserializeObject<string[]>(languages);
-			var professionFilter = JsonConvert.DeserializeObject<string[]>(professions);
-			var experienceLevelFilter = JsonConvert.DeserializeObject<string[]>(experiences);
-			var ageFilter = JsonConvert.DeserializeObject<string[]>(ages)
+				return InMemoryDbContext.GetMeta(
+					citiesFilter: filter.cities,
+					educationFilter: filter.educations,
+					programmingLanguageFilter: filter.languages,
+					professionFilter: filter.professions,
+					experienceLevelFilter: filter.experiences,
+					agesFilter: ageFilter,
+					isCommunityFilter: communityFilter);
+			});
+		}
+
+		private static bool? GetCommunityFilter(UserFilter filter) =>
+			filter.isCommunity switch
+			{
+				"Да" => true,
+				"Нет" => false,
+				_ => null
+			};
+
+		private static int[] GetAgeFilter(UserFilter filter) =>
+			filter.ages
 				.Select(age => int.Parse(age.Substring(0, 2)))
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToArray();
-			isCommunity = isCommunity.Trim('"');
-			bool? communityFilter = isCommunity == "Да" ? true : (isCommunity == "Нет" ? (bool?) false : null);
 
-			var r = InMemoryDbContext.GetMeta(
-				citiesFilter: citiesFilter,
-				educationFilter: educationFilter,
-				programmingLanguageFilter: languagesFilter,
-				professionFilter: professionFilter,
-				experienceLevelFilter: experienceLevelFilter,
-				agesFilter: ageFilter,
-				isCommunityFilter: communityFilter);
-			await cache.AddAsync(key, r, 60 * 60 * 24);
-			return r;
-		}
+		private static string GetCacheKey(UserFilter filter) =>
+			$"META_{string.Join(',', filter.cities)}_{string.Join(',', filter.educations)}_{string.Join(',', filter.languages)}_{string.Join(',', filter.professions)}_{string.Join(',', filter.experiences)}_{string.Join(',', filter.ages)}_{string.Join(',', filter.isCommunity)}"
+				.Replace(" ", "");
 	}
 }
