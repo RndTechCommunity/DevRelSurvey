@@ -1,19 +1,19 @@
-﻿import axios, { AxiosRequestConfig } from 'axios'
+﻿import axios from 'axios'
 import { Filter } from './components/filters/Filter'
 
 const api = axios.create({
     baseURL: '/api'
 })
 
-export function    getAges() {
+export function getAges() {
     const start = 3
     const end = 11
-    return api
-        .get('/cities')
-        .then(response => new Array(end - start + 1)
+    return new Promise<string[]>((resolve) => {
+        resolve(new Array(end - start + 1)
             .fill(undefined)
             .map((_, i) => (i + start) * 5)
-            .map((_, i) => String(_) + ' - ' + String(_ + 4) + ' лет'))
+            .map(_ => String(_) + ' - ' + String(_ + 4) + ' лет'))
+    });
 }
 
 export function getCities() {
@@ -65,8 +65,9 @@ export type MetaData = {
 }
 
 export function getMeta(filter: Filter): Promise<MetaData> {
+    axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
     return api
-        .get('/meta', getConfig(filter))
+        .post('/meta', filter)
         .then(response => response.data)
 }
 
@@ -79,37 +80,8 @@ export type KnownAndWantedData = {
 }
 
 export function getKnownAndWantedData(filter: Filter): Promise<KnownAndWantedData> {
+    axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
     return api
-        .get('/known-and-wanted', getConfig(filter))
+        .post('/known-and-wanted', filter)
         .then(response => response.data)
-}
-
-export type FactorData = {
-    [group: number]: {
-        [factor: string]: number
-    }
-}
-
-export function getFactorData(filter: Filter): Promise<FactorData> {
-    return api
-        .get('/factors', getConfig(filter))
-        .then(response => response.data)
-}
-
-function getConfig(filter: Filter): AxiosRequestConfig {
-    return {
-        headers: { 'content-type': 'application/x-www-form-urlencoded' },
-        params: getParams(filter)
-    }
-}
-
-function getParams(filter: Filter): URLSearchParams {
-    const params = Object
-        .keys(filter)
-        .map(x => [
-            x,
-            JSON.stringify(filter[x])
-        ])
-
-    return new URLSearchParams(params)
 }
