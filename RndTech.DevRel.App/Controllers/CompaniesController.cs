@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
+using Newtonsoft.Json;
 using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Controllers
@@ -43,13 +44,11 @@ namespace RndTech.DevRel.App.Controllers
 						programmingLanguageFilter: filter.languages,
 						professionFilter: filter.professions,
 						experienceLevelFilter: filter.experiences,
-
 			var xxx = SurveyService.GetCompanyModels(
 				dbContext,
 				agesFilter: ageFilter,
 				citiesFilter: citiesFilter,
 				educationFilter: educationFilter,
-				experienceLevelFilter: experienceLevelFilter,
 				professionFilter: professionFilter,
 				programmingLanguageFilter: languagesFilter,
 				isCommunityFilter: communityFilter);
