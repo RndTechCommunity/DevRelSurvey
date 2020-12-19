@@ -28,18 +28,23 @@ type MenuItem = {
 }
 
 export type MenuId =
-    'known-and-wanted' |
+    'known-and-wanted-2020' |
+    'known-and-wanted-2019' |
     'data-meta'
 
 const items: MenuItem[] = [
     {
-        id: 'data-meta',
-        title: 'Выборка данных'
+        id: 'known-and-wanted-2020',
+        title: 'Узнаваемость и привлекательность 2020'
     },
     {
-        id: 'known-and-wanted',
-        title: 'Узнаваемость и привлекательность'
+        id: 'known-and-wanted-2019',
+        title: 'Узнаваемость и привлекательность 2019'
     },
+    {
+        id: 'data-meta',
+        title: 'Состав выборки'
+    }
 ]
 
 class Menu extends React.Component<Props> {

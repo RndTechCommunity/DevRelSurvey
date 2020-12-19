@@ -56,26 +56,17 @@ class App extends React.Component<Props, State> {
                     <p>
                         Мы в IT-сообществе RndTech сделали исследование узнаваемости брендов IT-компаний в Ростове и
                         Таганроге.
-                        В 2019 вы рассказали о нашей анкете 25 раз, а заполнили анкету больше 700 человек.
-                        И мы спешим поделиться результатами с вами.
+                        В 2019 больше 700 человек, а в 2020 — уже 1200! Спасибо, что поделились своим мнением.
+                        Мы спешим поделиться с вами результатами.
                     </p>
                     <p>
                         На этом сайте можно посмотреть статистику местного IT-сообщества — на чём люди
-                        программируют в 2019 году, кем работают и откуда узнают о митапах.
+                        программируют в 2020 году, кем работают и откуда узнают о митапах.
                         А ещё — какие компании они знают и в каких хотят работать.
-                    </p>
-                    <p>
-                        Прямо сейчас идёт новый опрос узнаваемости компаний в 2020 году!
-                        Если вы уже проходили опрос в 2019 — пора сверить свои ощущения и обновить информацию.
-                        Если проходите первый раз, то это ещё лучше, значит теперь у нас будет больше данных.
-                        В этом году в качестве призов футболки, лицензии Jetbrains и билеты на RndTechConf.
                     </p>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button onClick={() => window.open('https://devrel.rndtech.pro/2020.html', '_blank')} appearance='primary'>
-                        Пройти опрос
-                    </Button>
-                    <Button onClick={this.modalClose} appearance='subtle'>
+                    <Button onClick={this.modalClose} appearance='primary'>
                         Посмотреть результаты
                     </Button>
                 </Modal.Footer>
@@ -86,18 +77,29 @@ class App extends React.Component<Props, State> {
     render() {
         const { classes } = this.props
         const { tab, filter, companiesFilter, useError } = this.state
-
+        
         let content =
             tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                tab === 'known-and-wanted' ? 
+                tab === 'known-and-wanted-2020' ? 
                     <KnownAndWantedPage 
                         selectedCompanies={companiesFilter} 
                         filter={filter}
+                        year={2020}
                         onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
                         useError={useError}
                         onUseErrorChanged={ue => this.setState({ useError: ue })}
                     /> 
-                                                : null
+                                                :
+                    tab === 'known-and-wanted-2019' ?
+                        <KnownAndWantedPage
+                            selectedCompanies={companiesFilter}
+                            filter={filter}
+                            year={2019}
+                            onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
+                            useError={useError}
+                            onUseErrorChanged={ue => this.setState({ useError: ue })}
+                        />
+                        : null
 
         return (
             <Container>
@@ -155,7 +157,7 @@ class App extends React.Component<Props, State> {
 
         return maybeTab !== null
             ? JSON.parse(decodeURIComponent(maybeTab)) as MenuId
-            : 'data-meta'
+            : 'known-and-wanted-2020'
     }
 
     static restoreFilter(): Filter {

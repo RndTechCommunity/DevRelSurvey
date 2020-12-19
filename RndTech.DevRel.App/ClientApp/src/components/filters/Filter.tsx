@@ -5,6 +5,7 @@ export interface Filter {
     professions: string[],
     experiences: string[],
     ages: string[],
+    year?: number,
     isCommunity: string | any
 }
 
@@ -29,7 +30,7 @@ export const selectedCompanies = [
 ]
 
 export const topRostovFilter: Filter = {
-    cities: ['Ростов-на-Дону, Ростовская область, Россия'],
+    cities: ['Ростов-на-Дону'],
     educations: [],
     languages: [],
     professions: [],
@@ -39,7 +40,7 @@ export const topRostovFilter: Filter = {
 }
 
 export const topTaganrogFilter: Filter = {
-    cities: ['Таганрог, Ростовская область, Россия'],
+    cities: ['Таганрог'],
     educations: [],
     languages: [],
     professions: [],
@@ -52,7 +53,7 @@ export const topQAFilter: Filter = {
     cities: [],
     educations: [],
     languages: [],
-    professions: ['QA, тестировщик'],
+    professions: ['QA'],
     experiences: [],
     ages: [],
     isCommunity: null

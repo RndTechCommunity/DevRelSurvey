@@ -7,12 +7,14 @@ namespace RndTech.DevRel.App.DAL
     public class CompanyAnswer
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         
-        public int IntervieweeId { get; set; }
+        [Required, ForeignKey(nameof(Interviewee))]
+        public Guid IntervieweeId { get; set; }
         public Interviewee Interviewee { get; set; }
         
-        public int CompanyId { get; set; }
+        [Required, ForeignKey(nameof(Company))]
+        public Guid CompanyId { get; set; }
         public Company Company { get; set; }
         
         [Required]

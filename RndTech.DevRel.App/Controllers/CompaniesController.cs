@@ -1,11 +1,9 @@
-﻿using System;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using RndTech.DevRel.App.Model;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
-using Newtonsoft.Json;
 using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Controllers
@@ -22,40 +20,29 @@ namespace RndTech.DevRel.App.Controllers
 			this.dbContext = dbContext;
 			this.cache = cache;
 		}
-		
-		[Route("all-companies")]
-		public List<CompanyModel> All()
-		{
-			return InMemoryDbContext.GetCompanyModels();
-		}
 
 		[Route("known-and-wanted")]
 		[HttpPost]
 		public async Task<Dictionary<string, CompanyModel>> GetCompanies([FromBody] UserFilter filter)
 		{
-			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			return await cache.GetValueOrCreateAsync(GetCacheKey("companies", filter), CacheSeconds, async () =>
 			{
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
-
-				return InMemoryDbContext.GetCompanyModels(
-						citiesFilter: filter.cities,
-						educationFilter: filter.educations,
-						programmingLanguageFilter: filter.languages,
-						professionFilter: filter.professions,
-						experienceLevelFilter: filter.experiences,
-			var xxx = SurveyService.GetCompanyModels(
-				dbContext,
-				agesFilter: ageFilter,
-				citiesFilter: citiesFilter,
-				educationFilter: educationFilter,
-				professionFilter: professionFilter,
-				programmingLanguageFilter: languagesFilter,
-				isCommunityFilter: communityFilter);
-			return xxx.ToDictionary(cm => cm.Name, cm => cm);
-						agesFilter: ageFilter,
-						isCommunityFilter: communityFilter)
+				UpdateLanguagesFilter(filter);
+				
+				var result = SurveyService.GetCompanyModels(
+					dbContext,
+					filter.Year,
+					ageFilter,
+					filter.cities,
+					filter.educations,
+					filter.experiences,
+					filter.professions,
+					filter.languages,
+					communityFilter)
 					.ToDictionary(cm => cm.Name, cm => cm);
+				return result;
 			});
 		}
 
@@ -63,20 +50,30 @@ namespace RndTech.DevRel.App.Controllers
 		[HttpPost]
 		public async Task<MetaModel> GetMeta([FromBody] UserFilter filter)
 		{
-			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			return await cache.GetValueOrCreateAsync(GetCacheKey("meta", filter), CacheSeconds, async () =>
 			{
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
-
-				return InMemoryDbContext.GetMeta(
-					citiesFilter: filter.cities,
-					educationFilter: filter.educations,
-					programmingLanguageFilter: filter.languages,
-					professionFilter: filter.professions,
-					experienceLevelFilter: filter.experiences,
-					agesFilter: ageFilter,
-					isCommunityFilter: communityFilter);
+				UpdateLanguagesFilter(filter);
+				
+				return SurveyService.GetMeta(
+					dbContext,
+					filter.Year,
+					ageFilter,
+					filter.cities,
+					filter.educations,
+					filter.experiences,
+					filter.professions,
+					filter.languages,
+					communityFilter);
 			});
+		}
+
+		private void UpdateLanguagesFilter(UserFilter filter)
+		{
+			if (filter.Year == 2019 && filter.languages != null && filter.languages.Any())
+				if (filter.languages.Contains("TypeScript") || filter.languages.Contains("JavaScript"))
+					filter.languages = filter.languages.Concat(new[] {"JavaScript / TypeScript"}).ToArray();
 		}
 
 		private static bool? GetCommunityFilter(UserFilter filter) =>
@@ -93,8 +90,8 @@ namespace RndTech.DevRel.App.Controllers
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToArray();
 
-		private static string GetCacheKey(UserFilter filter) =>
-			$"META_{string.Join(',', filter.cities)}_{string.Join(',', filter.educations)}_{string.Join(',', filter.languages)}_{string.Join(',', filter.professions)}_{string.Join(',', filter.experiences)}_{string.Join(',', filter.ages)}_{string.Join(',', filter.isCommunity)}"
+		private static string GetCacheKey(string methodName, UserFilter filter) =>
+			$"{methodName}_{filter.Year}_{string.Join(',', filter.cities)}_{string.Join(',', filter.educations)}_{string.Join(',', filter.languages)}_{string.Join(',', filter.professions)}_{string.Join(',', filter.experiences)}_{string.Join(',', filter.ages)}_{string.Join(',', filter.isCommunity)}"
 				.Replace(" ", "");
 	}
 }

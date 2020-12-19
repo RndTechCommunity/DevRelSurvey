@@ -7,7 +7,7 @@ namespace RndTech.DevRel.App.DAL
     public class Language
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         
         [Required]
         public string Name { get; set; }

@@ -35,11 +35,16 @@ namespace RndTech.DevRel.App
 				configuration.RootPath = "ClientApp/build";
 			});
 
-			services.AddDbContext<SurveyDbContext>(
-				dbContextOptions => dbContextOptions
-					.UseMySql(
-						""
-					));
+			//services.AddDbContext<SurveyDbContext>(
+			//	dbContextOptions => dbContextOptions
+			//		.UseSqlite("Data Source=Survey.db"));
+			services.AddDbContextPool<SurveyDbContext>(
+					dbContextOptions => dbContextOptions
+						.UseMySql(
+							Configuration.GetConnectionString("SurveyDb"),
+							new MariaDbServerVersion(new Version(10, 4, 8)), // use MariaDbServerVersion for MariaDB
+							mySqlOptions => mySqlOptions.CharSetBehavior(CharSetBehavior.NeverAppend))
+				);
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -76,8 +81,6 @@ namespace RndTech.DevRel.App
 					spa.UseReactDevelopmentServer(npmScript: "start");
 				}
 			});
-
-			InMemoryDbContext.AddCsv("testdata.csv");
 		}
 	}
 }

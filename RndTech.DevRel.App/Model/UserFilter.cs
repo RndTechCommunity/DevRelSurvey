@@ -9,5 +9,6 @@
 		public string[] experiences { get; set; }
 		public string[] ages { get; set; }
 		public string isCommunity { get; set; }
+		public int Year { get; set; }
 	}
 }
