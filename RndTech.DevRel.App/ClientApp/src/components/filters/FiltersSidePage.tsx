@@ -3,9 +3,7 @@ import injectSheet from 'react-jss';
 import {
     getAges,
     getCities,
-    // getCommunitySources,
     getEducations,
-    // getCompanySources,
     getExperienceLevels,
     getProfessions,
     getProgrammingLanguages
@@ -187,7 +185,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                     <Dropdown.Item>
                         <Button
                             appearance='link'
-                            disabled={JSON.stringify(this.state) === JSON.stringify(topRostovFilter)}
+                            disabled={FiltersSidePage.IsEqualFilters(this.state, topRostovFilter)}
                             onClick={() => this.reset(topRostovFilter)}
                         >
                             Топ Ростова
@@ -196,7 +194,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                     <Dropdown.Item>
                         <Button
                             appearance='link'
-                            disabled={JSON.stringify(this.state) === JSON.stringify(topTaganrogFilter)}
+                            disabled={FiltersSidePage.IsEqualFilters(this.state, topTaganrogFilter)}
                             onClick={() => this.reset(topTaganrogFilter)}
                         >
                             Топ Таганрога
@@ -205,7 +203,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                     <Dropdown.Item>
                         <Button
                             appearance='link'
-                            disabled={JSON.stringify(this.state) === JSON.stringify(topQAFilter)}
+                            disabled={FiltersSidePage.IsEqualFilters(this.state, topQAFilter)}
                             onClick={() => this.reset(topQAFilter)}
                         >
                             Какие компании знают QA
@@ -214,7 +212,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                     <Dropdown.Item>
                         <Button
                             appearance='link'
-                            disabled={JSON.stringify(this.state) === JSON.stringify(topFrontendFilter)}
+                            disabled={FiltersSidePage.IsEqualFilters(this.state, topFrontendFilter)}
                             onClick={() => this.reset(topFrontendFilter)}
                         >
                             Куда хотят фронтендеры
@@ -223,7 +221,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                     <Dropdown.Item>
                         <Button
                             appearance='link'
-                            disabled={JSON.stringify(this.state) === JSON.stringify(topStudentsFilter)}
+                            disabled={FiltersSidePage.IsEqualFilters(this.state, topStudentsFilter)}
                             onClick={() => this.reset(topStudentsFilter)}
                         >
                             Известные студентам
@@ -232,6 +230,16 @@ class FiltersSidePage extends React.Component<Props, State> {
                 </Dropdown>
             </Nav>
         )
+    }
+
+    private static IsEqualFilters(currentFilter: Filter, hotFilter: Filter) {
+        return currentFilter.isCommunity == hotFilter.isCommunity
+            && currentFilter.ages == hotFilter.ages
+            && currentFilter.cities == hotFilter.cities
+            && currentFilter.educations == hotFilter.educations
+            && currentFilter.experiences == hotFilter.experiences
+            && currentFilter.languages == hotFilter.languages
+            && currentFilter.professions == hotFilter.professions;
     }
 }
 

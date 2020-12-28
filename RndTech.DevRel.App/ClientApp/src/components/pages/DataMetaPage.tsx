@@ -124,20 +124,20 @@ class SelectionFactorsPage extends React.Component<Props, State> {
                             <Row gutter={30}>
                                 <Col xs={11}>
                                     <h3 className={classes.centeredText}>2020</h3>
-                                    <h4>
+                                    <h5>
                                         {data2020.count}
                                         &nbsp;<Plural n={data2020.count} one='участник' few='участника' many='участников' />
                                         &nbsp;в выборке (из {data2020.total})
-                                    </h4>
+                                    </h5>
                                 </Col>
                                 <Col xs={2} />
                                 <Col xs={11}>
                                     <h3 className={classes.centeredText}>2019</h3>
-                                    <h4>
+                                    <h5>
                                         {data2019.count}
                                         &nbsp;<Plural n={data2019.count} one='участник' few='участника' many='участников' />
                                         &nbsp;в выборке (из {data2019.total})
-                                    </h4>
+                                    </h5>
                                 </Col>
                             </Row>
                             <Row gutter={30}>

@@ -31,7 +31,7 @@ namespace RndTech.DevRel.App.Controllers
 				var communityFilter = GetCommunityFilter(filter);
 				UpdateLanguagesFilter(filter);
 				
-				var result = SurveyService.GetCompanyModels(
+				var result = await SurveyService.GetCompanyModels(
 					dbContext,
 					filter.Year,
 					ageFilter,
@@ -40,9 +40,9 @@ namespace RndTech.DevRel.App.Controllers
 					filter.experiences,
 					filter.professions,
 					filter.languages,
-					communityFilter)
-					.ToDictionary(cm => cm.Name, cm => cm);
-				return result;
+					communityFilter);
+				
+				return result.ToDictionary(cm => cm.Name, cm => cm);
 			});
 		}
 
@@ -56,7 +56,7 @@ namespace RndTech.DevRel.App.Controllers
 				var communityFilter = GetCommunityFilter(filter);
 				UpdateLanguagesFilter(filter);
 				
-				return SurveyService.GetMeta(
+				return await SurveyService.GetMeta(
 					dbContext,
 					filter.Year,
 					ageFilter,

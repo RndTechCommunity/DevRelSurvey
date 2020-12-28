@@ -1,4 +1,3 @@
-using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using RndTech.DevRel.App.DAL;
-using RndTech.DevRel.App.Model;
 
 namespace RndTech.DevRel.App
 {
@@ -27,7 +25,6 @@ namespace RndTech.DevRel.App
 		{
 			services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
 			services.AddEnyimMemcached(Configuration);
-			services.Configure<Survey2020SftpCredentials>(Configuration.GetSection(Survey2020SftpCredentials.ConfigKey));
 
 			// In production, the React files will be served from this directory
 			services.AddSpaStaticFiles(configuration =>
@@ -42,7 +39,6 @@ namespace RndTech.DevRel.App
 					dbContextOptions => dbContextOptions
 						.UseMySql(
 							Configuration.GetConnectionString("SurveyDb"),
-							new MariaDbServerVersion(new Version(10, 4, 8)), // use MariaDbServerVersion for MariaDB
 							mySqlOptions => mySqlOptions.CharSetBehavior(CharSetBehavior.NeverAppend))
 				);
 		}

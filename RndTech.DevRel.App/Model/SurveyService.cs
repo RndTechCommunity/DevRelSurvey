@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using RndTech.DevRel.App.DAL;
 
@@ -7,7 +8,7 @@ namespace RndTech.DevRel.App.Model
 {
     public static class SurveyService
     {
-        public static IEnumerable<CompanyModel> GetCompanyModels(
+        public static async Task<IEnumerable<CompanyModel>> GetCompanyModels(
             SurveyDbContext dbContext,
             int year,
             int[] agesFilter,
@@ -35,7 +36,7 @@ namespace RndTech.DevRel.App.Model
             if (isCommunityFilter.HasValue)
                 answers = answers.Where(a => a.Interviewee.VisitMeetups == isCommunityFilter.Value);
 
-            var interviewees = answers.Select(a => a.IntervieweeId).Distinct().Count();
+            var interviewees = await answers.Select(a => a.IntervieweeId).Distinct().CountAsync();
             var errorLevel = 0.0441 + (interviewees < 70 ? (interviewees < 50 ? (interviewees < 18 ? 0.05 : 0.03) : 0.01) : 0);
             
             var groupedAnswers = answers
@@ -51,10 +52,10 @@ namespace RndTech.DevRel.App.Model
                         Error = errorLevel
                     });
 
-            return groupedAnswers.AsEnumerable();
+            return await groupedAnswers.ToArrayAsync();
         }
 
-        public static MetaModel GetMeta(
+        public static async Task<MetaModel> GetMeta(
             SurveyDbContext dbContext, 
             int year,
             int[] agesFilter,
@@ -82,14 +83,14 @@ namespace RndTech.DevRel.App.Model
             if (isCommunityFilter.HasValue)
                 interviewees = interviewees.Where(i => i.VisitMeetups == isCommunityFilter.Value);
 
-            var ci = interviewees
+            var ci = await interviewees
                 .Include(i => i.Languages)
                 .ThenInclude(il => il.Language)
                 .Include(i => i.CommunitySources)
                 .ThenInclude(cs => cs.CommunitySource)
                 .Include(i => i.MotivationFactors)
                 .ThenInclude(mf => mf.MotivationFactor)
-                .ToArray();
+                .ToArrayAsync();
             
             var meta = new MetaModel();
             var data = new Dictionary<string, Dictionary<string, int>>();
