@@ -2,14 +2,23 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MoreLinq;
 using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Model
 {
-    public static class SurveyService
+    public class SurveyService
     {
-        public static async Task<IEnumerable<CompanyModel>> GetCompanyModels(
-            SurveyDbContext dbContext,
+        private readonly SurveyDbContext dbContext;
+        private readonly IntervieweesPreloader intervieweesPreloader;
+
+        public SurveyService(SurveyDbContext dbContext, IntervieweesPreloader intervieweesPreloader)
+        {
+            this.dbContext = dbContext;
+            this.intervieweesPreloader = intervieweesPreloader;
+        }
+        
+        public async Task<IEnumerable<CompanyModel>> GetCompanyModels(
             int year,
             int[] agesFilter,
             string[] citiesFilter,
@@ -19,27 +28,10 @@ namespace RndTech.DevRel.App.Model
             string[] programmingLanguageFilter,
             bool? isCommunityFilter)
         {
-            IQueryable<CompanyAnswer> answers = dbContext.CompanyAnswers;
-            answers = answers.Where(a => a.Interviewee.Year == year);
-            if(agesFilter.Length != 0)
-                answers = answers.Where(a => agesFilter.Contains(a.Interviewee.Age));
-            if(citiesFilter.Length != 0)
-                answers = answers.Where(a => citiesFilter.Contains(a.Interviewee.City));
-            if(educationFilter.Length != 0)
-                answers = answers.Where(a => educationFilter.Contains(a.Interviewee.Education));
-            if(experienceLevelFilter.Length != 0)
-                answers = answers.Where(a => experienceLevelFilter.Contains(a.Interviewee.ProfessionLevel));
-            if(professionFilter.Length != 0)
-                answers = answers.Where(a => professionFilter.Contains(a.Interviewee.Profession));
-            if(programmingLanguageFilter.Length != 0)
-                answers = answers.Where(a => a.Interviewee.Languages.Select(l => l.Language.Name).Any(s => programmingLanguageFilter.Contains(s)));
-            if (isCommunityFilter.HasValue)
-                answers = answers.Where(a => a.Interviewee.VisitMeetups == isCommunityFilter.Value);
-
-            var interviewees = await answers.Select(a => a.IntervieweeId).Distinct().CountAsync();
-            var errorLevel = 0.0441 + (interviewees < 70 ? (interviewees < 50 ? (interviewees < 18 ? 0.05 : 0.03) : 0.01) : 0);
+            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.CompanyModelInterviewees, year, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
             
-            var groupedAnswers = answers
+            var groupedAnswers = interviewees
+                .SelectMany(i => i.CompanyAnswers)
                 .GroupBy(
                     a => a.Company.Name,
                     a => new {Known = a.IsKnown || a.IsWanted ? 1.0 : 0, Wanted = a.IsWanted ? 1.0 : 0})
@@ -49,14 +41,13 @@ namespace RndTech.DevRel.App.Model
                         Name = g.Key, 
                         KnownLevel = g.Sum(x => x.Known) / g.Count(), 
                         WantedLevel = g.Sum(x => x.Wanted) / g.Count(),
-                        Error = errorLevel
+                        Error = 0.0441
                     });
 
-            return await groupedAnswers.ToArrayAsync();
+            return groupedAnswers.ToArray();
         }
 
-        public static async Task<MetaModel> GetMeta(
-            SurveyDbContext dbContext, 
+        public async Task<MetaModel> GetMeta(
             int year,
             int[] agesFilter,
             string[] citiesFilter,
@@ -66,32 +57,8 @@ namespace RndTech.DevRel.App.Model
             string[] programmingLanguageFilter,
             bool? isCommunityFilter)
         {
-            IQueryable<Interviewee> interviewees = dbContext.Interviewees;
-            interviewees = interviewees.Where(i => i.Year == year);
-            if(agesFilter.Length != 0)
-                interviewees = interviewees.Where(i => agesFilter.Contains(i.Age));
-            if(citiesFilter.Length != 0)
-                interviewees = interviewees.Where(i => citiesFilter.Contains(i.City));
-            if(educationFilter.Length != 0)
-                interviewees = interviewees.Where(i => educationFilter.Contains(i.Education));
-            if(experienceLevelFilter.Length != 0)
-                interviewees = interviewees.Where(i => experienceLevelFilter.Contains(i.ProfessionLevel));
-            if(professionFilter.Length != 0)
-                interviewees = interviewees.Where(i => professionFilter.Contains(i.Profession));
-            if(programmingLanguageFilter.Length != 0)
-                interviewees = interviewees.Where(i => i.Languages.Select(l => l.Language.Name).Any(s => programmingLanguageFilter.Contains(s)));
-            if (isCommunityFilter.HasValue)
-                interviewees = interviewees.Where(i => i.VisitMeetups == isCommunityFilter.Value);
-
-            var ci = await interviewees
-                .Include(i => i.Languages)
-                .ThenInclude(il => il.Language)
-                .Include(i => i.CommunitySources)
-                .ThenInclude(cs => cs.CommunitySource)
-                .Include(i => i.MotivationFactors)
-                .ThenInclude(mf => mf.MotivationFactor)
-                .ToArrayAsync();
-            
+            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.MetaInterviewees, year, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
+            var ci = interviewees.ToArray();
             var meta = new MetaModel();
             var data = new Dictionary<string, Dictionary<string, int>>();
             
@@ -117,10 +84,54 @@ namespace RndTech.DevRel.App.Model
             // Откуда узнают информацию о митапах
 			data.Add("communitySource", ci.SelectMany(i => i.CommunitySources).GroupBy(c => c.CommunitySource.Name).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
             
-            meta.count = interviewees.Count();
+            meta.count = ci.Length;
             meta.Total = dbContext.Interviewees.Count(i => i.Year == year);
             meta.sources = data;
             return meta;
+        }
+
+        private async Task<IEnumerable<Interviewee>> GetFilteredInterviewees(
+            IEnumerable<Interviewee> interviewees,
+            int year, 
+            int[] agesFilter,
+            string[] citiesFilter, 
+            string[] educationFilter, 
+            string[] experienceLevelFilter, 
+            string[] professionFilter,
+            string[] programmingLanguageFilter, 
+            bool? isCommunityFilter)
+        {
+            interviewees = interviewees.Where(i => i.Year == year);
+            if (agesFilter.Length != 0)
+                interviewees = interviewees.Where(i => agesFilter.Contains(i.Age));
+            if (citiesFilter.Length != 0)
+                interviewees = interviewees.Where(i => citiesFilter.Contains(i.City));
+            if (educationFilter.Length != 0)
+                interviewees = interviewees.Where(i => educationFilter.Contains(i.Education));
+            if (experienceLevelFilter.Length != 0)
+                interviewees = interviewees.Where(i => experienceLevelFilter.Contains(i.ProfessionLevel));
+            if (professionFilter.Length != 0)
+                interviewees = interviewees.Where(i => professionFilter.Contains(i.Profession));
+            if (programmingLanguageFilter.Length != 0)
+            {
+                var filteredIntervieweeIds = await dbContext
+                    .IntervieweeLanguages
+                    .Where(il => programmingLanguageFilter.Contains(il.Language.Name))
+                    .Select(il => il.IntervieweeId)
+                    .ToArrayAsync();
+                
+                interviewees = interviewees
+                    .Join(filteredIntervieweeIds, 
+                        i => i.Id, 
+                        fi => fi, 
+                        (interviewee, guid) => interviewee)
+                    .DistinctBy(i => i.Id);
+            }
+
+            if (isCommunityFilter.HasValue)
+                interviewees = interviewees.Where(i => i.VisitMeetups == isCommunityFilter.Value);
+            
+            return interviewees;
         }
     }
 }

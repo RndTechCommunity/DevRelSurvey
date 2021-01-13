@@ -4,23 +4,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
-using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Controllers
 {
+	/// <summary>
+	/// Получение данных о выборке.
+	/// </summary>
 	[Route("api/")]
 	public class CompanyController : Controller
 	{
 		private const int CacheSeconds = 60 * 60 * 24;
-		private readonly SurveyDbContext dbContext;
+		private readonly SurveyService surveyService;
 		private readonly IMemcachedClient cache;
 
-		public CompanyController(SurveyDbContext dbContext, IMemcachedClient cache)
+		public CompanyController(SurveyService surveyService, IMemcachedClient cache)
 		{
-			this.dbContext = dbContext;
+			this.surveyService = surveyService;
 			this.cache = cache;
 		}
 
+		/// <summary>
+		/// Получения информации об узнаваемости и привлекательности компаний среди респондентов, соответствующих фильтру.
+		/// </summary>
+		/// <param name="filter">Фильтр для данных о компаниях.</param>
+		/// <returns>Данные о узнаваемости и привлекательности компаний.</returns>
 		[Route("known-and-wanted")]
 		[HttpPost]
 		public async Task<Dictionary<string, CompanyModel>> GetCompanies([FromBody] UserFilter filter)
@@ -30,9 +37,8 @@ namespace RndTech.DevRel.App.Controllers
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
 				UpdateLanguagesFilter(filter);
-				
-				var result = await SurveyService.GetCompanyModels(
-					dbContext,
+
+				var result = await surveyService.GetCompanyModels(
 					filter.Year,
 					ageFilter,
 					filter.cities,
@@ -46,6 +52,11 @@ namespace RndTech.DevRel.App.Controllers
 			});
 		}
 
+		/// <summary>
+		/// Получения информации о составе выборки, соответствующей фильтру.
+		/// </summary>
+		/// <param name="filter">Фильтр для данных о выборки.</param>
+		/// <returns>Данные о составе выборки, оответствующей фильтрм.</returns>
 		[Route("meta")]
 		[HttpPost]
 		public async Task<MetaModel> GetMeta([FromBody] UserFilter filter)
@@ -56,8 +67,7 @@ namespace RndTech.DevRel.App.Controllers
 				var communityFilter = GetCommunityFilter(filter);
 				UpdateLanguagesFilter(filter);
 				
-				return await SurveyService.GetMeta(
-					dbContext,
+				return await surveyService.GetMeta(
 					filter.Year,
 					ageFilter,
 					filter.cities,
@@ -71,7 +81,7 @@ namespace RndTech.DevRel.App.Controllers
 
 		private void UpdateLanguagesFilter(UserFilter filter)
 		{
-			if (filter.Year == 2019 && filter.languages != null && filter.languages.Any())
+			if (filter.languages != null && filter.languages.Any())
 				if (filter.languages.Contains("TypeScript") || filter.languages.Contains("JavaScript"))
 					filter.languages = filter.languages.Concat(new[] {"JavaScript / TypeScript"}).ToArray();
 		}

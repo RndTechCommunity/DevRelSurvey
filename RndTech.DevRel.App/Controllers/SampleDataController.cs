@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace RndTech.DevRel.App.Controllers
 {
+	/// <summary>
+	/// Тестовая точка для тестирования работоспособности АПИ.
+	/// </summary>
 	[Route("api/[controller]")]
 	public class SampleDataController : Controller
 	{
@@ -14,6 +17,10 @@ namespace RndTech.DevRel.App.Controllers
 			"Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 		};
 
+		/// <summary>
+		/// Получить тестовые данные.
+		/// </summary>
+		/// <returns>Тестовые данные.</returns>
 		[HttpGet("[action]")]
 		public IEnumerable<WeatherForecast> WeatherForecasts()
 		{

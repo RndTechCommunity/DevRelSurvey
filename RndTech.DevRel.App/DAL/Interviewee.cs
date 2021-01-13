@@ -34,6 +34,7 @@ namespace RndTech.DevRel.App.DAL
         [Required]
         public bool IsCommunity { get; set; }
         
+        public ICollection<CompanyAnswer> CompanyAnswers { get; set; }
         public ICollection<IntervieweeLanguage> Languages { get; set; }
         public ICollection<IntervieweeMotivationFactor> MotivationFactors { get; set; }
         public ICollection<IntervieweeCommunitySource> CommunitySources { get; set; }

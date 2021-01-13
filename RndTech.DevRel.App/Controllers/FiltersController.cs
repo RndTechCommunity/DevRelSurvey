@@ -8,6 +8,9 @@ using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Controllers
 {
+	/// <summary>
+	/// Получение данных о доступных фильтрах.
+	/// </summary>
 	[Route("api/")]
 	public class FiltersController : Controller
 	{
@@ -21,6 +24,11 @@ namespace RndTech.DevRel.App.Controllers
 			this.memcachedClient = memcachedClient;
 		}
 		
+		/// <summary>
+		/// Получение списка дсотупных городов для фильтрации.
+		/// </summary>
+		/// <returns>Список названий городов.</returns>
+		[HttpGet]
 		[Route("cities")]
 		public async Task<List<string>> GetCities() 
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetCities)), CacheSeconds, async () =>
@@ -32,6 +40,12 @@ namespace RndTech.DevRel.App.Controllers
 					.Select(g => g.Key)
 					.ToListAsync());
 
+		/// <summary>
+		/// Получение списка источников информации о митапах.
+		/// Не используется в фильтрах.
+		/// </summary>
+		/// <returns>Список источников информации о митапах.</returns>
+		[HttpGet]
 		[Route("communitySources")]
 		public async Task<List<string>> GetCommunitySources()
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetCommunitySources)), CacheSeconds, async () =>
@@ -40,6 +54,11 @@ namespace RndTech.DevRel.App.Controllers
 					.Select(cs => cs.Name)
 					.ToListAsync());
 
+		/// <summary>
+		/// Получение списка дсотупных уровней образования для фильтрации.
+		/// </summary>
+		/// <returns>Список уровней образования.</returns>
+		[HttpGet]
 		[Route("educations")]
 		public async Task<List<string>> GetEducations()
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetEducations)), CacheSeconds, async () =>
@@ -50,6 +69,11 @@ namespace RndTech.DevRel.App.Controllers
 					.Select(g => g.Key)
 					.ToListAsync());
 
+		/// <summary>
+		/// Получение списка дсотупных грейдов респондентов для фильтрации.
+		/// </summary>
+		/// <returns>Список названий грейдов.</returns>
+		[HttpGet]
 		[Route("experienceLevels")]
 		public async Task<List<string>> GetExperienceLevels()
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetExperienceLevels)), CacheSeconds, async () =>
@@ -59,6 +83,11 @@ namespace RndTech.DevRel.App.Controllers
 					.Select(g => g.Key)
 					.ToListAsync());
 
+		/// <summary>
+		/// Получение списка дсотупных профессий для фильтрации.
+		/// </summary>
+		/// <returns>Список названий профессий.</returns>
+		[HttpGet]
 		[Route("professions")]
 		public async Task<List<string>> GetProfessions()
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetProfessions)), CacheSeconds, async () =>
@@ -69,6 +98,11 @@ namespace RndTech.DevRel.App.Controllers
 					.Select(g => g.Key)
 					.ToListAsync());
 
+		/// <summary>
+		/// Получение списка дсотупных языков программирования для фильтрации.
+		/// </summary>
+		/// <returns>Список языков программирования.</returns>
+		[HttpGet]
 		[Route("programmingLanguages")]
 		public async Task<List<string>> GetProgrammingLanguages()
 			=> await memcachedClient.GetValueOrCreateAsync(GetCacheKey(nameof(GetProgrammingLanguages)), CacheSeconds,
