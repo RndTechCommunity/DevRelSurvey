@@ -50,8 +50,8 @@ const companyFillColorMap = {
     'Rnd soft (+Winvestor)': '#ff8833',
     'Arcadia': '#2eaecc',
     'Usetech': '#92B700',
-    'Спецвузавтоматика': '#237BE7',
-    'uKit (uCoz)': '#338FFF',
+    'НИИ "Спецвузавтоматика"': '#237BE7',
+    'uKit': '#338FFF',
     'MentalStack': '#ffe13c',
     'Reksoft': '#E22227',
     'WebAnt': '#C21B75',
@@ -64,6 +64,7 @@ const companyFillColorMap = {
 type Props = {
     classes?: any,
     filter: Filter,
+    year: number,
     selectedCompanies: string[],
     onCompaniesChanged: (filter: string[]) => void,
     useError: boolean,
@@ -118,7 +119,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     componentDidUpdate(prevProps: Props) {
-        if (this.props.filter !== prevProps.filter) {
+        if (this.props.filter !== prevProps.filter || this.props.year !== prevProps.year) {
             this.setState({ isReady: false })
 
             this.loadData(this.props.filter)
@@ -135,6 +136,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     loadData(filter: Filter) {
+        filter.year = this.props.year
         return getKnownAndWantedData(filter)
             .then(data => {
                 const companyEntries = KnownAndWantedPage.calculateEntries(data)

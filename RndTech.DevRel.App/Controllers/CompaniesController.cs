@@ -7,62 +7,83 @@ using Enyim.Caching;
 
 namespace RndTech.DevRel.App.Controllers
 {
+	/// <summary>
+	/// Получение данных о выборке.
+	/// </summary>
 	[Route("api/")]
 	public class CompanyController : Controller
 	{
 		private const int CacheSeconds = 60 * 60 * 24;
+		private readonly SurveyService surveyService;
 		private readonly IMemcachedClient cache;
 
-		public CompanyController(IMemcachedClient cache)
+		public CompanyController(SurveyService surveyService, IMemcachedClient cache)
 		{
+			this.surveyService = surveyService;
 			this.cache = cache;
 		}
-		
-		[Route("all-companies")]
-		public List<CompanyModel> All()
-		{
-			return InMemoryDbContext.GetCompanyModels();
-		}
 
+		/// <summary>
+		/// Получения информации об узнаваемости и привлекательности компаний среди респондентов, соответствующих фильтру.
+		/// </summary>
+		/// <param name="filter">Фильтр для данных о компаниях.</param>
+		/// <returns>Данные о узнаваемости и привлекательности компаний.</returns>
 		[Route("known-and-wanted")]
 		[HttpPost]
 		public async Task<Dictionary<string, CompanyModel>> GetCompanies([FromBody] UserFilter filter)
 		{
-			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			return await cache.GetValueOrCreateAsync(GetCacheKey("companies", filter), CacheSeconds, async () =>
 			{
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
+				UpdateLanguagesFilter(filter);
 
-				return InMemoryDbContext.GetCompanyModels(
-						citiesFilter: filter.cities,
-						educationFilter: filter.educations,
-						programmingLanguageFilter: filter.languages,
-						professionFilter: filter.professions,
-						experienceLevelFilter: filter.experiences,
-						agesFilter: ageFilter,
-						isCommunityFilter: communityFilter)
-					.ToDictionary(cm => cm.Name, cm => cm);
+				var result = await surveyService.GetCompanyModels(
+					filter.Year,
+					ageFilter,
+					filter.cities,
+					filter.educations,
+					filter.experiences,
+					filter.professions,
+					filter.languages,
+					communityFilter);
+				
+				return result.ToDictionary(cm => cm.Name, cm => cm);
 			});
 		}
 
+		/// <summary>
+		/// Получения информации о составе выборки, соответствующей фильтру.
+		/// </summary>
+		/// <param name="filter">Фильтр для данных о выборки.</param>
+		/// <returns>Данные о составе выборки, оответствующей фильтрм.</returns>
 		[Route("meta")]
 		[HttpPost]
 		public async Task<MetaModel> GetMeta([FromBody] UserFilter filter)
 		{
-			return await cache.GetValueOrCreateAsync(GetCacheKey(filter), CacheSeconds, async () =>
+			return await cache.GetValueOrCreateAsync(GetCacheKey("meta", filter), CacheSeconds, async () =>
 			{
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
-
-				return InMemoryDbContext.GetMeta(
-					citiesFilter: filter.cities,
-					educationFilter: filter.educations,
-					programmingLanguageFilter: filter.languages,
-					professionFilter: filter.professions,
-					experienceLevelFilter: filter.experiences,
-					agesFilter: ageFilter,
-					isCommunityFilter: communityFilter);
+				UpdateLanguagesFilter(filter);
+				
+				return await surveyService.GetMeta(
+					filter.Year,
+					ageFilter,
+					filter.cities,
+					filter.educations,
+					filter.experiences,
+					filter.professions,
+					filter.languages,
+					communityFilter);
 			});
+		}
+
+		private void UpdateLanguagesFilter(UserFilter filter)
+		{
+			if (filter.languages != null && filter.languages.Any())
+				if (filter.languages.Contains("TypeScript") || filter.languages.Contains("JavaScript"))
+					filter.languages = filter.languages.Concat(new[] {"JavaScript / TypeScript"}).ToArray();
 		}
 
 		private static bool? GetCommunityFilter(UserFilter filter) =>
@@ -79,8 +100,8 @@ namespace RndTech.DevRel.App.Controllers
 				.SelectMany(af => Enumerable.Range(af, 5))
 				.ToArray();
 
-		private static string GetCacheKey(UserFilter filter) =>
-			$"META_{string.Join(',', filter.cities)}_{string.Join(',', filter.educations)}_{string.Join(',', filter.languages)}_{string.Join(',', filter.professions)}_{string.Join(',', filter.experiences)}_{string.Join(',', filter.ages)}_{string.Join(',', filter.isCommunity)}"
+		private static string GetCacheKey(string methodName, UserFilter filter) =>
+			$"{methodName}_{filter.Year}_{string.Join(',', filter.cities)}_{string.Join(',', filter.educations)}_{string.Join(',', filter.languages)}_{string.Join(',', filter.professions)}_{string.Join(',', filter.experiences)}_{string.Join(',', filter.ages)}_{string.Join(',', filter.isCommunity)}"
 				.Replace(" ", "");
 	}
 }

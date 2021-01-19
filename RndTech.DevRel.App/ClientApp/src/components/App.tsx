@@ -57,7 +57,7 @@ class App extends React.Component<Props, State> {
                                     Результаты
                                 </Nav.Item>
                                 <Nav.Item icon={<Icon icon='heart' />} eventKey='page-partners'>
-                                    Партнеры
+                                    Друзья
                                 </Nav.Item>
                                 <Nav.Item icon={<Icon icon='file-text' />} eventKey='page-about'>
                                     О проекте

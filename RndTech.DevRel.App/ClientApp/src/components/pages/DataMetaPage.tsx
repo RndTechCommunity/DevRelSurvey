@@ -28,6 +28,9 @@ const styles = {
     unimportant: {
         color: '#808080'
     },
+    centeredText: {
+        textAlign: 'center'
+    },
     icon: {
         opacity: 0.5
     }
@@ -40,13 +43,19 @@ type Props = {
 
 type State = {
     isReady: boolean,
-    data: MetaData
+    data2019: MetaData,
+    data2020: MetaData
 }
 
 class SelectionFactorsPage extends React.Component<Props, State> {
     state: State = {
         isReady: false,
-        data: {
+        data2019: {
+            count: 0,
+            total: 0,
+            sources : []
+        },
+        data2020: {
             count: 0,
             total: 0,
             sources : []
@@ -57,7 +66,8 @@ class SelectionFactorsPage extends React.Component<Props, State> {
 
     componentDidMount() {
         this._isMounted = true;
-        this.loadData(this.props.filter)
+        Promise
+            .all([this.loadData(this.props.filter, 2019), this.loadData(this.props.filter, 2020)])
             .then(() => {
                 if (this._isMounted) {
                     this.setState({isReady: true})
@@ -69,7 +79,8 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         if (this.props.filter !== prevProps.filter) {
             this.setState({ isReady: false })
 
-            this.loadData(this.props.filter)
+            Promise
+                .all([this.loadData(this.props.filter, 2019), this.loadData(this.props.filter, 2020)])
                 .then(() => {
                     if (this._isMounted) {
                         this.setState({isReady: true})
@@ -82,18 +93,24 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         this._isMounted = false;
     }
 
-    loadData(filter: Filter) {
+    loadData(filter: Filter, year: number) {
+        filter.year = year;
         return getMeta(filter)
             .then(data => {
                 if (this._isMounted) {
-                    this.setState({data})
+                    if (year === 2019) {
+                        this.setState({data2019: data})
+                    }
+                    else {
+                        this.setState({data2020: data})
+                    }
                 }
             })
     }
 
     render() {
         const { classes } = this.props
-        const { isReady, data } = this.state
+        const { isReady, data2019, data2020 } = this.state
 
         if (!isReady) {
             return (<Loader content='Загрузка данных' center />)
@@ -103,45 +120,103 @@ class SelectionFactorsPage extends React.Component<Props, State> {
             <Container>
                 <Content>
                     <div className={classes.groups}>
-                        <h4>
-                            {data.count}
-                            &nbsp;<Plural n={data.count} one='участник' few='участника' many='участников' />
-                            &nbsp;в выборке (из {data.total})
-                        </h4>
                         <Grid fluid>
-                            <Row gutter={36}>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Города', 'cities')}
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    <h3 className={classes.centeredText}>2020</h3>
+                                    <h5>
+                                        {data2020.count}
+                                        &nbsp;<Plural n={data2020.count} one='участник' few='участника' many='участников' />
+                                        &nbsp;в выборке (из {data2020.total})
+                                    </h5>
                                 </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Возраст', 'ages')}
-                                </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Образование', 'education')}
-                                </Col>
-                            </Row>
-
-                            <Row gutter={36}>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Уровни', 'levels')}
-                                </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Профессии', 'professions')}
-                                </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Языки', 'languages')}
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    <h3 className={classes.centeredText}>2019</h3>
+                                    <h5>
+                                        {data2019.count}
+                                        &nbsp;<Plural n={data2019.count} one='участник' few='участника' many='участников' />
+                                        &nbsp;в выборке (из {data2019.total})
+                                    </h5>
                                 </Col>
                             </Row>
-
-                            <Row gutter={36}>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Источники информации о компаниях', 'companySources')}
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Города', 'cities')}
                                 </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Ходят ли на митапы', 'isCommunity')}
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Города', 'cities')}
                                 </Col>
-                                <Col xs={24} sm={24} md={8}>
-                                    {this.renderGroup('Откуда узнают о митапах', 'communitySource')}
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Возраст', 'ages')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Возраст', 'ages')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Образование', 'education')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Образование', 'education')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Уровни', 'levels')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Уровни', 'levels')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Профессии', 'professions')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Профессии', 'professions')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Языки', 'languages')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Языки', 'languages')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Критерии выбора компаний', 'motivationFactors')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}/>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Ходят ли на митапы', 'isCommunity')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Ходят ли на митапы', 'isCommunity')}
+                                </Col>
+                            </Row>
+                            <Row gutter={30}>
+                                <Col xs={11}>
+                                    {this.renderGroup(data2020, 'Откуда узнают о митапах', 'communitySource')}
+                                </Col>
+                                <Col xs={2} />
+                                <Col xs={11}>
+                                    {this.renderGroup(data2019, 'Откуда узнают о митапах', 'communitySource')}
                                 </Col>
                             </Row>
                         </Grid>
@@ -151,11 +226,10 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         )
     }
 
-    renderGroup(title: string, key: string) {
+    renderGroup(data: MetaData, title: string, key: string) {
         const { classes, filter } = this.props
-        const { data } = this.state
 
-        return (
+        return (data.sources && data.sources[key] &&
             <div key={title}>
                 <h3>{title} {filter[key] !== undefined && filter[key] !== null && filter[key].length !== 0
                     ? <Icon icon='filter' />

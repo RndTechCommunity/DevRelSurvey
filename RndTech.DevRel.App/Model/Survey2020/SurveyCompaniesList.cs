@@ -10,6 +10,7 @@ namespace RndTech.DevRel.App.Model.Survey2020
         [JsonProperty("2UP")]
         public SurveyCompanyAnswer Company2UP { get; set; } 
         [JsonProperty("42.works")]
+        [CompanyName("42")]
         public SurveyCompanyAnswer Company42Works { get; set; } 
         public SurveyCompanyAnswer A2SEVEN { get; set; } 
         public SurveyCompanyAnswer Accenture { get; set; } 
@@ -21,7 +22,8 @@ namespace RndTech.DevRel.App.Model.Survey2020
         public SurveyCompanyAnswer Auriga { get; set; } 
         public SurveyCompanyAnswer BETCITY { get; set; } 
         public SurveyCompanyAnswer Cboss { get; set; } 
-        public SurveyCompanyAnswer ChilliCode { get; set; } 
+        public SurveyCompanyAnswer ChilliCode { get; set; }
+        [CompanyName("Cloud Linux")]
         public SurveyCompanyAnswer CloudLinux { get; set; } 
         [JsonProperty("Comepay (Кампэй)")]
         public SurveyCompanyAnswer Comepay { get; set; } 
@@ -145,19 +147,21 @@ namespace RndTech.DevRel.App.Model.Survey2020
         public SurveyCompanyAnswer РаДон { get; set; } 
         public SurveyCompanyAnswer Сбер { get; set; } 
         [JsonProperty("Спецвуз-автоматика")]
+        [CompanyName(@"НИИ ""Спецвузавтоматика""")]
         public SurveyCompanyAnswer СпецвузАвтоматика { get; set; } 
         [JsonProperty("Студия Олега Чулакова")]
         public SurveyCompanyAnswer СтудияОлегаЧулакова { get; set; } 
         public SurveyCompanyAnswer Тинькофф { get; set; } 
         public SurveyCompanyAnswer ЦентрИнвест { get; set; } 
         [JsonProperty("Югпром-автоматизация")]
+        [CompanyName("Югпромавтоматизация")]
         public SurveyCompanyAnswer ЮгпромАвтоматизация { get; set; } 
         [JsonProperty("Южная софтверная компания (ЮСК)")]
         public SurveyCompanyAnswer ЮжнаясофтвернаякомпанияЮСК { get; set; }
 
-        public IEnumerable<SurveyAnswer> All()
+        public IEnumerable<SurveyCompanyAnswer> All()
         {
-            return GetType().GetProperties().Select(p => p.GetValue(this)).OfType<SurveyAnswer>();
+            return GetType().GetProperties().Select(p => p.GetValue(this)).OfType<SurveyCompanyAnswer>();
         }
     }
 }
