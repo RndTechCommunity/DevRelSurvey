@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using MoreLinq.Extensions;
 using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Model

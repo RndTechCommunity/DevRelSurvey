@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using MoreLinq;
 using RndTech.DevRel.App.DAL;
 
 namespace RndTech.DevRel.App.Model

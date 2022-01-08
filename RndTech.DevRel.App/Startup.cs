@@ -10,7 +10,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using RndTech.DevRel.App.DAL;
 using RndTech.DevRel.App.Model;
 
@@ -28,7 +27,7 @@ namespace RndTech.DevRel.App
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+			services.AddMvc();
 			services.AddEnyimMemcached(Configuration);
 
 			// In production, the React files will be served from this directory
@@ -37,20 +36,20 @@ namespace RndTech.DevRel.App
 				configuration.RootPath = "ClientApp/build";
 			});
 
-			//services.AddDbContext<SurveyDbContext>(
-			//	dbContextOptions => dbContextOptions
-			//		.UseSqlite("Data Source=Survey.db"));
-			services.AddDbContextPool<SurveyDbContext>(
-					dbContextOptions => dbContextOptions
-						.UseMySql(
-							Configuration.GetConnectionString("SurveyDb"),
-							new MariaDbServerVersion(new Version(10, 4)),
-							mySqlOptions =>
-							{
-								mySqlOptions.CharSetBehavior(CharSetBehavior.NeverAppend);
-								mySqlOptions.CommandTimeout(120);
-							})
-				);
+			services.AddDbContext<SurveyDbContext>(
+				dbContextOptions => dbContextOptions
+					.UseInMemoryDatabase("SurveyDb"));
+			// services.AddDbContextPool<SurveyDbContext>(
+			// 		dbContextOptions => dbContextOptions
+			// 			.UseMySql(
+			// 				Configuration.GetConnectionString("SurveyDb"),
+			// 				new MariaDbServerVersion(new Version(10, 4)),
+			// 				mySqlOptions =>
+			// 				{
+			// 					mySqlOptions.CharSetBehavior(CharSetBehavior.NeverAppend);
+			// 					mySqlOptions.CommandTimeout(120);
+			// 				})
+			// 	);
 			
 			services.AddSwaggerGen();
 			
@@ -79,6 +78,17 @@ namespace RndTech.DevRel.App
 			services.AddScoped<IntervieweesPreloader>();
 
 			services.AddHostedService<WarmUpHostedService>();
+
+			services.AddCors(options =>
+			{
+				options.AddPolicy("DefaultPolicy",
+					builder =>
+					{
+						builder.AllowAnyOrigin()
+							.AllowAnyHeader()
+							.AllowAnyMethod();
+					});
+			});
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -93,7 +103,8 @@ namespace RndTech.DevRel.App
 				app.UseExceptionHandler("/Error");
 				app.UseHsts();
 			}
-			
+
+			app.UseCors("DefaultPolicy");
 			app.UseSwagger();
 			app.UseSwaggerUI(c =>
 			{
