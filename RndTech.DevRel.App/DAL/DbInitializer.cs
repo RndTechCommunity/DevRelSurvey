@@ -9,20 +9,21 @@ using CsvHelper.Configuration;
 using Newtonsoft.Json;
 using RndTech.DevRel.App.Model;
 using RndTech.DevRel.App.Model.Survey2020;
+#pragma warning disable CS1591
 
 namespace RndTech.DevRel.App.DAL
 {
     public static class DbInitializer
     {
-        private static readonly Dictionary<string, Language> Languages = new Dictionary<string, Language>();
-        private static readonly Dictionary<string, MotivationFactor> MotivationFactors = new Dictionary<string, MotivationFactor>();
-        private static readonly Dictionary<string, CommunitySource> CommunitySources = new Dictionary<string, CommunitySource>();
-        private static readonly Dictionary<string, Company> Companies = new Dictionary<string, Company>();
-        private static readonly List<Interviewee> Interviewees = new List<Interviewee>();
-        private static readonly List<CompanyAnswer> Answers = new List<CompanyAnswer>();
-        private static readonly List<IntervieweeLanguage> IntervieweeLanguages = new List<IntervieweeLanguage>();
-        private static readonly List<IntervieweeMotivationFactor> IntervieweeMotivationFactors = new List<IntervieweeMotivationFactor>();
-        private static readonly List<IntervieweeCommunitySource> IntervieweeCommunitySources = new List<IntervieweeCommunitySource>();
+        private static readonly Dictionary<string, Language> Languages = new();
+        private static readonly Dictionary<string, MotivationFactor> MotivationFactors = new();
+        private static readonly Dictionary<string, CommunitySource> CommunitySources = new();
+        private static readonly Dictionary<string, Company> Companies = new();
+        private static readonly List<Interviewee> Interviewees = new();
+        private static readonly List<CompanyAnswer> Answers = new();
+        private static readonly List<IntervieweeLanguage> IntervieweeLanguages = new();
+        private static readonly List<IntervieweeMotivationFactor> IntervieweeMotivationFactors = new();
+        private static readonly List<IntervieweeCommunitySource> IntervieweeCommunitySources = new();
 
         public static void Initialize(SurveyDbContext context)
         {
@@ -33,7 +34,8 @@ namespace RndTech.DevRel.App.DAL
             }
 
             Fill2019YearData();
-            Fill2020YearData();
+            //Fill2020YearData();
+            Fill2021YearData();
 
             context.Languages.AddRange(Languages.Values);
             context.Companies.AddRange(Companies.Values);
@@ -51,7 +53,7 @@ namespace RndTech.DevRel.App.DAL
         private static void Fill2020YearData()
         {
             var textAnswers = File.ReadAllText("2020.json");
-            var answers = JsonConvert.DeserializeObject<List<SurveyAnswer>>(textAnswers);
+            var answers = JsonConvert.DeserializeObject<List<SurveyAnswer>>(textAnswers)!;
 
             foreach (var answer in answers)
             {
@@ -130,7 +132,7 @@ namespace RndTech.DevRel.App.DAL
                 }
             }
         }
-
+        
         private static void AddCompanyAnswer(PropertyInfo propertyInfo, SurveyAnswer answer, Interviewee interviewee)
         {
             var companyName =
@@ -159,6 +161,149 @@ namespace RndTech.DevRel.App.DAL
             });
         }
 
+        private static void Fill2021YearData()
+        {
+            using var reader = new StreamReader("2021.csv");
+            using var csv = new CsvReader(reader,
+                new CsvConfiguration(CultureInfo.InvariantCulture) {BadDataFound = null, Delimiter = ","});
+
+            var companies = new List<string>();
+            var isFirstLine = true;
+            while (csv.Read())
+            {
+                if (!isFirstLine)
+                {
+                    var city = csv.GetField<string>(1);
+                    if(string.IsNullOrEmpty(city))
+                        city = csv.GetField<string>(2);
+
+                    var ageString = csv.GetField<int>(3);
+                    var education = csv.GetField<string>(4);
+                    var profession = csv.GetField<string>(5);
+                    var professionNotInList = csv.GetField<string>(6);
+
+                    var languages = new List<string>();
+                    for (var i = 7; i <= 34; i++)
+                    {
+                        var l = csv.GetField<string>(i);
+                        if (!string.IsNullOrEmpty(l))
+                            languages.Add(l);
+                    }
+
+                    var languaglesNotInList = csv.GetField<string>(35);
+                    var level = csv.GetField<string>(36);
+                    var isMeetupVisitor = csv.GetField<string>(37) == "1";
+                    var meetupSources = new List<string>();
+                    for (int i = 38; i <= 45; i++)
+                    {
+                        var s = csv.GetField<string>(i);
+                        if (!string.IsNullOrEmpty(s))
+                            meetupSources.Add(s);
+                    }
+
+                    var meetupSourceNotInList = csv.GetField<string>(46);
+                    for (int i = 47; i <= 54; i++)
+                    {
+                        var s = csv.GetField<string>(i);
+                        if (!string.IsNullOrEmpty(s))
+                            meetupSources.Add(s);
+                    }
+
+                    var meetupSourceNotInList2 = csv.GetField<string>(55);
+                    if(!string.IsNullOrEmpty(professionNotInList))
+                        Console.WriteLine($"Language: {professionNotInList}");
+                    if(!string.IsNullOrEmpty(languaglesNotInList))
+                        Console.WriteLine($"Language: {languaglesNotInList}");
+                    if(!string.IsNullOrEmpty(meetupSourceNotInList))
+                        Console.WriteLine($"Meetup source: {meetupSourceNotInList}");
+                    if(!string.IsNullOrEmpty(meetupSourceNotInList2))
+                        Console.WriteLine($"Meetup source: {meetupSourceNotInList2}");
+                    //var bestCompanies = csv.GetField<string>(56);
+
+                    //var email = csv.GetField<string>(146);
+                    
+                    var interviewee = new Interviewee
+                    {
+                        Id = Guid.NewGuid(),
+                        Age = ageString,
+                        City = city,
+                        Education = education,
+                        Profession = profession,
+                        ProfessionLevel = level,
+                        VisitMeetups = isMeetupVisitor,
+                        Year = 2021,
+                        IsCommunity = isMeetupVisitor
+                    };
+                    Interviewees.Add(interviewee);
+                    
+                    foreach (var language in languages)
+                    {
+                        if (!Languages.ContainsKey(language))
+                        {
+                            var l = new Language {Id = Guid.NewGuid(), Name = language};
+                            Languages.Add(l.Name, l);
+                        }
+                        
+                        IntervieweeLanguages.Add(new IntervieweeLanguage
+                        {
+                            IntervieweeId = interviewee.Id,
+                            LanguageId = Languages[language].Id
+                        });
+                    }
+                    
+                    foreach (var ms in meetupSources)
+                    {
+                        if (!CommunitySources.ContainsKey(ms))
+                        {
+                            var l = new CommunitySource {Id = Guid.NewGuid(), Name = ms};
+                            CommunitySources.Add(l.Name, l);
+                        }
+                        
+                        IntervieweeCommunitySources.Add(new IntervieweeCommunitySource
+                        {
+                            IntervieweeId = interviewee.Id,
+                            CommunitySourceId = CommunitySources[ms].Id
+                        });
+                    }
+                    
+                    for (int i = 57; i <= 145; i++)
+                    {
+                        var companyItem = csv.GetField<string>(i);
+                        var companyAnswer = new CompanyAnswer
+                        {
+                            Id = Guid.NewGuid(),
+                            IntervieweeId = interviewee.Id,
+                            CompanyId = Companies[companies[i - 57]].Id,
+                            IsKnown = companyItem != "Не знаю",
+                            IsGood = companyItem == "Знаю и рекомендую",
+                            IsWanted = companyItem == "Знаю и хочу работать"
+                        };
+                        
+                        Answers.Add(companyAnswer);
+                    }
+                }
+
+                if (isFirstLine)
+                {
+                    for (int i = 57; i <= 145; i++)
+                    {
+                        companies.Add(csv.GetField<string>(i));
+                        var companyName = csv.GetField<string>(i);
+                        
+                        if (!Companies.ContainsKey(companyName))
+                        {
+                            var c = new Company {Id = Guid.NewGuid(), Name = companyName};
+                            Companies.Add(c.Name, c);
+                        }
+                    }
+                    
+                    
+                }
+                
+                isFirstLine = false;
+            }
+        }
+        
         private static void Fill2019YearData()
         {
             using var reader = new StreamReader("testdata.csv");
