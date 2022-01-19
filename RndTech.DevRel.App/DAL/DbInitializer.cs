@@ -34,7 +34,7 @@ namespace RndTech.DevRel.App.DAL
             }
 
             Fill2019YearData();
-            //Fill2020YearData();
+            Fill2020YearData();
             Fill2021YearData();
 
             context.Languages.AddRange(Languages.Values);
@@ -133,7 +133,8 @@ namespace RndTech.DevRel.App.DAL
             }
         }
         
-        private static void AddCompanyAnswer(PropertyInfo propertyInfo, SurveyAnswer answer, Interviewee interviewee)
+        private static void AddCompanyAnswer(PropertyInfo propertyInfo,
+            SurveyAnswer answer, Interviewee interviewee)
         {
             var companyName =
                 propertyInfo.GetCustomAttribute<CompanyNameAttribute>()?.Name
@@ -150,15 +151,16 @@ namespace RndTech.DevRel.App.DAL
                 Companies.Add(c.Name, c);
             }
 
-            Answers.Add(new CompanyAnswer
+            var companyAnswer = new CompanyAnswer
             {
                 Id = Guid.NewGuid(),
                 IntervieweeId = interviewee.Id,
                 CompanyId = Companies[companyName].Id,
                 IsKnown = propertyValue.ЗнаюСлышал,
                 IsGood = propertyValue.Готоврекомендовать?.Any() ?? false,
-                IsWanted = propertyValue.Хочуработать?.Any() ?? false
-            });
+                IsWanted = propertyValue.Хочуработать?.Any() ??  false
+            };
+            Answers.Add(companyAnswer);
         }
 
         private static void Fill2021YearData()
@@ -190,7 +192,7 @@ namespace RndTech.DevRel.App.DAL
                             languages.Add(l);
                     }
 
-                    var languaglesNotInList = csv.GetField<string>(35);
+                    var languagesNotInList = csv.GetField<string>(35);
                     var level = csv.GetField<string>(36);
                     var isMeetupVisitor = csv.GetField<string>(37) == "1";
                     var meetupSources = new List<string>();
@@ -211,9 +213,9 @@ namespace RndTech.DevRel.App.DAL
 
                     var meetupSourceNotInList2 = csv.GetField<string>(55);
                     if(!string.IsNullOrEmpty(professionNotInList))
-                        Console.WriteLine($"Language: {professionNotInList}");
-                    if(!string.IsNullOrEmpty(languaglesNotInList))
-                        Console.WriteLine($"Language: {languaglesNotInList}");
+                        Console.WriteLine($"Profession: {professionNotInList}");
+                    if(!string.IsNullOrEmpty(languagesNotInList))
+                        Console.WriteLine($"Language: {languagesNotInList}");
                     if(!string.IsNullOrEmpty(meetupSourceNotInList))
                         Console.WriteLine($"Meetup source: {meetupSourceNotInList}");
                     if(!string.IsNullOrEmpty(meetupSourceNotInList2))
@@ -232,6 +234,7 @@ namespace RndTech.DevRel.App.DAL
                         ProfessionLevel = level,
                         VisitMeetups = isMeetupVisitor,
                         Year = 2021,
+                        
                         IsCommunity = isMeetupVisitor
                     };
                     Interviewees.Add(interviewee);
@@ -296,8 +299,6 @@ namespace RndTech.DevRel.App.DAL
                             Companies.Add(c.Name, c);
                         }
                     }
-                    
-                    
                 }
                 
                 isFirstLine = false;

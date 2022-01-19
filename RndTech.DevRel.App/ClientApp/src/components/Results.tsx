@@ -80,7 +80,16 @@ class App extends React.Component<Props, State> {
         
         let content =
             tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                tab === 'known-and-wanted-2020' ? 
+                tab === 'known-and-wanted-2021' ?
+                    <KnownAndWantedPage
+                        selectedCompanies={companiesFilter}
+                        filter={filter}
+                        year={2021}
+                        onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
+                        useError={useError}
+                        onUseErrorChanged={ue => this.setState({ useError: ue })}
+                    /> : 
+                    (tab === 'known-and-wanted-2020' ? 
                     <KnownAndWantedPage 
                         selectedCompanies={companiesFilter} 
                         filter={filter}
@@ -90,7 +99,7 @@ class App extends React.Component<Props, State> {
                         onUseErrorChanged={ue => this.setState({ useError: ue })}
                     /> 
                                                 :
-                    tab === 'known-and-wanted-2019' ?
+                        (tab === 'known-and-wanted-2019' ?
                         <KnownAndWantedPage
                             selectedCompanies={companiesFilter}
                             filter={filter}
@@ -99,7 +108,7 @@ class App extends React.Component<Props, State> {
                             useError={useError}
                             onUseErrorChanged={ue => this.setState({ useError: ue })}
                         />
-                        : null
+                        : null))
 
         return (
             <Container>
@@ -157,7 +166,7 @@ class App extends React.Component<Props, State> {
 
         return maybeTab !== null
             ? JSON.parse(decodeURIComponent(maybeTab)) as MenuId
-            : 'known-and-wanted-2020'
+            : 'known-and-wanted-2021'
     }
 
     static restoreFilter(): Filter {

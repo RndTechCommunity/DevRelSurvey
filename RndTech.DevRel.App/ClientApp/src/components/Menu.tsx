@@ -28,11 +28,16 @@ type MenuItem = {
 }
 
 export type MenuId =
+    'known-and-wanted-2021' |
     'known-and-wanted-2020' |
     'known-and-wanted-2019' |
     'data-meta'
 
 const items: MenuItem[] = [
+    {
+        id: 'known-and-wanted-2021',
+        title: 'Узнаваемость и привлекательность 2021'
+    },
     {
         id: 'known-and-wanted-2020',
         title: 'Узнаваемость и привлекательность 2020'
