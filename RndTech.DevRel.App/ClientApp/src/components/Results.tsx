@@ -4,7 +4,7 @@ import { topRostovFilter, Filter, selectedCompanies } from './filters/Filter'
 import Menu, { MenuId } from './Menu'
 import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
-import { Button, Container, Content, Modal, Sidebar, Sidenav } from 'rsuite';
+import { Container, Content, Sidebar, Sidenav } from 'rsuite';
 import FiltersSidePage from './filters/FiltersSidePage';
 
 const styles = {
@@ -27,127 +27,8 @@ type Props = {
     modalOpened: boolean
 }
 
-type State = {
-    tab: MenuId,
-    modalOpened: boolean
-    filter: Filter,
-    areFiltersShown: boolean,
-    companiesFilter: string[]
-    useError: boolean,
-    useGood: boolean,
-    useWanted: boolean
-}
-
-class App extends React.Component<Props, State> {
-    state: State = {
-        tab: App.restoreTab(),
-        filter: App.restoreFilter(),
-        areFiltersShown: false,
-        modalOpened: this.props.modalOpened,
-        companiesFilter: selectedCompanies,
-        useError: false,
-        useGood: false,
-        useWanted: true
-    }
-
-    renderModal() {
-        return (
-            <Modal show={this.state.modalOpened} onHide={this.modalClose}>
-                <Modal.Header>
-                    <Modal.Title>Узнаваемость и привлекательность IT-компаний в Ростовской области</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <p>
-                        Мы в IT-сообществе RndTech сделали исследование узнаваемости брендов IT-компаний в Ростове и
-                        Таганроге.
-                        В 2019 больше 700 человек, а в 2020 — уже 1200! Спасибо, что поделились своим мнением.
-                        Мы спешим поделиться с вами результатами.
-                    </p>
-                    <p>
-                        На этом сайте можно посмотреть статистику местного IT-сообщества — на чём люди
-                        программируют в 2020 году, кем работают и откуда узнают о митапах.
-                        А ещё — какие компании они знают и в каких хотят работать.
-                    </p>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button onClick={this.modalClose} appearance='primary'>
-                        Посмотреть результаты
-                    </Button>
-                </Modal.Footer>
-            </Modal>
-        );
-    }
-
-    render() {
-        const { classes } = this.props
-        const { tab, filter, companiesFilter, useError, useWanted, useGood } = this.state
-        
-        let content =
-            tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                <KnownAndWantedPage
-                    selectedCompanies={companiesFilter}
-                    filter={filter}
-                    year={tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019)}
-                    onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
-                    useError={useError}
-                    onUseErrorChanged={ue => this.setState({ useError: ue })}
-                    useGood={useGood}
-                    useWanted={useWanted}
-                    onUseGoodChanged={ue => this.setState({ useGood: ue })}
-                    onUseWantedChanged={ue => this.setState({ useWanted: ue })}
-                />
-
-        return (
-            <Container>
-                <Sidebar
-                    style={{ display: 'flex', flexDirection: 'column' }}
-                    width={260}
-                >
-                        <Sidenav
-                            expanded={true}
-                            defaultOpenKeys={['1', '2']}
-                            appearance='subtle'
-                        >
-                            <Sidenav.Body>
-                                <FiltersSidePage
-                                    filter={filter}
-                                    onSetFilter={filter => this.setState({ filter })}
-                                    onOpenDuplicate={() => this.openDuplicate()}
-                                />
-                            </Sidenav.Body>
-                        </Sidenav>
-                </Sidebar>
-
-                <Container>
-                    <Content>
-                        <div className={classes.menuContainer}>
-                            <Menu
-                                active={tab}
-                                onChange={tab => this.setState({ tab })}
-                            />
-                            <div className={classes.playground}>
-                                {content}
-                                {this.state.modalOpened && this.renderModal()}
-                            </div>
-                        </div>
-                    </Content>
-                </Container>
-            </Container>
-    )
-    }
-
-    modalClose = () => this.setState({ modalOpened: false })
-
-    openDuplicate() {
-        const { tab, filter } = this.state
-
-        const uri = `?tab=${encodeURIComponent(JSON.stringify(tab))}` +
-            `&filter=${encodeURIComponent(JSON.stringify(filter))}`
-
-        window.open(uri, '_blank')
-    }
-
-    static restoreTab(): MenuId {
+export function App(props: Props) {
+    const restoreTab = () => {
         const params = new URLSearchParams(window.location.search);
         const maybeTab = params.get('tab')
 
@@ -156,7 +37,7 @@ class App extends React.Component<Props, State> {
             : 'known-and-wanted-2021'
     }
 
-    static restoreFilter(): Filter {
+    const restoreFilter = () => {
         const params = new URLSearchParams(window.location.search);
         const maybeFilter = params.get('filter')
 
@@ -164,6 +45,71 @@ class App extends React.Component<Props, State> {
             ? JSON.parse(decodeURIComponent(maybeFilter)) as Filter
             : topRostovFilter
     }
+
+    const [tab, setTab] = React.useState<MenuId>(restoreTab());
+    const [filter, setFilter] = React.useState<Filter>(restoreFilter());
+    const [companiesFilter, setCompaniesFilter] = React.useState<string[]>(selectedCompanies);
+    const [useError, setUseError] = React.useState<boolean>(false);
+    const [useGood, setUseGood] = React.useState<boolean>(false);
+    const [useWanted, setUseWanted] = React.useState<boolean>(true);
+
+    const openDuplicate = () => {
+        const uri = `?tab=${encodeURIComponent(JSON.stringify(tab))}` +
+            `&filter=${encodeURIComponent(JSON.stringify(filter))}`
+        window.open(uri, '_blank')
+    }
+
+    let content =
+        tab === 'data-meta' ? <DataMetaPage filter={filter}/> :
+            <KnownAndWantedPage
+                selectedCompanies={companiesFilter}
+                filter={filter}
+                year={tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019)}
+                onCompaniesChanged={companies => setCompaniesFilter(companies)}
+                useError={useError}
+                onUseErrorChanged={ue => setUseError(ue)}
+                useGood={useGood}
+                useWanted={useWanted}
+                onUseGoodChanged={ue => setUseGood(ue)}
+                onUseWantedChanged={ue => setUseWanted(ue)}
+            />
+
+    return (
+        <Container>
+            <Sidebar
+                style={{display: 'flex', flexDirection: 'column'}}
+                width={260}
+            >
+                <Sidenav
+                    expanded={true}
+                    defaultOpenKeys={['1', '2']}
+                    appearance='subtle'
+                >
+                    <Sidenav.Body>
+                        <FiltersSidePage
+                            filter={filter}
+                            onSetFilter={filter => setFilter(filter)}
+                            onOpenDuplicate={() => openDuplicate()}
+                        />
+                    </Sidenav.Body>
+                </Sidenav>
+            </Sidebar>
+
+            <Container>
+                <Content>
+                    <div className={props.classes.menuContainer}>
+                        <Menu
+                            active={tab}
+                            onChange={tab => setTab(tab)}
+                        />
+                        <div className={props.classes.playground}>
+                            {content}
+                        </div>
+                    </div>
+                </Content>
+            </Container>
+        </Container>
+    )
 }
 
 export default injectSheet(styles)(App)
