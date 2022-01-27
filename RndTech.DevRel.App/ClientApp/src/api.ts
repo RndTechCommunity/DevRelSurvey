@@ -79,14 +79,15 @@ export function getMeta(filter: Filter): Promise<MetaData> {
 }
 
 export type KnownAndWantedData = {
-    [company: string]: {
-        knownLevel: number,
-        wantedLevel: number,
-        error: number
-    }
+    knownLevel: number,
+    goodLevel: number,
+    wantedLevel: number,
+    name: string,
+    year: number,
+    error: number
 }
 
-export function getKnownAndWantedData(filter: Filter): Promise<KnownAndWantedData> {
+export function getKnownAndWantedData(filter: Filter): Promise<KnownAndWantedData[]> {
     axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
     return api
         .post('/known-and-wanted', filter)

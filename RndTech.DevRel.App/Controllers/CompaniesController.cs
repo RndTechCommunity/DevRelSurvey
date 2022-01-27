@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RndTech.DevRel.App.Model;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Enyim.Caching;
@@ -30,9 +29,9 @@ namespace RndTech.DevRel.App.Controllers
 		/// <returns>Данные о узнаваемости и привлекательности компаний.</returns>
 		[Route("known-and-wanted")]
 		[HttpPost]
-		public async Task<Dictionary<string, CompanyModel>> GetCompanies([FromBody] UserFilter filter)
+		public async Task<CompanyModel[]> GetCompanies([FromBody] UserFilter filter)
 		{
-			return await cache.GetValueOrCreateAsync(GetCacheKey("companies", filter), CacheSeconds, async () =>
+			return await cache.GetValueOrCreateAsync(GetCacheKey("companies2", filter), CacheSeconds, async () =>
 			{
 				var ageFilter = GetAgeFilter(filter);
 				var communityFilter = GetCommunityFilter(filter);
@@ -46,8 +45,7 @@ namespace RndTech.DevRel.App.Controllers
 					filter.professions,
 					filter.languages,
 					communityFilter);
-				result = result.Where(m => m.Year == 2021);
-				return result.ToDictionary(cm => cm.Name, cm => cm);
+				return result.ToArray();
 			});
 		}
 

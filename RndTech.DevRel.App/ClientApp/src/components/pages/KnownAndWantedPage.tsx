@@ -13,7 +13,7 @@ import { toPercent } from '../../format'
 import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
-import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
+import { Checkbox, Loader } from 'rsuite';
 
 const defaultFillColor = '#AAAAAA'
 const axesColor = '#81E2E7'
@@ -68,23 +68,22 @@ type Props = {
     selectedCompanies: string[],
     onCompaniesChanged: (filter: string[]) => void,
     useError: boolean,
+    useGood: boolean,
+    useWanted: boolean,
     onUseErrorChanged: (filter: boolean) => void
+    onUseGoodChanged: (filter: boolean) => void
+    onUseWantedChanged: (filter: boolean) => void
 }
 
 type State = {
     isReady: boolean,
-    companyEntries: CompanyEntry[]
+    companyEntries: KnownAndWantedData[]
     companies: { value: string; label: any; }[],
     maxWantedLevel: number,
     useError: boolean,
+    useGood: boolean,
+    useWanted: boolean,
     selectedCompanies: string[]
-}
-
-type CompanyEntry = {
-    company: string,
-    knownLevel: number,
-    wantedLevel: number,
-    error: number
 }
 
 class KnownAndWantedPage extends React.Component<Props, State> {
@@ -94,16 +93,10 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         companies: [],
         maxWantedLevel: 0.3,
         useError: this.props.useError,
+        useGood: this.props.useGood,
+        useWanted: this.props.useWanted,
         selectedCompanies: this.props.selectedCompanies,
     }
-
-    tooltip = (
-        <Tooltip>
-            Если эта опция включена, то для каждой компании отображается область,
-            в которую <b>с 95% вероятностью попадает её узнаваемость и привлекательность</b>.
-            Данные считаются по формуле доверительного интервала для генерального среднего.
-        </Tooltip>
-    );
 
     _isMounted = false
 
@@ -119,7 +112,10 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     componentDidUpdate(prevProps: Props) {
-        if (this.props.filter !== prevProps.filter || this.props.year !== prevProps.year) {
+        if (this.props.filter !== prevProps.filter 
+            || this.props.year !== prevProps.year
+            || this.props.useGood !== prevProps.useGood
+            || this.props.useWanted !== prevProps.useWanted) {
             this.setState({ isReady: false })
 
             this.loadData(this.props.filter)
@@ -136,14 +132,16 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     loadData(filter: Filter) {
-        filter.year = this.props.year
         return getKnownAndWantedData(filter)
             .then(data => {
-                const companyEntries = KnownAndWantedPage.calculateEntries(data)
+                const companyEntries = data.filter(d => d.year === this.props.year)
                 const companies = KnownAndWantedPage.calculateList(companyEntries).sort().map(x => ({
                     value: x, label: x
                 }))
-                const maxWantedLevel = Math.max.apply(null, companyEntries.map(ce => ce.wantedLevel)) + 0.05;
+                const maxWantedLevel = Math.max.apply(null, 
+                    companyEntries.map(ce => (this.state.useGood ? 1 : 0) * ce.goodLevel 
+                        + (this.state.useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
+
                 if (this._isMounted) {
                     this.setState({
                         companyEntries,
@@ -155,14 +153,16 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     render() {
-        const { classes, onCompaniesChanged, onUseErrorChanged } = this.props
+        const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = this.props
         const {
             isReady,
             companyEntries,
             companies,
             maxWantedLevel,
             selectedCompanies,
-            useError
+            useError,
+            useGood,
+            useWanted
         } = this.state
 
         if (!isReady) {
@@ -170,12 +170,13 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         }
 
         const entries = selectedCompanies.length > 0
-            ? companyEntries.filter(x => selectedCompanies.indexOf(x.company) !== -1)
+            ? companyEntries.filter(x => selectedCompanies.indexOf(x.name) !== -1)
             : companyEntries
 
         const data = entries.map(x => ({
-            ...x,
-            label: this.renderLabel(x.company)
+            knownLevel: x.knownLevel,
+            wantedLevel: (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
+            name: this.renderLabel(x.name)
         }))
 
         return (
@@ -194,17 +195,33 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                                 onCompaniesChanged(selectedCompanies)
                             }}
                         />
-                        <Whisper placement='top' trigger='hover' speaker={this.tooltip}>
                             <Checkbox 
                                 checked={useError} 
-                                onChange={(v, ch, e) => {
+                                onChange={(v, ch) => {
                                     this.setState({useError: ch})
                                     onUseErrorChanged(ch)
                                 }}
                             >
                                 Отображать доверительный интервал
                             </Checkbox>
-                        </Whisper>
+                            <Checkbox
+                                checked={useGood}
+                                onChange={(v, ch) => {
+                                    this.setState({useGood: ch})
+                                    onUseGoodChanged(ch)
+                                }}
+                            >
+                                Знаю и рекомендую
+                            </Checkbox>
+                            <Checkbox
+                                checked={useWanted}
+                                onChange={(v, ch) => {
+                                    this.setState({useWanted: ch})
+                                    onUseWantedChanged(ch)
+                                }}
+                            >
+                                Знаю и хочу работать
+                            </Checkbox>
                     </div>
                 </div>
                 <ResponsiveContainer aspect={1.5} width={1100}>
@@ -251,20 +268,20 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         )
     }
 
-    renderCompanyEntry(entry: CompanyEntry & { cx: number, cy: number }) {
-        const { company, error, cx, cy } = entry
+    renderCompanyEntry(entry: KnownAndWantedData & { cx: number, cy: number }) {
+        const { name, error, cx, cy } = entry
 
         const errorSize = (this.state.useError ? error : 0) * cx / entry.knownLevel
 
         return (
-            <g fill={KnownAndWantedPage.getFillColor(company)}>
+            <g fill={KnownAndWantedPage.getFillColor(name)}>
                 <g fillOpacity={0.1}>
                     <Dot cx={cx} cy={cy} r={errorSize} />
                 </g>
                 <Dot cx={cx} cy={cy} r={1.5} />
                 <g transform={`translate(${cx},${cy})`}>
                     <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
-                        {company}
+                        {name}
                     </text>
                 </g>
             </g>
@@ -280,23 +297,10 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         return parts.join('\u00A0')
     }
 
-    static calculateEntries(data: KnownAndWantedData): CompanyEntry[] {
-        if (data === undefined) {
-            return []
-        }
-
-        return Object
-            .keys(data)
-            .map(company => ({
-                    company,
-                    ...data[company]
-                }))
-    }
-
-    static calculateList(entries: CompanyEntry[]): string[] {
-        return entries.reduce((all: string[], current: CompanyEntry) => {
-            if (all.indexOf(current.company) === -1) {
-                all.push(current.company)
+    static calculateList(entries: KnownAndWantedData[]): string[] {
+        return entries.reduce((all: string[], current: KnownAndWantedData) => {
+            if (all.indexOf(current.name) === -1) {
+                all.push(current.name)
             }
 
             return all

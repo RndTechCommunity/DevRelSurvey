@@ -33,7 +33,9 @@ type State = {
     filter: Filter,
     areFiltersShown: boolean,
     companiesFilter: string[]
-    useError: boolean
+    useError: boolean,
+    useGood: boolean,
+    useWanted: boolean
 }
 
 class App extends React.Component<Props, State> {
@@ -43,7 +45,9 @@ class App extends React.Component<Props, State> {
         areFiltersShown: false,
         modalOpened: this.props.modalOpened,
         companiesFilter: selectedCompanies,
-        useError: false
+        useError: false,
+        useGood: false,
+        useWanted: true
     }
 
     renderModal() {
@@ -76,39 +80,22 @@ class App extends React.Component<Props, State> {
 
     render() {
         const { classes } = this.props
-        const { tab, filter, companiesFilter, useError } = this.state
+        const { tab, filter, companiesFilter, useError, useWanted, useGood } = this.state
         
         let content =
             tab === 'data-meta' ? <DataMetaPage filter={filter} /> :
-                tab === 'known-and-wanted-2021' ?
-                    <KnownAndWantedPage
-                        selectedCompanies={companiesFilter}
-                        filter={filter}
-                        year={2021}
-                        onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
-                        useError={useError}
-                        onUseErrorChanged={ue => this.setState({ useError: ue })}
-                    /> : 
-                    (tab === 'known-and-wanted-2020' ? 
-                    <KnownAndWantedPage 
-                        selectedCompanies={companiesFilter} 
-                        filter={filter}
-                        year={2020}
-                        onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
-                        useError={useError}
-                        onUseErrorChanged={ue => this.setState({ useError: ue })}
-                    /> 
-                                                :
-                        (tab === 'known-and-wanted-2019' ?
-                        <KnownAndWantedPage
-                            selectedCompanies={companiesFilter}
-                            filter={filter}
-                            year={2019}
-                            onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
-                            useError={useError}
-                            onUseErrorChanged={ue => this.setState({ useError: ue })}
-                        />
-                        : null))
+                <KnownAndWantedPage
+                    selectedCompanies={companiesFilter}
+                    filter={filter}
+                    year={tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019)}
+                    onCompaniesChanged={companies => this.setState({ companiesFilter: companies })}
+                    useError={useError}
+                    onUseErrorChanged={ue => this.setState({ useError: ue })}
+                    useGood={useGood}
+                    useWanted={useWanted}
+                    onUseGoodChanged={ue => this.setState({ useGood: ue })}
+                    onUseWantedChanged={ue => this.setState({ useWanted: ue })}
+                />
 
         return (
             <Container>

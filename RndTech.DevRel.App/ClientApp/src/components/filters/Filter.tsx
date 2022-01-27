@@ -35,7 +35,7 @@ export const topRostovFilter: Filter = {
     languages: [],
     professions: [],
     experiences: [],
-    ages: [],
+    ages: ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет'],
     isCommunity: null
 }
 
@@ -45,7 +45,7 @@ export const topTaganrogFilter: Filter = {
     languages: [],
     professions: [],
     experiences: [],
-    ages: [],
+    ages: ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет'],
     isCommunity: null
 }
 
@@ -65,7 +65,7 @@ export const topFrontendFilter: Filter = {
     languages: [],
     professions: ['Frontend-разработчик'],
     experiences: [],
-    ages: [],
+    ages: ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет'],
     isCommunity: null
 }
 
