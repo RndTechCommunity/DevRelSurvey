@@ -18,7 +18,6 @@ namespace RndTech.DevRel.App.Model
         }
         
         public async Task<IEnumerable<CompanyModel>> GetCompanyModels(
-            int year,
             int[] agesFilter,
             string[] citiesFilter,
             string[] educationFilter,
@@ -27,27 +26,30 @@ namespace RndTech.DevRel.App.Model
             string[] programmingLanguageFilter,
             bool? isCommunityFilter)
         {
-            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.CompanyModelInterviewees, year, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
-            
+            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.CompanyModelInterviewees, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
+
             var groupedAnswers = interviewees
                 .SelectMany(i => i.CompanyAnswers)
                 .GroupBy(
-                    a => a.Company.Name,
-                    a => new {Known = a.IsKnown || a.IsWanted ? 1.0 : 0, Wanted = a.IsWanted ? 1.0 : 0})
-                .Select(
-                    g => new CompanyModel
+                    a => (a.Company.Name, a.Interviewee.Year),
+                    a => new
                     {
-                        Name = g.Key, 
-                        KnownLevel = g.Sum(x => x.Known) / g.Count(), 
-                        WantedLevel = g.Sum(x => x.Wanted) / g.Count(),
-                        Error = 0.0441
-                    });
+                        Known = a.IsKnown || a.IsGood || a.IsWanted ? 1.0 : 0, 
+                        Wanted = a.IsWanted ? 1.0 : 0,
+                        Good = a.IsGood ? 1.0 : 0
+                    })
+                .Select(
+                    g => new CompanyModel(Name: g.Key.Name,
+                        Year: g.Key.Year,
+                        KnownLevel: g.Sum(x => x.Known) / g.Count(),
+                        GoodLevel: g.Sum(x => x.Good) / g.Count(),
+                        WantedLevel: g.Sum(x => x.Wanted) / g.Count(),
+                        Error: 0.0441));
 
             return groupedAnswers.ToArray();
         }
 
         public async Task<MetaModel> GetMeta(
-            int year,
             int[] agesFilter,
             string[] citiesFilter,
             string[] educationFilter,
@@ -56,42 +58,117 @@ namespace RndTech.DevRel.App.Model
             string[] programmingLanguageFilter,
             bool? isCommunityFilter)
         {
-            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.MetaInterviewees, year, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
+            var interviewees = await GetFilteredInterviewees(intervieweesPreloader.MetaInterviewees, agesFilter, citiesFilter, educationFilter, experienceLevelFilter, professionFilter, programmingLanguageFilter, isCommunityFilter);
             var ci = interviewees.ToArray();
-            var meta = new MetaModel();
-            var data = new Dictionary<string, Dictionary<string, int>>();
+            
+            var data = new Dictionary<string, MetaModelTableRow[]>();
+
+            var total = new MetaModelTableRow("Всего",
+                dbContext.Interviewees.Count(c => c.Year == 2019),
+                dbContext.Interviewees.Count(c => c.Year == 2020),
+                dbContext.Interviewees.Count(c => c.Year == 2021));
+            var filtered = new MetaModelTableRow("Выбрано",
+                ci.Count(c => c.Year == 2019),
+                ci.Count(c => c.Year == 2020),
+                ci.Count(c => c.Year == 2021));
+            var meta = new MetaModel(total, filtered, data);
             
             // Теперь надо сделать по каждой группе выборку кого и сколько
-			// Города cities
-			data.Add("cities", ci.Select(i => i.City).GroupBy(c => c).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Возраста ages
-			data.Add("ages", ci.Select(i => i.Age).GroupBy(c => c / 5).OrderBy(c => c.Key).ToDictionary(kvp => $"{kvp.Key * 5} - {kvp.Key * 5 + 4}", kvp => kvp.Count()));
-			// Образование education
-			data.Add("education", ci.Select(i => i.Education).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Уровни levels
-			data.Add("levels", ci.Select(i => i.ProfessionLevel).GroupBy(c => c).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Профессии professions
-			data.Add("professions", ci.Select(i => i.Profession).GroupBy(c => c).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Языки программирования languages
-			data.Add("languages", ci.SelectMany(i => i.Languages).GroupBy(c => c.Language.Name).OrderBy(c => c.Key).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Ходит ли человек на митапы
-			data.Add("isCommunity", ci.Select(i => i.IsCommunity).GroupBy(c => c).OrderByDescending(c => c.Key).ToDictionary(kvp => kvp.Key == true ? "Да" : "Нет", kvp => kvp.Count()));
-			// Откуда узнают информацию о компаниях
-			//data.Add("companySources", interviewees.SelectMany(i => i.FirstOrDefault()?.CompanySources).GroupBy(c => c).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-			// Критерии выбора компаний
-            data.Add("motivationFactors", ci.SelectMany(i => i.MotivationFactors).GroupBy(c => c.MotivationFactor.Name).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
-            // Откуда узнают информацию о митапах
-			data.Add("communitySource", ci.SelectMany(i => i.CommunitySources).GroupBy(c => c.CommunitySource.Name).OrderByDescending(c => c.Count()).ToDictionary(kvp => kvp.Key, kvp => kvp.Count()));
+			
+            // Города cities
+            data.Add("cities", ci
+                .Select(i => (i.Year, i.City))
+                .GroupBy(c => c.City)
+                .Select(g => new MetaModelTableRow(g.Key,
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .OrderByDescending(r => r.Count2021)
+                .Take(10)
+                .ToArray());
+			
+            // Возраста ages
+            data.Add("ages", ci
+                .Select(i => (i.Year, i.Age))
+                .GroupBy(c => c.Age / 5)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow($"{g.Key * 5} - {g.Key * 5 + 4}",
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			
+            // Образование education
+             data.Add("education", ci
+                .Select(i => (i.Year, i.Education))
+                .GroupBy(c => c.Education)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key.ToString(),
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
             
-            meta.count = ci.Length;
-            meta.Total = dbContext.Interviewees.Count(i => i.Year == year);
-            meta.sources = data;
+            // Уровни levels
+            data.Add("levels", ci
+                .Select(i => (i.Year, i.ProfessionLevel))
+                .GroupBy(c => c.ProfessionLevel)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key.ToString(),
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			
+            // Профессии professions
+            data.Add("professions", ci
+                .Select(i => (i.Year, i.Profession))
+                .GroupBy(c => c.Profession)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key.ToString(),
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			
+            // Языки программирования languages
+            data.Add("languages", ci
+                .SelectMany(i => i.Languages.Select(l => (i.Year, l.Language)))
+                .GroupBy(g => g.Language.Name)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key,
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			
+            // Ходит ли человек на митапы
+            data.Add("isCommunity", ci
+                .Select(i => (i.Year, i.IsCommunity))
+                .GroupBy(c => c.IsCommunity)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key ? "Да" : "Нет",
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			
+            // Откуда узнают информацию о компаниях
+            data.Add("communitySource", ci
+                .SelectMany(i => i.CommunitySources.Select(cs => (i.Year, cs.CommunitySource)))
+                .GroupBy(g => g.CommunitySource.Name)
+                .OrderBy(g => g.Key)
+                .Select(g => new MetaModelTableRow(g.Key,
+                    g.Count(c => c.Year == 2019),
+                    g.Count(c => c.Year == 2020),
+                    g.Count(c => c.Year == 2021)))
+                .ToArray());
+			   
             return meta;
         }
 
         private async Task<IEnumerable<Interviewee>> GetFilteredInterviewees(
             IEnumerable<Interviewee> interviewees,
-            int year, 
             int[] agesFilter,
             string[] citiesFilter, 
             string[] educationFilter, 
@@ -100,7 +177,6 @@ namespace RndTech.DevRel.App.Model
             string[] programmingLanguageFilter, 
             bool? isCommunityFilter)
         {
-            interviewees = interviewees.Where(i => i.Year == year);
             if (agesFilter.Length != 0)
                 interviewees = interviewees.Where(i => agesFilter.Contains(i.Age));
             if (citiesFilter.Length != 0)

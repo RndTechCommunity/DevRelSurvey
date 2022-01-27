@@ -1,30 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace RndTech.DevRel.App.Model
-{
-	/// <summary>
-	/// Данные о составе выборки, оответствующей фильтрм.
-	/// </summary>
-	public class MetaModel
-	{
-		/// <summary>
-		/// Число респондентов в выборке.
-		/// </summary>
-		public int count { get; set; }
-		
-		/// <summary>
-		/// Общее число респондентов за год.
-		/// </summary>
-		public int Total { get; set; }
-		
-		/// <summary>
-		/// Метаданные выборки.
-		/// В ключе указан один из доступных ключей с данными, например, cities, ages.
-		/// В значении словаря указаны пары "значение, количество участников". Например, "Таганрог": "215".
-		/// </summary>
-		public Dictionary<string, Dictionary<string, int>> sources { get; set; }
-	}
-}
+namespace RndTech.DevRel.App.Model;
+
+/// <summary>
+/// Данные 1 строки группировки в выборке в разрезе по годам.
+/// </summary>
+public record MetaModelTableRow(string Name, int Count2019, int Count2020, int Count2021);
+
+/// <summary>
+/// Данные о составе выборки, соответствующей фильтрм.
+/// </summary>
+public record MetaModel(MetaModelTableRow Total, MetaModelTableRow Filtered, Dictionary<string, MetaModelTableRow[]> Sources);

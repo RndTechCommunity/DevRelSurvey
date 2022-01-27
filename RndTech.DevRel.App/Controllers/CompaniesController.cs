@@ -39,7 +39,6 @@ namespace RndTech.DevRel.App.Controllers
 				UpdateLanguagesFilter(filter);
 
 				var result = await surveyService.GetCompanyModels(
-					filter.Year,
 					ageFilter,
 					filter.cities,
 					filter.educations,
@@ -47,7 +46,7 @@ namespace RndTech.DevRel.App.Controllers
 					filter.professions,
 					filter.languages,
 					communityFilter);
-				
+				result = result.Where(m => m.Year == 2021);
 				return result.ToDictionary(cm => cm.Name, cm => cm);
 			});
 		}
@@ -68,7 +67,6 @@ namespace RndTech.DevRel.App.Controllers
 				UpdateLanguagesFilter(filter);
 				
 				return await surveyService.GetMeta(
-					filter.Year,
 					ageFilter,
 					filter.cities,
 					filter.educations,

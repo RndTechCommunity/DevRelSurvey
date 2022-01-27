@@ -167,7 +167,7 @@ namespace RndTech.DevRel.App.DAL
         {
             using var reader = new StreamReader("2021.csv");
             using var csv = new CsvReader(reader,
-                new CsvConfiguration(CultureInfo.InvariantCulture) {BadDataFound = null, Delimiter = ","});
+                new CsvConfiguration(CultureInfo.InvariantCulture) {BadDataFound = null, Delimiter = "\t"});
 
             var companies = new List<string>();
             var isFirstLine = true;

@@ -1,9 +1,9 @@
 import * as React from 'react'
 import { getMeta, MetaData } from '../../api'
 import { Filter } from '../filters/Filter'
-import Plural from '../Plural'
 import injectSheet from 'react-jss';
-import { Col, Container, Content, Grid, Icon, Loader, Row } from 'rsuite';
+import { DataMetaTable } from './DataMetaTable';
+import { Col, Container, Content, Divider, Grid, Loader, Row } from 'rsuite';
 
 const styles = {
     container: {
@@ -43,21 +43,15 @@ type Props = {
 
 type State = {
     isReady: boolean,
-    data2019: MetaData,
-    data2020: MetaData
+    meta: MetaData,
 }
 
 class SelectionFactorsPage extends React.Component<Props, State> {
     state: State = {
         isReady: false,
-        data2019: {
-            count: 0,
-            total: 0,
-            sources : []
-        },
-        data2020: {
-            count: 0,
-            total: 0,
+        meta: {
+            filtered: {name: 'Выбрано', count2019: 0, count2020: 0, count2021: 0},
+            total: {name: 'Всего', count2019: 0, count2020: 0, count2021: 0},
             sources : []
         }
     }
@@ -67,7 +61,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
     componentDidMount() {
         this._isMounted = true;
         Promise
-            .all([this.loadData(this.props.filter, 2019), this.loadData(this.props.filter, 2020)])
+            .all([this.loadData(this.props.filter)])
             .then(() => {
                 if (this._isMounted) {
                     this.setState({isReady: true})
@@ -80,7 +74,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
             this.setState({ isReady: false })
 
             Promise
-                .all([this.loadData(this.props.filter, 2019), this.loadData(this.props.filter, 2020)])
+                .all([this.loadData(this.props.filter)])
                 .then(() => {
                     if (this._isMounted) {
                         this.setState({isReady: true})
@@ -93,167 +87,103 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         this._isMounted = false;
     }
 
-    loadData(filter: Filter, year: number) {
-        filter.year = year;
+    loadData(filter: Filter) {
         return getMeta(filter)
             .then(data => {
                 if (this._isMounted) {
-                    if (year === 2019) {
-                        this.setState({data2019: data})
-                    }
-                    else {
-                        this.setState({data2020: data})
-                    }
+                    this.setState({meta: data})
                 }
             })
     }
 
     render() {
         const { classes } = this.props
-        const { isReady, data2019, data2020 } = this.state
+        const { isReady, meta } = this.state
 
         if (!isReady) {
             return (<Loader content='Загрузка данных' center />)
         }
-
+        console.log(meta.sources.cities);
         return (
             <Container>
                 <Content>
                     <div className={classes.groups}>
                         <Grid fluid>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    <h3 className={classes.centeredText}>2020</h3>
-                                    <h5>
-                                        {data2020.count}
-                                        &nbsp;<Plural n={data2020.count} one='участник' few='участника' many='участников' />
-                                        &nbsp;в выборке (из {data2020.total})
-                                    </h5>
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    <h3 className={classes.centeredText}>2019</h3>
-                                    <h5>
-                                        {data2019.count}
-                                        &nbsp;<Plural n={data2019.count} one='участник' few='участника' many='участников' />
-                                        &nbsp;в выборке (из {data2019.total})
-                                    </h5>
+                            <Row>
+                                <Col>
+                                    <DataMetaTable filteredTotal={meta.filtered} data={meta.sources.cities} header={'Город'} />
                                 </Col>
                             </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Города', 'cities')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Города', 'cities')}
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable filteredTotal={meta.filtered} data={meta.sources.ages} header={'Возраст'} />
                                 </Col>
                             </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Возраст', 'ages')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Возраст', 'ages')}
-                                </Col>
-                            </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Образование', 'education')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Образование', 'education')}
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.education} 
+                                        header={'Образование'} 
+                                    />
                                 </Col>
                             </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Уровни', 'levels')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Уровни', 'levels')}
-                                </Col>
-                            </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Профессии', 'professions')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Профессии', 'professions')}
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.professions} 
+                                        header={'Профессия'} 
+                                    />
                                 </Col>
                             </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Языки', 'languages')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Языки', 'languages')}
-                                </Col>
-                            </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Критерии выбора компаний', 'motivationFactors')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}/>
-                            </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Ходят ли на митапы', 'isCommunity')}
-                                </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Ходят ли на митапы', 'isCommunity')}
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.languages} 
+                                        header={'Язык программирования'} 
+                                    />
                                 </Col>
                             </Row>
-                            <Row gutter={30}>
-                                <Col xs={11}>
-                                    {this.renderGroup(data2020, 'Откуда узнают о митапах', 'communitySource')}
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.levels} 
+                                        header={'Грейд'} 
+                                    />
                                 </Col>
-                                <Col xs={2} />
-                                <Col xs={11}>
-                                    {this.renderGroup(data2019, 'Откуда узнают о митапах', 'communitySource')}
+                            </Row>
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.isCommunity} 
+                                        header={'Посещает митапы'} 
+                                    />
+                                </Col>
+                            </Row>
+                            <Divider />
+                            <Row>
+                                <Col>
+                                    <DataMetaTable 
+                                        filteredTotal={meta.filtered} 
+                                        data={meta.sources.communitySource} 
+                                        header={'Откуда узнает о митапах'} 
+                                    />
                                 </Col>
                             </Row>
                         </Grid>
                     </div>
                 </Content>
             </Container>
-        )
-    }
-
-    renderGroup(data: MetaData, title: string, key: string) {
-        const { classes, filter } = this.props
-
-        return (data.sources && data.sources[key] &&
-            <div key={title}>
-                <h3>{title} {filter[key] !== undefined && filter[key] !== null && filter[key].length !== 0
-                    ? <Icon icon='filter' />
-                    : ''
-                }</h3>
-                <table className={classes.table}>
-                    <tbody>
-                        {Object.keys(data.sources[key]).map(i => {
-                        const rowClass =
-                            data.sources[key][i] > 0.10 ? classes.important :
-                                data.sources[key][i] < 0.05 ? classes.unimportant : null
-
-                        return (
-                            <tr key={i} className={rowClass}>
-                                <td>{i}</td>
-                                <td className={classes.ratio}>
-                                    {data.sources[key][i]}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    </tbody>
-                </table>
-            </div>
         )
     }
 }

@@ -21,3 +21,17 @@ h2 {
     line-height: 30px;
     margin: 20px 0;
 }
+
+.rs-table-cell-content {
+    padding: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.rs-table-cell-header .rs-table-cell-content {
+    padding: 4px;
+    font-size: 12px;
+    line-height: 1.66666667;
+}

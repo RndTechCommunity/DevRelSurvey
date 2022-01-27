@@ -58,9 +58,16 @@ export function getProgrammingLanguages() {
         .then(response => response.data)
 }
 
+export type MetaModelTableRow = {
+    name: string,
+    count2019: number,
+    count2020: number,
+    count2021: number,
+}
+
 export type MetaData = {
-    count: number,
-    total: number,
+    filtered: MetaModelTableRow,
+    total: MetaModelTableRow,
     sources: any
 }
 
