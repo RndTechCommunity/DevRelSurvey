@@ -6,6 +6,8 @@ import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
 import { Container, Content, Sidebar, Sidenav } from 'rsuite';
 import FiltersSidePage from './filters/FiltersSidePage';
+import { useEffect } from 'react';
+import { getKnownAndWantedData, KnownAndWantedData } from '../api';
 
 const styles = {
     app: {
@@ -52,7 +54,29 @@ export function App(props: Props) {
     const [useError, setUseError] = React.useState<boolean>(false);
     const [useGood, setUseGood] = React.useState<boolean>(false);
     const [useWanted, setUseWanted] = React.useState<boolean>(true);
+    const [filteredData, setFilteredData] = React.useState<KnownAndWantedData[]>();
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            const data = await getKnownAndWantedData(filter)
+            await setFilteredData(data)
+        };
 
+        fetchData();
+    }, [filter])
+    
+    const calculateCompaniesList = (entries: KnownAndWantedData[] | undefined) => {
+        return !entries ? [] : entries.reduce((all: string[], current: KnownAndWantedData) => {
+            if (all.indexOf(current.name) === -1) {
+                all.push(current.name)
+            }
+
+            return all
+        }, [])
+            .sort()
+            .map(x => ({ value: x, label: x }))
+    }
+    
     const openDuplicate = () => {
         const uri = `?tab=${encodeURIComponent(JSON.stringify(tab))}` +
             `&filter=${encodeURIComponent(JSON.stringify(filter))}`
@@ -69,7 +93,9 @@ export function App(props: Props) {
                 useError={useError}
                 onUseErrorChanged={ue => setUseError(ue)}
                 useGood={useGood}
+                companyEntries={filteredData}
                 useWanted={useWanted}
+                companies={calculateCompaniesList(filteredData)}
                 onUseGoodChanged={ue => setUseGood(ue)}
                 onUseWantedChanged={ue => setUseWanted(ue)}
             />

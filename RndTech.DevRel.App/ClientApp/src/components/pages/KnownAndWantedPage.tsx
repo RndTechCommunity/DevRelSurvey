@@ -8,7 +8,7 @@ import {
     XAxis,
     YAxis
 } from 'recharts'
-import { getKnownAndWantedData, KnownAndWantedData } from '../../api'
+import { KnownAndWantedData } from '../../api'
 import { toPercent } from '../../format'
 import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
@@ -70,9 +70,11 @@ type Props = {
     useError: boolean,
     useGood: boolean,
     useWanted: boolean,
-    onUseErrorChanged: (filter: boolean) => void
-    onUseGoodChanged: (filter: boolean) => void
-    onUseWantedChanged: (filter: boolean) => void
+    companyEntries: KnownAndWantedData[] | undefined,
+    onUseErrorChanged: (filter: boolean) => void,
+    onUseGoodChanged: (filter: boolean) => void,
+    onUseWantedChanged: (filter: boolean) => void,
+    companies: { value: string; label: any; }[]
 }
 
 type State = {
@@ -90,7 +92,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     state: State = {
         isReady: false,
         companyEntries: [],
-        companies: [],
+        companies: this.props.companies,
         maxWantedLevel: 0.3,
         useError: this.props.useError,
         useGood: this.props.useGood,
@@ -103,27 +105,24 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     componentDidMount() {
         this._isMounted = true;
 
-        this.loadData(this.props.filter)
-            .then(() => {
-                    if (this._isMounted) {
-                        this.setState({isReady: true})
-                    }
-                })
+        this.loadData()
+        if (this._isMounted) {
+            this.setState({isReady: true})
+        }
     }
 
     componentDidUpdate(prevProps: Props) {
         if (this.props.filter !== prevProps.filter 
             || this.props.year !== prevProps.year
             || this.props.useGood !== prevProps.useGood
-            || this.props.useWanted !== prevProps.useWanted) {
+            || this.props.useWanted !== prevProps.useWanted
+            || this.props.companyEntries !== prevProps.companyEntries) {
             this.setState({ isReady: false })
 
-            this.loadData(this.props.filter)
-                .then(() => {
-                    if (this._isMounted) {
-                        this.setState({isReady: true})
-                    }
-                })
+            this.loadData()
+            if (this._isMounted) {
+                this.setState({isReady: true})
+            }
         }
     }
 
@@ -131,25 +130,21 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         this._isMounted = false;
     }
 
-    loadData(filter: Filter) {
-        return getKnownAndWantedData(filter)
-            .then(data => {
-                const companyEntries = data.filter(d => d.year === this.props.year)
-                const companies = KnownAndWantedPage.calculateList(companyEntries).sort().map(x => ({
-                    value: x, label: x
-                }))
-                const maxWantedLevel = Math.max.apply(null, 
-                    companyEntries.map(ce => (this.state.useGood ? 1 : 0) * ce.goodLevel 
-                        + (this.state.useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
+    loadData() {
+        if (!this.props.companyEntries) {
+            return
+        }
+        const companyEntries = this.props.companyEntries.filter(d => d.year === this.props.year)
+        const maxWantedLevel = Math.max.apply(null,
+            companyEntries.map(ce => (this.state.useGood ? 1 : 0) * ce.goodLevel
+                + (this.state.useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
 
-                if (this._isMounted) {
-                    this.setState({
-                        companyEntries,
-                        companies,
-                        maxWantedLevel
-                    })
-                }
+        if (this._isMounted) {
+            this.setState({
+                companyEntries,
+                maxWantedLevel
             })
+        }
     }
 
     render() {
@@ -157,7 +152,6 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         const {
             isReady,
             companyEntries,
-            companies,
             maxWantedLevel,
             selectedCompanies,
             useError,
@@ -187,7 +181,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                             <label>Компании</label>
                         </div>
                         <MultiSelect
-                            items={companies}
+                            items={this.props.companies}
                             placeholder='Компании'
                             selected={selectedCompanies}
                             onChange={selectedCompanies => {
@@ -295,16 +289,6 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     renderLabel(company: string) {
         const parts = company.split(' ')
         return parts.join('\u00A0')
-    }
-
-    static calculateList(entries: KnownAndWantedData[]): string[] {
-        return entries.reduce((all: string[], current: KnownAndWantedData) => {
-            if (all.indexOf(current.name) === -1) {
-                all.push(current.name)
-            }
-
-            return all
-        }, [])
     }
 }
 

@@ -75,14 +75,18 @@ class MultiSelect extends React.Component<IProps, IState> {
     }
 
     componentDidMount() {
-        const {fetch, selected} = this.props
-
+        const {fetch, selected, items} = this.props
         if (fetch !== undefined) {
             fetch().then(items => this.setState({
                 items: items.filter(x => x !== '').map(x => ({
                     value: x, label: x
                 } as MultiSelectItem))
             })).then(() => this.updateGroupCheckbox())
+        }
+        if (items !== undefined) {
+            this.setState({
+                items: items
+            })
         }
         if (selected !== undefined) {
             this.setState({
@@ -92,6 +96,17 @@ class MultiSelect extends React.Component<IProps, IState> {
         }
 
         this.updateGroupCheckbox()
+    }
+    
+    componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IState>, snapshot?: any) {
+        const {items} = this.props
+        if (prevState.items !== items) {
+            if (items !== undefined) {
+                this.setState({
+                    items: items
+                })
+            }
+        }
     }
 
     render() {
