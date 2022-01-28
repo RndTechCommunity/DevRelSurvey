@@ -1,6 +1,7 @@
 import * as React from 'react'
 import injectSheet from 'react-jss';
 import { Checkbox, CheckPicker } from 'rsuite';
+import { useEffect } from 'react';
 
 const styles = {
     hidden: {
@@ -22,118 +23,80 @@ interface IProps {
     onChange: (selected: string[]) => void
 }
 
-interface IState {
-    items: MultiSelectItem[],
-    indeterminate: boolean,
-    checkAll: boolean,
-    value: string[]
-}
-
 interface MultiSelectItem {
     value: string; // property value is the value of valueKey 
     label: any; // property value is the vaue of labelKey
 }
 
-class MultiSelect extends React.Component<IProps, IState> {
-    state: IState = {
-        items: this.props.items || [],
-        indeterminate: false,
-        checkAll: false,
-        value: this.props.selected
-    }
-    
-    constructor(props: IProps) {
-        super(props);
-        this.handleChange = this.handleChange.bind(this);
-        this.handleCheckAll = this.handleCheckAll.bind(this);
-    }
-    
-    updateGroupCheckbox() {
-        this.setState({
-            indeterminate: this.state.value.length > 0 && this.state.value.length < this.state.items.length,
-            checkAll: this.state.value.length === this.state.items.length
-        })
-    }
-    
-    handleChange(value: string[]) {
-        this.setState({
-            value,
-            indeterminate: value.length > 0 && value.length < this.state.items.length,
-            checkAll: value.length === this.state.items.length
-        });
-        this.props.onChange(value.map(x => x))
+export function MultiSelect(props: IProps) {
+    const [items, setItems] = React.useState<MultiSelectItem[]>(props.items || []);
+    const [indeterminate, setIndeterminate] = React.useState<boolean>(false);
+    const [checkAll, setCheckAll] = React.useState<boolean>(false);
+    const [value, setValue] = React.useState<string[]>(props.selected);
+
+    const updateGroupCheckbox = () => {
+        setIndeterminate(value.length > 0 && value.length < items.length)
+        setCheckAll(value.length === items.length)
     }
 
-    handleCheckAll(v: [], checked: boolean) {
-        const nextValue = checked ? this.state.items.map(x => x.value) : [];
-        this.setState({
-            value: nextValue,
-            indeterminate: false,
-            checkAll: checked
-        });
-        this.props.onChange(nextValue.map(x => x))
+    const handleChange = (value: string[]) => {
+        setValue(value)
+        setIndeterminate(value.length > 0 && value.length < items.length)
+        setCheckAll(value.length === items.length)
+
+        props.onChange(value.map(x => x))
     }
 
-    componentDidMount() {
-        const {fetch, selected, items} = this.props
+    const handleCheckAll = (v: [], checked: boolean) => {
+        const nextValue = checked ? items.map(x => x.value) : [];
+        setValue(nextValue)
+        setIndeterminate(false)
+        setCheckAll(checked)
+
+        props.onChange(nextValue.map(x => x))
+    }
+    
+    useEffect(() => {
+        const {fetch, selected, items} = props
+
         if (fetch !== undefined) {
-            fetch().then(items => this.setState({
-                items: items.filter(x => x !== '').map(x => ({
+            fetch().then(items => setItems(
+                items.filter(x => x !== '').map(x => ({
                     value: x, label: x
                 } as MultiSelectItem))
-            })).then(() => this.updateGroupCheckbox())
+            )).then(() => updateGroupCheckbox())
         }
         if (items !== undefined) {
-            this.setState({
-                items: items
-            })
+            setItems(items)
         }
         if (selected !== undefined) {
-            this.setState({
-                value: selected
-            })
-            this.updateGroupCheckbox()
+            setValue(selected)
         }
 
-        this.updateGroupCheckbox()
-    }
-    
-    componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IState>, snapshot?: any) {
-        const {items} = this.props
-        if (prevState.items !== items) {
-            if (items !== undefined) {
-                this.setState({
-                    items: items
-                })
-            }
-        }
-    }
+        updateGroupCheckbox()
+    }, [props.items, props.selected, props.fetch])
 
-    render() {
-        const { items, checkAll, indeterminate } = this.state
-
-        return (
-            <CheckPicker
-                data={items}
-                placeholder={this.props.placeholder}
-                style={{width: 224}}
-                value={this.props.selected}
-                onChange={this.handleChange}
-                renderExtraFooter={() => (
-                    <div style={footerStyles}>
-                        <Checkbox
-                            inline
-                            indeterminate={indeterminate}
-                            checked={checkAll}
-                            onChange={this.handleCheckAll}
-                        >
-                            Выбрать все
-                        </Checkbox>
-                    </div>
-                )}
-            />
-        )
-    }
+    return (
+        <CheckPicker
+            data={items}
+            placeholder={props.placeholder}
+            style={{width: 224}}
+            value={props.selected}
+            onChange={handleChange}
+            renderExtraFooter={() => (
+                <div style={footerStyles}>
+                    <Checkbox
+                        inline
+                        indeterminate={indeterminate}
+                        checked={checkAll}
+                        onChange={handleCheckAll}
+                    >
+                        Выбрать все
+                    </Checkbox>
+                </div>
+            )}
+        />
+    )
 }
 
 export default injectSheet(styles)(MultiSelect)
