@@ -30,7 +30,7 @@ namespace RndTech.DevRel.App.DAL
             context.Database.EnsureCreated();
             if (context.Interviewees.Any())
             {
-                return;   // DB has been seeded
+                return;
             }
 
             Fill2019YearData();
@@ -167,7 +167,7 @@ namespace RndTech.DevRel.App.DAL
         {
             using var reader = new StreamReader("2021.csv");
             using var csv = new CsvReader(reader,
-                new CsvConfiguration(CultureInfo.InvariantCulture) {BadDataFound = null, Delimiter = "\t"});
+                new CsvConfiguration(CultureInfo.InvariantCulture) {BadDataFound = null, Delimiter = ","});
 
             var companies = new List<string>();
             var isFirstLine = true;
@@ -182,7 +182,6 @@ namespace RndTech.DevRel.App.DAL
                     var ageString = csv.GetField<int>(3);
                     var education = csv.GetField<string>(4);
                     var profession = csv.GetField<string>(5);
-                    var professionNotInList = csv.GetField<string>(6);
 
                     var languages = new List<string>();
                     for (var i = 7; i <= 34; i++)
@@ -192,7 +191,6 @@ namespace RndTech.DevRel.App.DAL
                             languages.Add(l);
                     }
 
-                    var languagesNotInList = csv.GetField<string>(35);
                     var level = csv.GetField<string>(36);
                     var isMeetupVisitor = csv.GetField<string>(37) == "1";
                     var meetupSources = new List<string>();
@@ -203,26 +201,12 @@ namespace RndTech.DevRel.App.DAL
                             meetupSources.Add(s);
                     }
 
-                    var meetupSourceNotInList = csv.GetField<string>(46);
                     for (int i = 47; i <= 54; i++)
                     {
                         var s = csv.GetField<string>(i);
                         if (!string.IsNullOrEmpty(s))
                             meetupSources.Add(s);
                     }
-
-                    var meetupSourceNotInList2 = csv.GetField<string>(55);
-                    if(!string.IsNullOrEmpty(professionNotInList))
-                        Console.WriteLine($"Profession: {professionNotInList}");
-                    if(!string.IsNullOrEmpty(languagesNotInList))
-                        Console.WriteLine($"Language: {languagesNotInList}");
-                    if(!string.IsNullOrEmpty(meetupSourceNotInList))
-                        Console.WriteLine($"Meetup source: {meetupSourceNotInList}");
-                    if(!string.IsNullOrEmpty(meetupSourceNotInList2))
-                        Console.WriteLine($"Meetup source: {meetupSourceNotInList2}");
-                    //var bestCompanies = csv.GetField<string>(56);
-
-                    //var email = csv.GetField<string>(146);
                     
                     var interviewee = new Interviewee
                     {
