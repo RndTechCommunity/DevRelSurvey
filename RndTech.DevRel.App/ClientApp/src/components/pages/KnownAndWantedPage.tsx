@@ -9,11 +9,11 @@ import {
     YAxis
 } from 'recharts'
 import { KnownAndWantedData } from '../../api'
-import { toPercent } from '../../format'
+import { toPercent, toPercentWithTenths } from '../../format'
 import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
-import { Checkbox, Loader } from 'rsuite';
+import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
 
 const defaultFillColor = '#AAAAAA'
 const axesColor = '#81E2E7'
@@ -170,11 +170,22 @@ class KnownAndWantedPage extends React.Component<Props, State> {
         const data = entries.map(x => ({
             knownLevel: x.knownLevel,
             wantedLevel: (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
-            name: this.renderLabel(x.name)
+            name: this.renderLabel(x.name),
+            knownVotes: x.knownVotes,
+            goodVotes: x.goodVotes,
+            wantedVotes: x.wantedVotes,
+            selectionCount: x.selectionCount
         }))
 
         return (
             <div className={classes.container}>
+                <div>
+                    <h4>
+                        В выборке {Math.max.apply(null, !data.length 
+                        ? [0] 
+                        : data.map(ca => ca.selectionCount))} человек
+                    </h4>
+                </div>
                 <div className={classes.companies}>
                     <div className={classes.graphicFilter}>
                         <div className={classes.graphicFilterCompanies}>
@@ -263,11 +274,23 @@ class KnownAndWantedPage extends React.Component<Props, State> {
     }
 
     renderCompanyEntry(entry: KnownAndWantedData & { cx: number, cy: number }) {
-        const { name, error, cx, cy } = entry
+        const { name, error, cx, cy, knownVotes, goodVotes, wantedVotes, selectionCount } = entry
+
+        const tooltip = (
+            <Tooltip>
+                {this.renderLabel(`Знают: ${knownVotes} человек,` 
+                    + ` ${toPercentWithTenths(knownVotes / selectionCount)}%`)}<br />
+                {this.renderLabel(`Рекомендуют: ${goodVotes} человек,` 
+                    + ` ${toPercentWithTenths(goodVotes / selectionCount)}%`)}<br />
+                {this.renderLabel(`Хотят работать: ${wantedVotes} человек,` 
+                    + ` ${toPercentWithTenths(wantedVotes / selectionCount)}%`)}<br />
+            </Tooltip>
+        );
 
         const errorSize = (this.state.useError ? error : 0) * cx / entry.knownLevel
 
         return (
+            <Whisper placement='auto' trigger='hover' speaker={tooltip}>
             <g fill={KnownAndWantedPage.getFillColor(name)}>
                 <g fillOpacity={0.1}>
                     <Dot cx={cx} cy={cy} r={errorSize} />
@@ -279,6 +302,7 @@ class KnownAndWantedPage extends React.Component<Props, State> {
                     </text>
                 </g>
             </g>
+            </Whisper>
         )
     }
 

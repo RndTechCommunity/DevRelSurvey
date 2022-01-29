@@ -44,6 +44,10 @@ namespace RndTech.DevRel.App.Model
                         KnownLevel: g.Sum(x => x.Known) / g.Count(),
                         GoodLevel: g.Sum(x => x.Good) / g.Count(),
                         WantedLevel: g.Sum(x => x.Wanted) / g.Count(),
+                        KnownVotes: (int) g.Sum(x => x.Known),
+                        GoodVotes: (int) g.Sum(x => x.Good),
+                        WantedVotes: (int) g.Sum(x => x.Wanted),
+                        SelectionCount: g.Count(),
                         Error: 0.0441));
 
             return groupedAnswers.ToArray();

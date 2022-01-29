@@ -36,6 +36,11 @@ namespace RndTech.DevRel.App.Model
 								.Where(ca => ca.IntervieweeId == interviewee.Id)
 								.Include(ca => ca.Company)
 								.ToArray();
+							
+							foreach (var companyAnswer in interviewee.CompanyAnswers)
+							{
+								companyAnswer.Interviewee = interviewee;
+							}
 						}
 
 						companyModelInterviewees ??= interviewees;

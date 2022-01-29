@@ -13,5 +13,9 @@ namespace RndTech.DevRel.App.Model
 		double KnownLevel, 
 		double GoodLevel, 
 		double WantedLevel,
+		int KnownVotes,
+		int GoodVotes,
+		int WantedVotes,
+		int SelectionCount,
 		double Error);
 }

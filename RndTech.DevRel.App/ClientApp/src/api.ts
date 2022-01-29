@@ -82,6 +82,10 @@ export type KnownAndWantedData = {
     knownLevel: number,
     goodLevel: number,
     wantedLevel: number,
+    knownVotes: number,
+    goodVotes: number,
+    wantedVotes: number,
+    selectionCount: number,
     name: string,
     year: number,
     error: number
