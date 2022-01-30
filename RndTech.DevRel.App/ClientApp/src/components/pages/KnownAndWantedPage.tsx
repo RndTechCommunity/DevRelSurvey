@@ -13,7 +13,7 @@ import { toPercent, toPercentWithTenths } from '../../format'
 import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
-import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
+import { Checkbox, Loader, Table, Tooltip, Whisper } from 'rsuite';
 import { useEffect } from 'react';
 
 const defaultFillColor = '#AAAAAA'
@@ -43,20 +43,30 @@ const styles = {
 }
 
 const companyFillColorMap = {
+    'OSSHelp': '#E34422',
+    'Почтатех': '#0018A8',
+    'Mobyte': '#8F68AC',
+    'INOSTUDIO': '#E4003B',
+    'A2SEVEN': '#F6B300',
+    'IntSpirit': '#179BD7',
+    'Justice\u00A0IT': '#6BA7C3',
+    'Afterlogic': '#1CBEE5',
+    'Dunice': '#009C4F',
+    'Exceed\u00A0Team': '#26397E',
+    'Arcadia': '#00ABDB',
     'Контур': '#D70C17',
     'Accenture': '#A100FF',
     'Oggetto': '#FFDD00',
     'Distillery': '#d8a462',
     'Devexperts': '#f4511e',
-    'Rnd soft (+Winvestor)': '#ff8833',
-    'Arcadia': '#2eaecc',
+    'Rnd\u00A0soft\u00A0(+Winvestor)': '#ff8833',
     'Usetech': '#92B700',
-    'НИИ "Спецвузавтоматика"': '#237BE7',
+    'НИИ\u00A0"Спецвузавтоматика"': '#237BE7',
     'uKit': '#338FFF',
     'MentalStack': '#ffe13c',
     'Reksoft': '#E22227',
     'WebAnt': '#C21B75',
-    'Intellectika (Интеллектика)': '#03723A',
+    'Intellectika\u00A0(Интеллектика)': '#03723A',
     'Вебпрактик': '#FFBE01',
     'Auriga': '#007BE0',
     'ЦентрИнвест': 'rgb(57, 163, 28)'
@@ -85,6 +95,51 @@ export function KnownAndWantedPage(props: Props) {
     const [useGood, setUseGood] = React.useState<boolean>(props.useGood);
     const [useWanted, setUseWanted] = React.useState<boolean>(props.useWanted);
     const [selectedCompanies, setSelectedCompanies] = React.useState<string[]>(props.selectedCompanies);
+    const [sortColumn, setSortColumn] = React.useState<string>();
+    const [sortType, setSortType] = React.useState<'desc' | 'asc'>();
+    const [tableLoading, setTableLoading] = React.useState<boolean>();
+
+    const prepareTableData = (row: KnownAndWantedData) => {
+        return {
+            companyName: row.name,
+            knownLevel: toPercentWithTenths(row.knownLevel) + '%',
+            goodLevel: toPercentWithTenths(row.goodLevel) + '%',
+            wantedLevel: toPercentWithTenths(row.wantedLevel) + '%',
+            goodAndWantedLevel: toPercentWithTenths(row.wantedLevel + row.goodLevel) + '%',
+            brandRatingComplex: toPercentWithTenths((row.wantedVotes + row.goodVotes) / 
+                (row.knownVotes - row.wantedVotes - row.goodVotes)),
+            brandPower: toPercentWithTenths(row.knownLevel + row.goodLevel * 3 + row.wantedLevel * 5),
+        };
+    }
+
+    const getTableData = () => {
+        if (sortColumn && sortType) {
+            return companyEntries?.map(prepareTableData).sort((a, b) => {
+                let x = a[sortColumn];
+                let y = b[sortColumn];
+
+                if (typeof x === 'string' && typeof y === 'string') {
+                    x = parseFloat(x)
+                    y = parseFloat(y)
+                }
+                if (sortType === 'asc') {
+                    return x - y;
+                } else {
+                    return y - x;
+                }
+            });
+        }
+        return companyEntries?.map(prepareTableData);
+    }
+
+    const handleSortColumn = (sortColumn: string, sortType: 'desc' | 'asc') => {
+        setTableLoading(true);
+        setTimeout(() => {
+            setSortColumn(sortColumn);
+            setSortType(sortType);
+            setTableLoading(false);
+        }, 500);
+    };
 
     const loadData = () => {
         if (!props.companyEntries) {
@@ -105,8 +160,9 @@ export function KnownAndWantedPage(props: Props) {
     }, [props.companyEntries, props.year])
 
     useEffect(() => {
+        const entries = props.companyEntries?.filter(d => d.year === props.year)
         const maxWantedLevel = Math.max.apply(null,
-            companyEntries?.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
+            entries?.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
 
         setMaxWantedLevel(maxWantedLevel)
         console.log(3)
@@ -166,7 +222,9 @@ export function KnownAndWantedPage(props: Props) {
 
     const data = entries?.map(x => ({
         knownLevel: x.knownLevel,
-        wantedLevel: (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
+        wantedLevel: props.year === 2019 
+            ? (useGood || useWanted ? 1 : 0) * x.wantedLevel 
+            : (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
         name: renderLabel(x.name),
         error: x.error,
         knownVotes: x.knownVotes,
@@ -268,6 +326,52 @@ export function KnownAndWantedPage(props: Props) {
                     />
                 </ScatterChart>
             </ResponsiveContainer>
+
+            <Table
+                autoHeight={false}
+                height={500}
+                data={getTableData()}
+                sortColumn={sortColumn}
+                sortType={sortType}
+                style={{marginRight: '50px', marginTop: '30px'}}
+                onSortColumn={handleSortColumn}
+                loading={tableLoading}
+            >
+                <Table.Column width={290} sortable>
+                    <Table.HeaderCell>Компания</Table.HeaderCell>
+                    <Table.Cell dataKey='companyName' />
+                </Table.Column>
+
+                <Table.Column width={100} sortable>
+                    <Table.HeaderCell>Знают</Table.HeaderCell>
+                    <Table.Cell dataKey='knownLevel' />
+                </Table.Column>
+
+                <Table.Column width={120} sortable>
+                    <Table.HeaderCell>Рекомендуют</Table.HeaderCell>
+                    <Table.Cell dataKey='goodLevel' />
+                </Table.Column>
+
+                <Table.Column width={100} sortable>
+                    <Table.HeaderCell>Хотят</Table.HeaderCell>
+                    <Table.Cell dataKey='wantedLevel' />
+                </Table.Column>
+
+                <Table.Column width={160} sortable>
+                    <Table.HeaderCell>Рекомендуют + хотят</Table.HeaderCell>
+                    <Table.Cell dataKey='goodAndWantedLevel' />
+                </Table.Column>
+
+                <Table.Column width={140} sortable>
+                    <Table.HeaderCell>Сила бренда</Table.HeaderCell>
+                    <Table.Cell dataKey='brandPower' />
+                </Table.Column>
+
+                <Table.Column width={140} sortable>
+                    <Table.HeaderCell>Рейтинг бренда</Table.HeaderCell>
+                    <Table.Cell dataKey='brandRatingComplex' />
+                </Table.Column>
+            </Table>
         </div>
     )
 }

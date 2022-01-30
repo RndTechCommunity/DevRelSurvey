@@ -3,5 +3,5 @@ export function toPercent(fraction: number) {
 }
 
 export function toPercentWithTenths(fraction: number) {
-    return `${Math.round(fraction * 1000) / 10}`
+    return Math.round(fraction * 1000) / 10
 }
