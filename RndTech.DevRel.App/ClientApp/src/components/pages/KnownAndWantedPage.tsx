@@ -14,6 +14,7 @@ import { Filter } from '../filters/Filter'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
 import { Checkbox, Loader, Tooltip, Whisper } from 'rsuite';
+import { useEffect } from 'react';
 
 const defaultFillColor = '#AAAAAA'
 const axesColor = '#81E2E7'
@@ -77,243 +78,198 @@ type Props = {
     companies: { value: string; label: any; }[]
 }
 
-type State = {
-    isReady: boolean,
-    companyEntries: KnownAndWantedData[]
-    companies: { value: string; label: any; }[],
-    maxWantedLevel: number,
-    useError: boolean,
-    useGood: boolean,
-    useWanted: boolean,
-    selectedCompanies: string[]
-}
+export function KnownAndWantedPage(props: Props) {
+    const [companyEntries, setCompanyEntries] = React.useState<KnownAndWantedData[]>();
+    const [maxWantedLevel, setMaxWantedLevel] = React.useState<number>(0.3);
+    const [useError, setUseError] = React.useState<boolean>(props.useError);
+    const [useGood, setUseGood] = React.useState<boolean>(props.useGood);
+    const [useWanted, setUseWanted] = React.useState<boolean>(props.useWanted);
+    const [selectedCompanies, setSelectedCompanies] = React.useState<string[]>(props.selectedCompanies);
 
-class KnownAndWantedPage extends React.Component<Props, State> {
-    state: State = {
-        isReady: false,
-        companyEntries: [],
-        companies: this.props.companies,
-        maxWantedLevel: 0.3,
-        useError: this.props.useError,
-        useGood: this.props.useGood,
-        useWanted: this.props.useWanted,
-        selectedCompanies: this.props.selectedCompanies,
-    }
-
-    _isMounted = false
-
-    componentDidMount() {
-        this._isMounted = true;
-
-        this.loadData()
-        if (this._isMounted) {
-            this.setState({isReady: true})
-        }
-    }
-
-    componentDidUpdate(prevProps: Props) {
-        if (this.props.filter !== prevProps.filter 
-            || this.props.year !== prevProps.year
-            || this.props.useGood !== prevProps.useGood
-            || this.props.useWanted !== prevProps.useWanted
-            || this.props.companyEntries !== prevProps.companyEntries) {
-            this.setState({ isReady: false })
-
-            this.loadData()
-            if (this._isMounted) {
-                this.setState({isReady: true})
-            }
-        }
-    }
-
-    componentWillUnmount() {
-        this._isMounted = false;
-    }
-
-    loadData() {
-        if (!this.props.companyEntries) {
+    const loadData = () => {
+        if (!props.companyEntries) {
             return
         }
-        const companyEntries = this.props.companyEntries.filter(d => d.year === this.props.year)
+        
+        const companyEntries = props.companyEntries.filter(d => d.year === props.year)
         const maxWantedLevel = Math.max.apply(null,
-            companyEntries.map(ce => (this.state.useGood ? 1 : 0) * ce.goodLevel
-                + (this.state.useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
+            companyEntries.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
 
-        if (this._isMounted) {
-            this.setState({
-                companyEntries,
-                maxWantedLevel
-            })
-        }
+        setCompanyEntries(companyEntries)
+        setMaxWantedLevel(maxWantedLevel)
+    }
+    
+    useEffect(() => {
+        loadData()
+        console.log(1)
+    }, [props.companyEntries, props.year])
+
+    useEffect(() => {
+        const maxWantedLevel = Math.max.apply(null,
+            companyEntries?.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
+
+        setMaxWantedLevel(maxWantedLevel)
+        console.log(3)
+    }, [useGood, useWanted])
+
+    const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = props
+
+    if (!companyEntries) {
+        return (<Loader content='Загрузка данных' center />)
     }
 
-    render() {
-        const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = this.props
-        const {
-            isReady,
-            companyEntries,
-            maxWantedLevel,
-            selectedCompanies,
-            useError,
-            useGood,
-            useWanted
-        } = this.state
-
-        if (!isReady) {
-            return (<Loader content='Загрузка данных' center />)
-        }
-
-        const entries = selectedCompanies.length > 0
-            ? companyEntries.filter(x => selectedCompanies.indexOf(x.name) !== -1)
-            : companyEntries
-
-        const data = entries.map(x => ({
-            knownLevel: x.knownLevel,
-            wantedLevel: (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
-            name: this.renderLabel(x.name),
-            knownVotes: x.knownVotes,
-            goodVotes: x.goodVotes,
-            wantedVotes: x.wantedVotes,
-            selectionCount: x.selectionCount
-        }))
-
-        return (
-            <div className={classes.container}>
-                <div>
-                    <h4>
-                        В выборке {Math.max.apply(null, !data.length 
-                        ? [0] 
-                        : data.map(ca => ca.selectionCount))} человек
-                    </h4>
-                </div>
-                <div className={classes.companies}>
-                    <div className={classes.graphicFilter}>
-                        <div className={classes.graphicFilterCompanies}>
-                            <label>Компании</label>
-                        </div>
-                        <MultiSelect
-                            items={this.props.companies}
-                            placeholder='Компании'
-                            selected={selectedCompanies}
-                            onChange={selectedCompanies => {
-                                this.setState({selectedCompanies})
-                                onCompaniesChanged(selectedCompanies)
-                            }}
-                        />
-                            <Checkbox 
-                                checked={useError} 
-                                onChange={(v, ch) => {
-                                    this.setState({useError: ch})
-                                    onUseErrorChanged(ch)
-                                }}
-                            >
-                                Отображать доверительный интервал
-                            </Checkbox>
-                            <Checkbox
-                                checked={useGood}
-                                onChange={(v, ch) => {
-                                    this.setState({useGood: ch})
-                                    onUseGoodChanged(ch)
-                                }}
-                            >
-                                Знаю и рекомендую
-                            </Checkbox>
-                            <Checkbox
-                                checked={useWanted}
-                                onChange={(v, ch) => {
-                                    this.setState({useWanted: ch})
-                                    onUseWantedChanged(ch)
-                                }}
-                            >
-                                Знаю и хочу работать
-                            </Checkbox>
-                    </div>
-                </div>
-                <ResponsiveContainer aspect={1.5} width={1100}>
-                    <ScatterChart margin={{ bottom: 10, right: 10 }} className={classes.chart}>
-                        <CartesianGrid strokeDasharray='1 1' />
-                        <XAxis
-                            label={{
-                                value: 'Узнаваемость',
-                                position: 'center',
-                                dy: 20,
-                                fill: axesColor
-                            }}
-                            dataKey='knownLevel'
-                            type='number'
-                            domain={[0, 1]}
-                            tickCount={11}
-                            tickFormatter={toPercent}
-                            axisLine={false}
-                        />
-                        <YAxis
-                            label={{
-                                value: 'Привлекательность',
-                                position: 'center',
-                                angle: -90,
-                                dx: 20,
-                                fill: axesColor
-                            }}
-                            dataKey='wantedLevel'
-                            type='number'
-                            domain={[0, maxWantedLevel]}
-                            tickCount={11}
-                            tickFormatter={toPercent}
-                            axisLine={false}
-                            orientation='right'
-                        />
-                        <Scatter
-                            data={data}
-                            shape={x => this.renderCompanyEntry(x)}
-                            isAnimationActive={false}
-                        />
-                    </ScatterChart>
-                </ResponsiveContainer>
-            </div>
-        )
+    const getFillColor = (company: string) => {
+        return companyFillColorMap[company] || defaultFillColor
     }
 
-    renderCompanyEntry(entry: KnownAndWantedData & { cx: number, cy: number }) {
+    const renderLabel = (company: string) => {
+        const parts = company.split(' ')
+        return parts.join('\u00A0')
+    }
+
+    const renderCompanyEntry = (entry: KnownAndWantedData & { cx: number, cy: number }) => {
         const { name, error, cx, cy, knownVotes, goodVotes, wantedVotes, selectionCount } = entry
 
         const tooltip = (
             <Tooltip>
-                {this.renderLabel(`Знают: ${knownVotes} человек,` 
+                {renderLabel(`Знают: ${knownVotes} человек,`
                     + ` ${toPercentWithTenths(knownVotes / selectionCount)}%`)}<br />
-                {this.renderLabel(`Рекомендуют: ${goodVotes} человек,` 
+                {renderLabel(`Рекомендуют: ${goodVotes} человек,`
                     + ` ${toPercentWithTenths(goodVotes / selectionCount)}%`)}<br />
-                {this.renderLabel(`Хотят работать: ${wantedVotes} человек,` 
+                {renderLabel(`Хотят работать: ${wantedVotes} человек,`
                     + ` ${toPercentWithTenths(wantedVotes / selectionCount)}%`)}<br />
             </Tooltip>
         );
-
-        const errorSize = (this.state.useError ? error : 0) * cx / entry.knownLevel
+        
+        const radius = (useError ? error : 0) * cx / entry.knownLevel
 
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
-            <g fill={KnownAndWantedPage.getFillColor(name)}>
-                <g fillOpacity={0.1}>
-                    <Dot cx={cx} cy={cy} r={errorSize} />
+                <g fill={getFillColor(name)}>
+                    <g fillOpacity={0.1}>
+                        <Dot cx={cx} cy={cy} r={radius} />
+                    </g>
+                    <Dot cx={cx} cy={cy} r={1.5} />
+                    <g transform={`translate(${cx},${cy})`}>
+                        <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
+                            {name}
+                        </text>
+                    </g>
                 </g>
-                <Dot cx={cx} cy={cy} r={1.5} />
-                <g transform={`translate(${cx},${cy})`}>
-                    <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
-                        {name}
-                    </text>
-                </g>
-            </g>
             </Whisper>
         )
     }
 
-    static getFillColor(company: string) {
-        return companyFillColorMap[company] || defaultFillColor
-    }
+    const entries = selectedCompanies.length > 0
+        ? companyEntries?.filter(x => selectedCompanies.indexOf(x.name) !== -1)
+        : companyEntries
 
-    renderLabel(company: string) {
-        const parts = company.split(' ')
-        return parts.join('\u00A0')
-    }
+    const data = entries?.map(x => ({
+        knownLevel: x.knownLevel,
+        wantedLevel: (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
+        name: renderLabel(x.name),
+        error: x.error,
+        knownVotes: x.knownVotes,
+        goodVotes: x.goodVotes,
+        wantedVotes: x.wantedVotes,
+        selectionCount: x.selectionCount
+    }))
+
+    console.log(2)
+    return (
+        <div className={classes.container}>
+            <div>
+                <h4>
+                    В выборке {Math.max.apply(null, !data?.length
+                    ? [0]
+                    : data?.map(ca => ca.selectionCount))} человек
+                </h4>
+            </div>
+            <div className={classes.companies}>
+                <div className={classes.graphicFilter}>
+                    <div className={classes.graphicFilterCompanies}>
+                        <label>Компании</label>
+                    </div>
+                    <MultiSelect
+                        items={props.companies}
+                        placeholder='Компании'
+                        selected={selectedCompanies}
+                        onChange={selectedCompanies => {
+                            setSelectedCompanies(selectedCompanies)
+                            onCompaniesChanged(selectedCompanies)
+                        }}
+                    />
+                    <Checkbox
+                        checked={useError}
+                        onChange={(v, ch) => {
+                            setUseError(ch)
+                            onUseErrorChanged(ch)
+                        }}
+                    >
+                        Отображать доверительный интервал
+                    </Checkbox>
+                    <Checkbox
+                        checked={useGood}
+                        onChange={(v, ch) => {
+                            setUseGood(ch)
+                            onUseGoodChanged(ch)
+                        }}
+                    >
+                        Знаю и рекомендую
+                    </Checkbox>
+                    <Checkbox
+                        checked={useWanted}
+                        onChange={(v, ch) => {
+                            setUseWanted(ch)
+                            onUseWantedChanged(ch)
+                        }}
+                    >
+                        Знаю и хочу работать
+                    </Checkbox>
+                </div>
+            </div>
+            <ResponsiveContainer aspect={1.5} width={1100}>
+                <ScatterChart margin={{ bottom: 10, right: 10 }} className={classes.chart}>
+                    <CartesianGrid strokeDasharray='1 1' />
+                    <XAxis
+                        label={{
+                            value: 'Узнаваемость',
+                            position: 'center',
+                            dy: 20,
+                            fill: axesColor
+                        }}
+                        dataKey='knownLevel'
+                        type='number'
+                        domain={[0, 1]}
+                        tickCount={11}
+                        tickFormatter={toPercent}
+                        axisLine={false}
+                    />
+                    <YAxis
+                        label={{
+                            value: 'Привлекательность',
+                            position: 'center',
+                            angle: -90,
+                            dx: 20,
+                            fill: axesColor
+                        }}
+                        dataKey='wantedLevel'
+                        type='number'
+                        domain={[0, maxWantedLevel]}
+                        tickCount={11}
+                        tickFormatter={toPercent}
+                        axisLine={false}
+                        orientation='right'
+                    />
+                    <Scatter
+                        data={data}
+                        shape={x => renderCompanyEntry(x)}
+                        isAnimationActive={false}
+                    />
+                </ScatterChart>
+            </ResponsiveContainer>
+        </div>
+    )
 }
 
 export default injectSheet(styles)(KnownAndWantedPage)
