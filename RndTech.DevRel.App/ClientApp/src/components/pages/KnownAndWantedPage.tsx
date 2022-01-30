@@ -156,7 +156,6 @@ export function KnownAndWantedPage(props: Props) {
     
     useEffect(() => {
         loadData()
-        console.log(1)
     }, [props.companyEntries, props.year])
 
     useEffect(() => {
@@ -165,7 +164,6 @@ export function KnownAndWantedPage(props: Props) {
             entries?.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
 
         setMaxWantedLevel(maxWantedLevel)
-        console.log(3)
     }, [useGood, useWanted])
 
     const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = props
@@ -233,7 +231,6 @@ export function KnownAndWantedPage(props: Props) {
         selectionCount: x.selectionCount
     }))
 
-    console.log(2)
     return (
         <div className={classes.container}>
             <div>
