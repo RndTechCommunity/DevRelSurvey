@@ -118,6 +118,10 @@ export function KnownAndWantedPage(props: Props) {
                 let x = a[sortColumn];
                 let y = b[sortColumn];
 
+                if (sortColumn === 'companyName') {
+                    return x < y ? (sortType === 'asc' ? 1 : -1) : (sortType === 'asc' ? -1 : 1);
+                }
+                
                 if (typeof x === 'string' && typeof y === 'string') {
                     x = parseFloat(x)
                     y = parseFloat(y)

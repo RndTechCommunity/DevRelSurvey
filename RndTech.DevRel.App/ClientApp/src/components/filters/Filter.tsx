@@ -18,6 +18,7 @@ export const selectedCompanies = [
     'DataArt',
     'INOSTUDIO',
     'A2SEVEN',
+    'Usetech',
     'IntSpirit',
     'Justice IT',
     'Afterlogic',
