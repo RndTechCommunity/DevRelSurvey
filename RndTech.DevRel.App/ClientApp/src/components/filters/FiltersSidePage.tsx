@@ -50,7 +50,6 @@ class FiltersSidePage extends React.Component<Props, State> {
     }
 
     reset(newFilter: any) {
-        console.log(this.state)
         this.notify(newFilter)
         this.setState(newFilter)
     }

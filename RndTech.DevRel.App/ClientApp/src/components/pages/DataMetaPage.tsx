@@ -103,7 +103,7 @@ class SelectionFactorsPage extends React.Component<Props, State> {
         if (!isReady) {
             return (<Loader content='Загрузка данных' center />)
         }
-        console.log(meta.sources.cities);
+
         return (
             <Container>
                 <Content>
