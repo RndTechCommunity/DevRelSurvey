@@ -33,9 +33,9 @@ namespace RndTech.DevRel.App.DAL
                 return;
             }
 
-            Fill2019YearData();
-            Fill2020YearData();
-            Fill2021YearData();
+            //Fill2019YearData();
+            //Fill2020YearData();
+            //Fill2021YearData();
 
             context.Languages.AddRange(Languages.Values);
             context.Companies.AddRange(Companies.Values);

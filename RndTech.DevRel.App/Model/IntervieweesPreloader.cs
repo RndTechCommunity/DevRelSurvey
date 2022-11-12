@@ -26,6 +26,7 @@ namespace RndTech.DevRel.App.Model
 					{
 						var interviewees = dbContext
 							.Interviewees
+							.AsNoTracking()
 							.ToList();
 
 						foreach (var interviewee in interviewees)
