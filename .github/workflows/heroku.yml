@@ -16,5 +16,5 @@ jobs:
           heroku_app_name: "rndtechdevrel" #Must be unique in Heroku
           heroku_email: "slygric@gmail.com"
           usedocker: true
-	env:
+        env:
           DEVRELAPP_SETTINGS: ${{secrets.APP_SETTINGS}}
