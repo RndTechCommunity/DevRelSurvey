@@ -17,4 +17,4 @@ jobs:
           heroku_email: "slygric@gmail.com"
           usedocker: true
         env:
-          DEVRELAPP_SETTINGS: ${{secrets.APP_SETTINGS}}
+          HD_DEVRELAPP_SETTINGS: ${{secrets.APP_SETTINGS}}
