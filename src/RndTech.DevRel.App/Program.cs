@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
@@ -8,8 +9,6 @@ using RndTech.DevRel.App.Model.Queries;
 using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Configuration.AddJsonFile("appsettings.Heroku.json");
 
 builder.Services.AddEnyimMemcached();
 
@@ -33,6 +32,17 @@ builder.Services.AddQueryHandler<GetProfessionsQuery, string[], GetProfessionsQu
 builder.Services.AddQueryHandler<GetProgrammingLanguagesQuery, string[], GetProgrammingLanguagesQueryHandler>();
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+	builder.Configuration.AddJsonFile("appsettings.Heroku.json");
+}
+else
+{
+	var appSettings = Environment.GetEnvironmentVariable("DEVRELAPP_SETTINGS");
+	var appSettingsStream = new MemoryStream(Encoding.UTF8.GetBytes(appSettings ?? ""));
+	builder.Configuration.AddJsonStream(appSettingsStream);
+}
 
 if (!app.Environment.IsDevelopment())
 {
