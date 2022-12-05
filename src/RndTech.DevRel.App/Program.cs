@@ -45,6 +45,9 @@ builder.Services.AddQueryHandler<GetProgrammingLanguagesQuery, string[], GetProg
 
 var app = builder.Build();
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "29500";
+app.Urls.Add($"http://*:{port}");
+
 if (!app.Environment.IsDevelopment())
 {
 	app.UseHsts();
