@@ -9,16 +9,6 @@ namespace RndTech.DevRel.App.Configuration;
 
 public static class IEndpointRouteBuilderExtensions
 {
-	public static RouteHandlerBuilder MapFilterQuery<TQuery, TResult>(this IEndpointRouteBuilder endpoints,
-		[StringSyntax("Route")] string pattern)
-		where TQuery : new()
-	{
-		return endpoints.MapGet(pattern,
-			async ([FromServices] IQueryHandler<TQuery, TResult> queryHandler,
-					CancellationToken ct)
-				=> await queryHandler.Handle(new TQuery(), ct));
-	}
-	
 	public static void MapResultRoutes(this IEndpointRouteBuilder endpoints)
 	{
 		endpoints.MapPost("api/results/known-and-wanted",
@@ -36,7 +26,7 @@ public static class IEndpointRouteBuilderExtensions
 					=> await queryHandler.Handle(filter.ToQuery<GetMetaQuery>(), ct))
 			.WithDescription("Получение информации о составе выборки, соответствующей фильтру.");
 	}
-	
+
 	public static void MapFilterRoutes(this IEndpointRouteBuilder endpoints)
 	{
 		var filters = endpoints.MapGroup("api/filters").WithTags("filter");
@@ -59,4 +49,12 @@ public static class IEndpointRouteBuilderExtensions
 		filters.MapFilterQuery<GetProgrammingLanguagesQuery, string[]>("/programmingLanguages")
 			.WithDescription("Получение списка дсотупных языков программирования для фильтрации.");
 	}
+
+	private static RouteHandlerBuilder MapFilterQuery<TQuery, TResult>(this IEndpointRouteBuilder endpoints,
+		[StringSyntax("Route")] string pattern)
+		where TQuery : new()
+		=> endpoints.MapGet(pattern,
+			async ([FromServices] IQueryHandler<TQuery, TResult> queryHandler,
+					CancellationToken ct)
+				=> await queryHandler.Handle(new TQuery(), ct));
 }
