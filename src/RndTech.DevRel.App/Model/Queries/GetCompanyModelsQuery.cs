@@ -2,11 +2,11 @@
 
 public record GetCompanyModelsQuery : IFilteredIntervieweesQuery
 {
-	public int[] Ages { get; init; }
-	public string[] Cities { get; init; }
-	public string[] Educations { get; init; }
-	public string[] Experiences { get; init; }
-	public string[] Professions { get; init; }
-	public string[] ProgrammingLanguages { get; init; }
+	public int[] Ages { get; init; } = null!;
+	public string[] Cities { get; init; } = null!;
+	public string[] Educations { get; init; } = null!;
+	public string[] Experiences { get; init; } = null!;
+	public string[] Professions { get; init; } = null!;
+	public string[] ProgrammingLanguages { get; init; } = null!;
 	public bool? IsCommunity { get; init; }
 }

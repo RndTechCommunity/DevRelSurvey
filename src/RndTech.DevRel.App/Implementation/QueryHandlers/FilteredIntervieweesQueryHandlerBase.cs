@@ -20,7 +20,7 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 	public async ValueTask<TResult> Handle(TQuery query, CancellationToken ct)
 	{
 		return await cache.GetValueOrCreateAsync(GetCacheKey(GetType().ToString(), query), AppSettings.CacheSeconds,
-			async ()
+			()
 				=>
 			{
 				var answers = dataProvider.GetAllIntervieweeAnswers();
@@ -37,7 +37,7 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 					.Where(kvp => !query.IsCommunity.HasValue || query.IsCommunity.Value == kvp.Key.VisitMeetups)
 					.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
-				return HandleInternal(answers, filteredAnswers);
+				return Task.FromResult(HandleInternal(answers, filteredAnswers));
 			});
 		
 	}

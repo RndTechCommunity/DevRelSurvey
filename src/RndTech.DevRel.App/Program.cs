@@ -49,4 +49,11 @@ app.MapFilterRoutes();
 
 app.MapFallbackToFile("index.html");
 
+WarmUp(app);
+
 app.Run();
+
+void WarmUp(WebApplication webApplication)
+{
+	webApplication.Services.GetRequiredService<IIntervieweesDataProvider>();
+}
