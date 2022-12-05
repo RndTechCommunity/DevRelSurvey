@@ -12,8 +12,8 @@ RUN dotnet publish "src/RndTech.DevRel.App/RndTech.DevRel.App.csproj" -c Release
 
 FROM mcr.microsoft.com/dotnet/aspnet:7.0
 
-EXPOSE 80
-EXPOSE 443
+EXPOSE 29500
+ENV ASPNETCORE_URLS=http://*:29500
 
 COPY --from=build /app/publish .
 
