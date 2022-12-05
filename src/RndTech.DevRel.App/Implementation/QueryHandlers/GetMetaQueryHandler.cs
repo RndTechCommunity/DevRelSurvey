@@ -1,11 +1,13 @@
-﻿using RndTech.DevRel.App.Model;
+﻿using Enyim.Caching;
+using RndTech.DevRel.App.Model;
 using RndTech.DevRel.App.Model.Queries;
 
 namespace RndTech.DevRel.App.Implementation.QueryHandlers;
 
 public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQuery, MetaModel>
 {
-    public GetMetaQueryHandler(IIntervieweesDataProvider dataProvider) : base(dataProvider)
+    public GetMetaQueryHandler(IIntervieweesDataProvider dataProvider, IMemcachedClient cache) 
+        : base(dataProvider, cache)
 	{
 	}
 

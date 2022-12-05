@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Enyim.Caching;
+using Microsoft.EntityFrameworkCore;
 using RndTech.DevRel.App.Model.Queries;
 using RndTech.DevRel.Database;
 
@@ -6,7 +7,8 @@ namespace RndTech.DevRel.App.Implementation.QueryHandlers.Filters;
 
 public class GetProgrammingLanguagesQueryHandler : DatabaseQueryHandlerBase<GetProgrammingLanguagesQuery, string[]>
 {
-	public GetProgrammingLanguagesQueryHandler(IDbContextFactory<SurveyDbContext> dbContextFactory) : base(dbContextFactory)
+	public GetProgrammingLanguagesQueryHandler(IDbContextFactory<SurveyDbContext> dbContextFactory, IMemcachedClient cache) 
+		: base(dbContextFactory, cache)
 	{
 	}
 

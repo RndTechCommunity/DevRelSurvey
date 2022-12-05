@@ -11,7 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.Heroku.json");
 
-builder.Services.AddControllersWithViews();
 builder.Services.AddEnyimMemcached();
 
 var connectionString = builder.Configuration.GetConnectionString("SurveyDb")!;
@@ -42,11 +41,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-app.UseRouting();
 
 app.UseEnyimMemcached();
 
-app.MapControllers();
+app.MapResultRoutes();
+app.MapFilterRoutes();
+
 app.MapFallbackToFile("index.html");
 
 app.Run();
