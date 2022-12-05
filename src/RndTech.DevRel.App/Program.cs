@@ -12,6 +12,18 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEnyimMemcached();
 
+bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+if (isDevelopment)
+{
+	builder.Configuration.AddJsonFile("appsettings.Heroku.json");
+}
+else
+{
+	var appSettings = Environment.GetEnvironmentVariable("DEVRELAPP_SETTINGS");
+	var appSettingsStream = new MemoryStream(Encoding.UTF8.GetBytes(appSettings ?? ""));
+	builder.Configuration.AddJsonStream(appSettingsStream);
+}
+
 var connectionString = builder.Configuration.GetConnectionString("SurveyDb")!;
 builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
 	options
@@ -32,17 +44,6 @@ builder.Services.AddQueryHandler<GetProfessionsQuery, string[], GetProfessionsQu
 builder.Services.AddQueryHandler<GetProgrammingLanguagesQuery, string[], GetProgrammingLanguagesQueryHandler>();
 
 var app = builder.Build();
-
-if (app.Environment.IsDevelopment())
-{
-	builder.Configuration.AddJsonFile("appsettings.Heroku.json");
-}
-else
-{
-	var appSettings = Environment.GetEnvironmentVariable("DEVRELAPP_SETTINGS");
-	var appSettingsStream = new MemoryStream(Encoding.UTF8.GetBytes(appSettings ?? ""));
-	builder.Configuration.AddJsonStream(appSettingsStream);
-}
 
 if (!app.Environment.IsDevelopment())
 {
