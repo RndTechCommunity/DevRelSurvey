@@ -40,6 +40,8 @@ public static class AnswersDbImporter
 			db.IntervieweeLanguages.AddRange(intervieweeLanguages);
 			db.IntervieweeCommunitySources.AddRange(intervieweeCommunitySources);
 			db.CompanyAnswers.AddRange(companyAnswers);
+
+			db.SaveChanges();
 		}
 	}
 
