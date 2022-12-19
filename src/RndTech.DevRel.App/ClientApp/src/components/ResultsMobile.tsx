@@ -117,17 +117,17 @@ export function ResultsMobile(props: Props) {
                 .sort((d1, d2) => d2.knownLevel - d1.knownLevel)
                 .slice(0, 10)
                 .map(d => ({
-                    name: d.name,
+                    name: d.name.split('(')[0],
                     level: toPercentWithTenths(d.knownLevel)
                 } as BarData))
             await setMostKnown(popular)
 
             const wanted = lastYearData
-                .sort((d1, d2) => d2.wantedLevel - d1.wantedLevel)
+                .sort((d1, d2) => (d2.wantedLevel + d2.goodLevel) - (d1.wantedLevel + d1.goodLevel))
                 .slice(0, 10)
                 .map(d => ({
-                    name: d.name,
-                    level: toPercentWithTenths(d.wantedLevel)
+					name: d.name.split('(')[0],
+                    level: toPercentWithTenths(d.wantedLevel + d.goodLevel)
                 } as BarData))
             await setMostWanted(wanted)
         };
@@ -190,11 +190,10 @@ export function ResultsMobile(props: Props) {
                     <Divider>Топ узнаваемости</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <ResponsiveContainer width='100%' aspect={1}>
+                            <ResponsiveContainer width='100%' aspect={2}>
                                 <BarChart data={mostKnown} layout='vertical'>
                                     <XAxis type="number" hide={true} />
-                                    <Label />
-                                    <YAxis type="category" dataKey="name" label={{ value: "Pages", position: "insideStart", dy: 10}} />
+									<YAxis width={100} type="category" dataKey="name" />
                                     <Bar dataKey="level"
                                         label={{
                                             position: "center",
@@ -210,11 +209,10 @@ export function ResultsMobile(props: Props) {
                     <Divider>Топ привлекательности</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <ResponsiveContainer width='100%' aspect={1}>
+                            <ResponsiveContainer width='100%' aspect={2}>
                                 <BarChart data={mostWanted} layout='vertical'>
                                     <XAxis type="number" hide={true} />
-                                    <Label />
-                                    <YAxis type="category" dataKey="name" label={{ value: "Pages", position: "insideStart", dy: 10}} />
+									<YAxis width={100} type="category" dataKey="name" />
                                     <Bar dataKey="level"
                                         label={{
                                         position: "center",
