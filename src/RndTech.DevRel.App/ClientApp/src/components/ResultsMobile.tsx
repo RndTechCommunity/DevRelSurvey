@@ -190,7 +190,7 @@ export function ResultsMobile(props: Props) {
                     <Divider>Топ узнаваемости</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <ResponsiveContainer width='100%' aspect={2}>
+                            <ResponsiveContainer width='100%' aspect={1}>
                                 <BarChart data={mostKnown} layout='vertical'>
                                     <XAxis type="number" hide={true} />
 									<YAxis width={100} type="category" dataKey="name" />
@@ -209,7 +209,7 @@ export function ResultsMobile(props: Props) {
                     <Divider>Топ привлекательности</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <ResponsiveContainer width='100%' aspect={2}>
+                            <ResponsiveContainer width='100%' aspect={1}>
                                 <BarChart data={mostWanted} layout='vertical'>
                                     <XAxis type="number" hide={true} />
 									<YAxis width={100} type="category" dataKey="name" />
