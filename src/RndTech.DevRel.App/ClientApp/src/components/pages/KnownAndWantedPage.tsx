@@ -51,15 +51,15 @@ const companyFillColorMap = {
     'IntSpirit': '#179BD7',
     'Justice\u00A0IT': '#6BA7C3',
     'Afterlogic': '#1CBEE5',
-    'Dunice': '#009C4F',
-    'Exceed\u00A0Team': '#26397E',
-    'Arcadia': '#00ABDB',
+    'IBS\u00A0Dunice': '#009C4F',
+    'ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)': '#26397E',
+    'Аркадия': '#00ABDB',
     'Контур': '#D70C17',
-    'Accenture': '#A100FF',
+    'Axenix\u00A0(ex\u00A0Accenture)': '#A100FF',
     'Oggetto': '#FFDD00',
     'Distillery': '#d8a462',
     'Devexperts': '#f4511e',
-    'Rnd\u00A0soft\u00A0(+Winvestor)': '#ff8833',
+    'РНДСОФТ': '#ff8833',
     'Usetech': '#92B700',
     'НИИ\u00A0"Спецвузавтоматика"': '#237BE7',
     'uKit': '#338FFF',
@@ -69,7 +69,7 @@ const companyFillColorMap = {
     'Intellectika\u00A0(Интеллектика)': '#03723A',
     'Вебпрактик': '#FFBE01',
     'Auriga': '#007BE0',
-    'ЦентрИнвест': 'rgb(57, 163, 28)'
+    'Центр-инвест': 'rgb(57, 163, 28)'
 }
 
 type Props = {
