@@ -11,7 +11,7 @@ public static class AnswersFileReader
 		using var reader = new StreamReader(filePath);
 		using var csv = new CsvReader(reader,
 			new CsvConfiguration(CultureInfo.InvariantCulture)
-				{ HasHeaderRecord = true, BadDataFound = null, Delimiter = ";" });
+				{ HasHeaderRecord = true, BadDataFound = null, Delimiter = "," });
 		
 		var answers = csv.GetRecords<AnswerFileModel>().ToArray();
 

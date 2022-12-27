@@ -8,6 +8,11 @@ public static class AnswersDbImporter
 {
 	public static void Import(string connectionString, AnswerFileModel[] answers)
 	{
+		var dbInterviewees = new List<Interviewee>();
+		var dbIntervieweeLanguages = new List<IntervieweeLanguage>();
+		var dbIntervieweeCommunitySources = new List<IntervieweeCommunitySource>();
+		var dbCompanyAnswers = new List<CompanyAnswer>();
+		
 		var db = CreateDbContext(connectionString);
 		var languages = db.Languages.ToArray();
 		var communitySources = db.CommunitySources.ToArray();
@@ -36,13 +41,18 @@ public static class AnswersDbImporter
 			var companyAnswers = GetCompanyAnswers(answer, companies, interviewee);
 			interviewee.CompanyAnswers = companyAnswers;
 
-			db.Interviewees.Add(interviewee);
-			db.IntervieweeLanguages.AddRange(intervieweeLanguages);
-			db.IntervieweeCommunitySources.AddRange(intervieweeCommunitySources);
-			db.CompanyAnswers.AddRange(companyAnswers);
-
-			db.SaveChanges();
+			dbInterviewees.Add(interviewee);
+			dbIntervieweeLanguages.AddRange(intervieweeLanguages);
+			dbIntervieweeCommunitySources.AddRange(intervieweeCommunitySources);
+			dbCompanyAnswers.AddRange(companyAnswers);
 		}
+
+		db.Interviewees.AddRange(dbInterviewees);
+		db.IntervieweeLanguages.AddRange(dbIntervieweeLanguages);
+		db.IntervieweeCommunitySources.AddRange(dbIntervieweeCommunitySources);
+		db.CompanyAnswers.AddRange(dbCompanyAnswers);
+
+		db.SaveChanges();
 	}
 
 	private static List<CompanyAnswer> GetCompanyAnswers(AnswerFileModel answer, Company[] companies, Interviewee interviewee)
@@ -80,7 +90,7 @@ public static class AnswersDbImporter
 		foreach (var meetupSource in answer.GetMeetupSources())
 		{
 			var ms = meetupSource;
-			if (meetupSource == "Друзья / коллеги рассказывают")
+			if (meetupSource.StartsWith("Друзья / коллеги рассказ"))
 				ms = "От друзей / коллег";
 			
 			var dbSource = communitySources.SingleOrDefault(l => l.Name == ms);

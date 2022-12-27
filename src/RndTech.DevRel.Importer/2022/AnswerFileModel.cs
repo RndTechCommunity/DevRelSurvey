@@ -424,7 +424,7 @@ public class AnswerFileModel
 		if (!string.IsNullOrWhiteSpace(Usetech))
 			yield return GetCompanyAnswerFileModel(Usetech, "Usetech");
 		if (!string.IsNullOrWhiteSpace(RNDSOFT))
-			yield return GetCompanyAnswerFileModel(RNDSOFT, "Рнд Софт");
+			yield return GetCompanyAnswerFileModel(RNDSOFT, "РНДСОФТ");
 		if (!string.IsNullOrWhiteSpace(Reksoft))
 			yield return GetCompanyAnswerFileModel(Reksoft, "Reksoft");
 		if (!string.IsNullOrWhiteSpace(JusticeIT))
