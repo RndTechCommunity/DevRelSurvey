@@ -3,6 +3,8 @@ import { Container, Content, CustomProvider } from 'rsuite';
 import injectSheet from 'react-jss';
 import 'rsuite/dist/rsuite.min.css';
 import Results from './components/Results';
+import ResultsMobile from './components/ResultsMobile';
+import { useMediaQuery } from 'react-responsive'
 
 const styles = {
   barLogo: {
@@ -27,14 +29,17 @@ type State = {
 }
 
 function App(props: Props) {
-  const [tab, setTab] = React.useState<string>('page-results')
   const [isModalOpened, setIsModalOpened] = React.useState<boolean>(true)
+  const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' })
+  const isDesktopOrLaptop = useMediaQuery({ query: '(min-width: 1224px)' })
 
   return (
+
       <CustomProvider theme='dark'>
         <Container className='App'>
           <Content>
-            <Results modalOpened={false} />
+            { isDesktopOrLaptop && <Results modalOpened={false} /> }
+            { isTabletOrMobile && <ResultsMobile /> }
           </Content>
         </Container>
       </CustomProvider>

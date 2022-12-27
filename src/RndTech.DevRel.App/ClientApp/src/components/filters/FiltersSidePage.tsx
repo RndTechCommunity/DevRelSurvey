@@ -17,7 +17,7 @@ import {
     topStudentsFilter,
     Filter,
 } from './Filter'
-import { Button, Dropdown, Nav, SelectPicker } from 'rsuite';
+import { Button, Nav, SelectPicker } from 'rsuite';
 import { Split, Pin, TagFilter } from '@rsuite/icons';
 
 const styles = {
@@ -60,7 +60,8 @@ class FiltersSidePage extends React.Component<Props, State> {
 
         return (             
             <Nav>
-                <Dropdown eventKey='1' open={true} title='Фильтры' icon={<TagFilter />}>
+                <Nav.Menu eventKey='1' open={true} title='Фильтры' icon={<TagFilter />}>
+
                 <Nav.Item eventKey='1-1' as='span'>
                             <MultiSelect
                                 fetch={getCities}
@@ -176,13 +177,13 @@ class FiltersSidePage extends React.Component<Props, State> {
                 </Nav.Item>
                 <Nav.Item eventKey='1-8' as='span'>
                     <Button appearance='link' onClick={onOpenDuplicate}>
-                        <Split />
+                        <Split />&nbsp;
                         Дублировать
                     </Button>
                 </Nav.Item>
-                </Dropdown>
-                <Dropdown eventKey='2' open={true} title='Популярные фильтры' icon={<Pin />}>
-                    <Dropdown.Item>
+                </Nav.Menu>
+                <Nav.Menu eventKey='2' open={true} title='Популярные фильтры' icon={<Pin />}>
+                    <Nav.Item>
                         <Button
                             appearance='link'
                             disabled={FiltersSidePage.IsEqualFilters(this.state, topRostovFilter)}
@@ -190,8 +191,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         >
                             Топ Ростова
                         </Button>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
+                    </Nav.Item>
+                    <Nav.Item>
                         <Button
                             appearance='link'
                             disabled={FiltersSidePage.IsEqualFilters(this.state, topTaganrogFilter)}
@@ -199,8 +200,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         >
                             Топ Таганрога
                         </Button>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
+                    </Nav.Item>
+                    <Nav.Item>
                         <Button
                             appearance='link'
                             disabled={FiltersSidePage.IsEqualFilters(this.state, topQAFilter)}
@@ -208,8 +209,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         >
                             Какие компании знают QA
                         </Button>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
+                    </Nav.Item>
+                    <Nav.Item>
                         <Button
                             appearance='link'
                             disabled={FiltersSidePage.IsEqualFilters(this.state, topFrontendFilter)}
@@ -217,8 +218,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         >
                             Куда хотят фронтендеры
                         </Button>
-                    </Dropdown.Item>
-                    <Dropdown.Item>
+                    </Nav.Item>
+                    <Nav.Item>
                         <Button
                             appearance='link'
                             disabled={FiltersSidePage.IsEqualFilters(this.state, topStudentsFilter)}
@@ -226,8 +227,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         >
                             Известные студентам
                         </Button>
-                    </Dropdown.Item>
-                </Dropdown>
+                    </Nav.Item>
+                </Nav.Menu>
             </Nav>
         )
     }

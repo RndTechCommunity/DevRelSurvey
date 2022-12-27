@@ -43,7 +43,7 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 	}
 
 	private static string GetCacheKey(string methodName, TQuery filter) =>
-		$"{methodName}_{string.Join(',', filter.Cities)}_{string.Join(',', filter.Educations)}_{string.Join(',', filter.ProgrammingLanguages)}_{string.Join(',', filter.Professions)}_{string.Join(',', filter.Experiences)}_{string.Join(',', filter.Ages)}_{string.Join(',', filter.IsCommunity)}"
+		$"new_{methodName}_{string.Join(',', filter.Cities)}_{string.Join(',', filter.Educations)}_{string.Join(',', filter.ProgrammingLanguages)}_{string.Join(',', filter.Professions)}_{string.Join(',', filter.Experiences)}_{string.Join(',', filter.Ages)}_{string.Join(',', filter.IsCommunity)}"
 			.Replace(" ", "");
 
 	protected abstract TResult HandleInternal(IDictionary<IntervieweeModel, AnswerModel[]> answers, IDictionary<IntervieweeModel, AnswerModel[]> filteredAnswers);
