@@ -69,7 +69,8 @@ const companyFillColorMap = {
     'Intellectika\u00A0(Интеллектика)': '#03723A',
     'Вебпрактик': '#FFBE01',
     'Auriga': '#007BE0',
-    'Центр-инвест': 'rgb(57, 163, 28)'
+    'Центр-инвест': 'rgb(57, 163, 28)',
+    'Тинькофф': '#FFDD2D'
 }
 
 type Props = {
