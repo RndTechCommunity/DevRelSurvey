@@ -23,11 +23,6 @@ type Props = {
   classes?: any
 }
 
-type State = {
-  tab: SitePageId,
-  modalOpened: boolean
-}
-
 function App(props: Props) {
   const [isModalOpened, setIsModalOpened] = React.useState<boolean>(true)
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' })

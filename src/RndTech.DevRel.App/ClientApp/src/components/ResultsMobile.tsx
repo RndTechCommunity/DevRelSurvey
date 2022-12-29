@@ -4,16 +4,13 @@ import * as React from 'react'
 import injectSheet from 'react-jss';
 import { Filter } from './filters/Filter'
 import {
-    CartesianGrid,
     BarChart,
     ResponsiveContainer,
     XAxis,
     Bar,
     YAxis,
-    Label,
     PieChart,
-    Pie,
-    PieLabel
+    Pie
 } from 'recharts'
 import { useEffect } from 'react';
 import { getKnownAndWantedData, getCities, getMeta, KnownAndWantedData, MetaData } from '../api';
@@ -21,7 +18,7 @@ import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { toPercentWithTenths } from '../format';
 
 
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, index }) => {
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name}) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -96,23 +93,23 @@ export function ResultsMobile(props: Props) {
 
             const meta = await getMeta(filter)
             await setMeta(meta)
-            await setAges(meta.sources.ages.map(l => ({ name: l.name, level: l.count2021} as BarData)))
-            await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: l.count2021} as BarData)))
+            await setAges(meta.sources.ages.map(l => ({ name: l.name, level: l.count2022} as BarData)))
+            await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData)))
             await setProfessions(meta
                 .sources
                 .professions
-                .map(l => ({ name: l.name.split('/')[0], level: l.count2021} as BarData))
+                .map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData))
                 .sort((l1, l2) => l2.level - l1.level)
                 .slice(0,10))
 
             await setLanguages(meta
                 .sources
                 .languages
-                .map(l => ({ name: l.name.split('/')[0], level: l.count2021} as BarData))
+                .map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData))
                 .sort((l1, l2) => l2.level - l1.level)
                 .slice(0,10))
 
-            const lastYearData = data.filter(d => d.year === 2021);
+            const lastYearData = data.filter(d => d.year === 2022);
             const popular = lastYearData
                 .sort((d1, d2) => d2.knownLevel - d1.knownLevel)
                 .slice(0, 10)

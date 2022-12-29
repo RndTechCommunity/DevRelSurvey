@@ -38,6 +38,7 @@ export const selectedCompanies = [
     'Вебпрактик',
     'Intellectika (Интеллектика)',
     'Auriga',
+    'Тинькофф'
 ]
 
 export const topRostovFilter: Filter = {

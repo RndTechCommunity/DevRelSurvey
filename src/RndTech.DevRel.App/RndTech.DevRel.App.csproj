@@ -15,8 +15,8 @@
 
     <ItemGroup>
         <PackageReference Include="EnyimMemcachedCore" Version="2.5.6" />
-        <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="7.0.0" />
-        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.0-alpha.1" />
+        <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="7.0.1" />
+        <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.0-silver.1" />
     </ItemGroup>
 
     <ItemGroup>

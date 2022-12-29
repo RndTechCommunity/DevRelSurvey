@@ -28,6 +28,7 @@ type MenuItem = {
 }
 
 export type MenuId =
+    'known-and-wanted-2022' |
     'known-and-wanted-2021' |
     'known-and-wanted-2020' |
     'known-and-wanted-2019' |
@@ -35,16 +36,20 @@ export type MenuId =
 
 const items: MenuItem[] = [
     {
+        id: 'known-and-wanted-2022',
+        title: '2022'
+    },
+    {
         id: 'known-and-wanted-2021',
-        title: 'Узнаваемость и привлекательность 2021'
+        title: '2021'
     },
     {
         id: 'known-and-wanted-2020',
-        title: 'Узнаваемость и привлекательность 2020'
+        title: '2020'
     },
     {
         id: 'known-and-wanted-2019',
-        title: 'Узнаваемость и привлекательность 2019'
+        title: '2019'
     },
     {
         id: 'data-meta',
