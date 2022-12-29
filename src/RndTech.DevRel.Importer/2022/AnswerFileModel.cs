@@ -29,8 +29,13 @@ public class AnswerFileModel
 	public IEnumerable<string> GetProgrammingLanguages()
 	{
 		// Не пишу код
-		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/gkpvvptfLcU4sWj35WMuqOo6OXzgcL6fIEan.jpg"))
+		if (ProgrammingLanguagesRawData.Contains(
+			    "https://app.webask.io/wa-prod/new_quiz_versions/gkpvvptfLcU4sWj35WMuqOo6OXzgcL6fIEan.jpg")
+		    || string.IsNullOrWhiteSpace(ProgrammingLanguagesRawData))
+		{
+			yield return "Не пишу код";
 			yield break;
+		}
 
 		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/q6WWeDiUTB0Oio4RLQ72FcWdskNsOEF7GxrT.jpeg"))
 			yield return "SQL";
@@ -88,7 +93,7 @@ public class AnswerFileModel
 			yield return "Elm";
 		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/SvbD6rXXnXIdZLRJiCtTp2fkWmNdM3BI7uIR.png"))
 			yield return "F#";
-		
+
 		if(ProgrammingLanguagesNotInList.Contains("Delphi"))
 			yield return "Delphi";
 	}

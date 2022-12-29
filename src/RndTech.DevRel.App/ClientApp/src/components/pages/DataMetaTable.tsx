@@ -20,7 +20,8 @@ export function DataMetaTable(props: DataMetaTableProps) {
             name: row.name,
             count2019: row.count2019 + ' (' + toPercentWithTenths(row.count2019 / total.count2019) + '%)',
             count2020: row.count2020 + ' (' + toPercentWithTenths(row.count2020 / total.count2020) + '%)',
-            count2021: row.count2021 + ' (' + toPercentWithTenths(row.count2021 / total.count2021) + '%)'
+            count2021: row.count2021 + ' (' + toPercentWithTenths(row.count2021 / total.count2021) + '%)',
+            count2022: row.count2022 + ' (' + toPercentWithTenths(row.count2022 / total.count2022) + '%)'
         };
     }
 
@@ -82,6 +83,11 @@ export function DataMetaTable(props: DataMetaTableProps) {
             <Table.Column sortable>
                 <Table.HeaderCell>2021</Table.HeaderCell>
                 <Table.Cell dataKey='count2021'/>
+            </Table.Column>
+
+            <Table.Column sortable>
+                <Table.HeaderCell>2022</Table.HeaderCell>
+                <Table.Cell dataKey='count2022'/>
             </Table.Column>
         </Table>);
 }

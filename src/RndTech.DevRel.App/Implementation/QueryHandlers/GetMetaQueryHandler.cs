@@ -20,11 +20,13 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
         var total = new MetaModelTableRow("Всего",
 			answers.Count(kvp => kvp.Key.Year == 2019),
 			answers.Count(kvp => kvp.Key.Year == 2020),
-			answers.Count(kvp => kvp.Key.Year == 2021));
+			answers.Count(kvp => kvp.Key.Year == 2021),
+            answers.Count(kvp => kvp.Key.Year == 2022));
         var filtered = new MetaModelTableRow("Выбрано",
             ci.Count(c => c.Year == 2019),
             ci.Count(c => c.Year == 2020),
-            ci.Count(c => c.Year == 2021));
+            ci.Count(c => c.Year == 2021),
+            ci.Count(c => c.Year == 2022));
         var meta = new MetaModel(total, filtered, data);
             
         // Теперь надо сделать по каждой группе выборку кого и сколько
@@ -36,7 +38,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key,
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .OrderByDescending(r => r.Count2021)
             .Take(10)
             .ToArray());
@@ -49,7 +52,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow($"{g.Key * 5} - {g.Key * 5 + 4}",
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			
         // Образование education
@@ -60,7 +64,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key.ToString(),
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
             
         // Уровни levels
@@ -71,7 +76,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key.ToString(),
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			
         // Профессии professions
@@ -82,7 +88,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key.ToString(),
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			
         // Языки программирования languages
@@ -93,7 +100,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key,
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			
         // Ходит ли человек на митапы
@@ -104,7 +112,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key ? "Да" : "Нет",
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			
         // Откуда узнают информацию о компаниях
@@ -115,7 +124,8 @@ public class GetMetaQueryHandler : FilteredIntervieweesQueryHandlerBase<GetMetaQ
             .Select(g => new MetaModelTableRow(g.Key,
                 g.Count(c => c.Year == 2019),
                 g.Count(c => c.Year == 2020),
-                g.Count(c => c.Year == 2021)))
+                g.Count(c => c.Year == 2021),
+                g.Count(c => c.Year == 2022)))
             .ToArray());
 			   
         return meta;

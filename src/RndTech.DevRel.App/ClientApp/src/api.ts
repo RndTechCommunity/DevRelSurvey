@@ -63,6 +63,7 @@ export type MetaModelTableRow = {
     count2019: number,
     count2020: number,
     count2021: number,
+    count2022: number,
 }
 
 export type MetaData = {

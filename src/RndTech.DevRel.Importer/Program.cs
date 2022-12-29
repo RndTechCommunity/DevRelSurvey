@@ -3,5 +3,3 @@
 using RndTech.DevRel.Importer._2022;
 
 Importer.Import();
-
-Console.ReadLine();

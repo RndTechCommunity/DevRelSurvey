@@ -36,7 +36,7 @@ export function App(props: Props) {
 
         return maybeTab !== null
             ? JSON.parse(decodeURIComponent(maybeTab)) as MenuId
-            : 'known-and-wanted-2021'
+            : 'known-and-wanted-2022'
     }
 
     const restoreFilter = () => {
@@ -52,7 +52,7 @@ export function App(props: Props) {
     const [filter, setFilter] = React.useState<Filter>(restoreFilter());
     const [companiesFilter, setCompaniesFilter] = React.useState<string[]>(selectedCompanies);
     const [useError, setUseError] = React.useState<boolean>(false);
-    const [useGood, setUseGood] = React.useState<boolean>(false);
+    const [useGood, setUseGood] = React.useState<boolean>(true);
     const [useWanted, setUseWanted] = React.useState<boolean>(true);
     const [filteredData, setFilteredData] = React.useState<KnownAndWantedData[]>();
     
@@ -88,7 +88,7 @@ export function App(props: Props) {
             <KnownAndWantedPage
                 selectedCompanies={companiesFilter}
                 filter={filter}
-                year={tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019)}
+                year={tab === 'known-and-wanted-2022' ? 2022 : (tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019))}
                 onCompaniesChanged={companies => setCompaniesFilter(companies)}
                 useError={useError}
                 onUseErrorChanged={ue => setUseError(ue)}
