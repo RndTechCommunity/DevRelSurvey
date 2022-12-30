@@ -18,7 +18,7 @@ public abstract class DatabaseQueryHandlerBase<TQuery, TResult> : IQueryHandler<
 	}
 
 	public async ValueTask<TResult> Handle(TQuery query, CancellationToken ct) =>
-		await cache.GetValueOrCreateAsync($"Filters_{GetType().Name}",
+		await cache.GetValueOrCreateAsync($"Data2022_Filters_{GetType().Name}",
 			AppSettings.CacheSeconds,
 			async () =>
 			{

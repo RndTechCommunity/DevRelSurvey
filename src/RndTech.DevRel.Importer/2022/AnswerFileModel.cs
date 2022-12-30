@@ -45,7 +45,7 @@ public class AnswerFileModel
 			yield return "JavaScript";
 		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/9Z90bYGvTsYOQ0Pr0e20WE566yTQG96PtLrM.png"))
 			yield return "C#";
-		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/M1tahmlMbv8vMh33sZY62llnd4OWIhLODVoe.min.png"))
+		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/M1tahmlMbv8vMh33sZY62llnd4OWIhLODVoe.png"))
 			yield return "TypeScript";
 		if (ProgrammingLanguagesRawData.Contains("https://app.webask.io/wa-prod/new_quiz_versions/5ay4Gb2iyMCP7bpBXs1TBPq3ziRNADzanDqO.jpeg"))
 			yield return "C / C++";
