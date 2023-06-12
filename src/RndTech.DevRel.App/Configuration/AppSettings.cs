@@ -2,5 +2,5 @@
 
 public static class AppSettings
 {
-	public static int CacheSeconds => 60 * 60 * 24;
+	public static TimeSpan CacheTimeSpan => TimeSpan.FromSeconds(60 * 60 * 24);
 }

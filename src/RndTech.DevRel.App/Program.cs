@@ -10,7 +10,10 @@ using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEnyimMemcached();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+	options.Configuration = builder.Configuration.GetConnectionString("Redis");
+});
 
 bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
 if (isDevelopment)
@@ -55,8 +58,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
-app.UseEnyimMemcached();
 
 app.MapResultRoutes();
 app.MapFilterRoutes();

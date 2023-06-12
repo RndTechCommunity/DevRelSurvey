@@ -1,6 +1,5 @@
-﻿using Enyim.Caching;
-using Microsoft.EntityFrameworkCore;
-using RndTech.DevRel.App.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using RndTech.DevRel.Database;
 
 namespace RndTech.DevRel.App.Implementation.QueryHandlers;
@@ -8,9 +7,9 @@ namespace RndTech.DevRel.App.Implementation.QueryHandlers;
 public abstract class DatabaseQueryHandlerBase<TQuery, TResult> : IQueryHandler<TQuery, TResult>
 {
 	private readonly IDbContextFactory<SurveyDbContext> dbContextFactory;
-	private readonly IMemcachedClient cache;
+	private readonly IDistributedCache cache;
 
-	protected DatabaseQueryHandlerBase(IDbContextFactory<SurveyDbContext> dbContextFactory, IMemcachedClient cache)
+	protected DatabaseQueryHandlerBase(IDbContextFactory<SurveyDbContext> dbContextFactory, IDistributedCache cache)
 	{
 		this.dbContextFactory = dbContextFactory;
 		this.cache = cache;
@@ -19,7 +18,6 @@ public abstract class DatabaseQueryHandlerBase<TQuery, TResult> : IQueryHandler<
 
 	public async ValueTask<TResult> Handle(TQuery query, CancellationToken ct) =>
 		await cache.GetValueOrCreateAsync($"Data2022_Filters_{GetType().Name}",
-			AppSettings.CacheSeconds,
 			async () =>
 			{
 				var db = await dbContextFactory.CreateDbContextAsync(ct);

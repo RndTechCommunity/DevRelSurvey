@@ -30,8 +30,8 @@ public class AnswerFileModel
 	{
 		// Не пишу код
 		if (ProgrammingLanguagesRawData.Contains(
-			    "https://app.webask.io/wa-prod/new_quiz_versions/gkpvvptfLcU4sWj35WMuqOo6OXzgcL6fIEan.jpg")
-		    || string.IsNullOrWhiteSpace(ProgrammingLanguagesRawData))
+				"https://app.webask.io/wa-prod/new_quiz_versions/gkpvvptfLcU4sWj35WMuqOo6OXzgcL6fIEan.jpg")
+			|| string.IsNullOrWhiteSpace(ProgrammingLanguagesRawData))
 		{
 			yield return "Не пишу код";
 			yield break;

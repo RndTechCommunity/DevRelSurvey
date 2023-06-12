@@ -1,5 +1,4 @@
-﻿using Enyim.Caching;
-using RndTech.DevRel.App.Configuration;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using RndTech.DevRel.App.Model;
 using RndTech.DevRel.App.Model.Queries;
 
@@ -9,9 +8,9 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 	where TQuery : IFilteredIntervieweesQuery
 {
 	private readonly IIntervieweesDataProvider dataProvider;
-	private readonly IMemcachedClient cache;
+	private readonly IDistributedCache cache;
 
-	protected FilteredIntervieweesQueryHandlerBase(IIntervieweesDataProvider dataProvider, IMemcachedClient cache)
+	protected FilteredIntervieweesQueryHandlerBase(IIntervieweesDataProvider dataProvider, IDistributedCache cache)
 	{
 		this.dataProvider = dataProvider;
 		this.cache = cache;
@@ -19,7 +18,7 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 	
 	public async ValueTask<TResult> Handle(TQuery query, CancellationToken ct)
 	{
-		return await cache.GetValueOrCreateAsync(GetCacheKey(GetType().ToString(), query), AppSettings.CacheSeconds,
+		return await cache.GetValueOrCreateAsync(GetCacheKey(GetType().ToString(), query),
 			()
 				=>
 			{
