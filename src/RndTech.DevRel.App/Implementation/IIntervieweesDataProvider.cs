@@ -7,5 +7,4 @@ public interface IIntervieweesDataProvider
 {
 	IntervieweeModel[] GetAllInterviewees();
 	ReadOnlyDictionary<IntervieweeModel, AnswerModel[]> GetAllIntervieweeAnswers();
-
 }

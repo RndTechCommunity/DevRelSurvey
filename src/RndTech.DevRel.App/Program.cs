@@ -8,7 +8,7 @@ using RndTech.DevRel.App.Model;
 using RndTech.DevRel.App.Model.Queries;
 using RndTech.DevRel.Database;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Services.AddStackExchangeRedisCache(options =>
 {

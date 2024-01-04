@@ -2,14 +2,14 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="CsvHelper" Version="30.0.1" />
-      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.0-silver.1" />
+      <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.0-beta.2" />
     </ItemGroup>
 
     <ItemGroup>
