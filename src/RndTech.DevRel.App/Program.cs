@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
@@ -10,31 +9,26 @@ using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-builder.Services.AddStackExchangeRedisCache(options =>
+if (builder.Environment.IsDevelopment())
 {
-	options.Configuration = builder.Configuration.GetConnectionString("Redis");
-});
-
-bool isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
-if (isDevelopment)
-{
-	builder.Configuration.AddJsonFile("appsettings.Heroku.json");
+	builder.Services.AddDistributedMemoryCache();
 }
 else
 {
-	var appSettings = Environment.GetEnvironmentVariable("DEVRELAPP_SETTINGS");
-	var appSettingsStream = new MemoryStream(Encoding.UTF8.GetBytes(appSettings ?? ""));
-	builder.Configuration.AddJsonStream(appSettingsStream);
+	var redisConfiguration = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_REDIS");
+	builder.Services.AddStackExchangeRedisCache(options =>
+	{
+		options.Configuration = redisConfiguration;
+	});
 }
 
-var connectionString = builder.Configuration.GetConnectionString("SurveyDb")!;
+var surveyDbConnectionString = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_DATABASE");
 builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
-	options
-		.UseMySql(
-			connectionString,
-			ServerVersion.AutoDetect(connectionString),
+		options.UseMySql(
+			surveyDbConnectionString,
+			ServerVersion.AutoDetect(surveyDbConnectionString),
 			optionsBuilder => optionsBuilder.CommandTimeout(120))
-);
+	);
 
 builder.Services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDataProvider>();
 builder.Services.AddQueryHandler<GetCompanyModelsQuery, CompanyModel[], GetCompanyModelsQueryHandler>();
