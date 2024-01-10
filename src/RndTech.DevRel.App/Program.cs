@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
 using RndTech.DevRel.App.Implementation.QueryHandlers;
@@ -11,10 +12,12 @@ var builder = WebApplication.CreateSlimBuilder(args);
 
 if (builder.Environment.IsDevelopment())
 {
+	// Add in-memory cache for development
 	builder.Services.AddDistributedMemoryCache();
 }
 else
 {
+	// Add Redis cache on production environment
 	var redisConfiguration = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_REDIS");
 	builder.Services.AddStackExchangeRedisCache(options =>
 	{
@@ -22,6 +25,7 @@ else
 	});
 }
 
+// Add database with raw data
 var surveyDbConnectionString = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_DATABASE");
 builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
 		options.UseMySql(
@@ -31,6 +35,8 @@ builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
 	);
 
 builder.Services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDataProvider>();
+
+// Add query handlers to handle client requests
 builder.Services.AddQueryHandler<GetCompanyModelsQuery, CompanyModel[], GetCompanyModelsQueryHandler>();
 builder.Services.AddQueryHandler<GetMetaQuery, MetaModel, GetMetaQueryHandler>();
 builder.Services.AddQueryHandler<GetCitiesQuery, string[], GetCitiesQueryHandler>();
@@ -50,14 +56,21 @@ if (!app.Environment.IsDevelopment())
 	app.UseHsts();
 }
 
+// Capture metrics about all received HTTP requests.
+app.UseHttpMetrics();
+// Enable the /metrics page to export Prometheus metrics.
+app.MapMetrics();
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+// Map endpoints for client requests
 app.MapResultRoutes();
 app.MapFilterRoutes();
 
 app.MapFallbackToFile("index.html");
 
+// Preload data from DB
 WarmUp(app);
 
 app.Run();
