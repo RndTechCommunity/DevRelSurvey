@@ -1,33 +1,34 @@
 using RndTech.DevRel.App.Implementation;
 using RndTech.DevRel.App.Mapping;
 using RndTech.DevRel.App.Model;
+using RndTech.DevRel.App.Queries;
 
-namespace RndTech.DevRel.App.Repositories;
+namespace RndTech.DevRel.App.QueryHandlers;
 
-public class IntervieweeRepository : IIntervieweeRepository
+public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
 {
     private readonly IIntervieweesDataProvider dataProvider;
 
-    public IntervieweeRepository(IIntervieweesDataProvider dataProvider)
+    public GetMetaQueryHandler(IIntervieweesDataProvider dataProvider)
     {
         this.dataProvider = dataProvider;
     }
 
-    public Task<MetaModel> GetMetaAsync(UserFilter filter, CancellationToken cancellationToken = default)
+    public Task<MetaModel> HandleAsync(GetMetaQuery query, CancellationToken cancellationToken = default)
     {
-        var query = filter.ToFilteredQuery();
+        var filter = query.Filter.ToFilteredQuery();
         var answers = dataProvider.GetAllIntervieweeAnswers();
 
         var filteredAnswers = answers
-            .Where(kvp => query.Ages.Length == 0 || query.Ages.Contains(kvp.Key.Age))
-            .Where(kvp => query.Cities.Length == 0 || query.Cities.Contains(kvp.Key.City))
-            .Where(kvp => query.Educations.Length == 0 || query.Educations.Contains(kvp.Key.Education))
-            .Where(kvp => query.Experiences.Length == 0 || query.Experiences.Contains(kvp.Key.ProfessionLevel))
-            .Where(kvp => query.Professions.Length == 0 || query.Professions.Contains(kvp.Key.Profession))
+            .Where(kvp => filter.Ages.Length == 0 || filter.Ages.Contains(kvp.Key.Age))
+            .Where(kvp => filter.Cities.Length == 0 || filter.Cities.Contains(kvp.Key.City))
+            .Where(kvp => filter.Educations.Length == 0 || filter.Educations.Contains(kvp.Key.Education))
+            .Where(kvp => filter.Experiences.Length == 0 || filter.Experiences.Contains(kvp.Key.ProfessionLevel))
+            .Where(kvp => filter.Professions.Length == 0 || filter.Professions.Contains(kvp.Key.Profession))
             .Where(kvp =>
-                query.ProgrammingLanguages.Length == 0 ||
-                query.ProgrammingLanguages.Any(filterValue => kvp.Key.Languages.Contains(filterValue)))
-            .Where(kvp => !query.IsCommunity.HasValue || query.IsCommunity.Value == kvp.Key.VisitMeetups)
+                filter.ProgrammingLanguages.Length == 0 ||
+                filter.ProgrammingLanguages.Any(filterValue => kvp.Key.Languages.Contains(filterValue)))
+            .Where(kvp => !filter.IsCommunity.HasValue || filter.IsCommunity.Value == kvp.Key.VisitMeetups)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
         var ci = filteredAnswers.Select(kvp => kvp.Key).ToArray();

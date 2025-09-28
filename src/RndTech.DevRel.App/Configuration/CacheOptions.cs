@@ -8,7 +8,7 @@ public class CacheOptions
 
     public bool UseInMemoryCache => string.IsNullOrEmpty(RedisConnectionString);
 
-    public int ExpirationHours { get; set; } = 24;
+    public int ExpirationSeconds { get; set; } = 86400; // 24 hours in seconds
 
-    public TimeSpan CacheTimeSpan => TimeSpan.FromHours(ExpirationHours);
+    public TimeSpan CacheTimeSpan => TimeSpan.FromSeconds(ExpirationSeconds);
 }
