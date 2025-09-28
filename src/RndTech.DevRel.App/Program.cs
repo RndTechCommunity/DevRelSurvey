@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Options;
 using Prometheus;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
@@ -10,7 +11,13 @@ using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-if (builder.Environment.IsDevelopment())
+// Configure application settings
+EnvironmentVariablesProvider.ConfigureEnvironmentVariables(builder.Configuration);
+builder.Services.AddApplicationConfiguration(builder.Configuration);
+
+// Configure cache based on environment
+var cacheOptions = builder.Configuration.GetSection(CacheOptions.SectionName).Get<CacheOptions>();
+if (cacheOptions?.UseInMemoryCache == true)
 {
 	// Add in-memory cache for development
 	builder.Services.AddDistributedMemoryCache();
@@ -18,20 +25,19 @@ if (builder.Environment.IsDevelopment())
 else
 {
 	// Add Redis cache on production environment
-	var redisConfiguration = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_REDIS");
 	builder.Services.AddStackExchangeRedisCache(options =>
 	{
-		options.Configuration = redisConfiguration;
+		options.Configuration = cacheOptions?.RedisConnectionString;
 	});
 }
 
 // Add database with raw data
-var surveyDbConnectionString = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_DATABASE");
+var databaseOptions = builder.Configuration.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>();
 builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
 		options.UseMySql(
-			surveyDbConnectionString,
-			ServerVersion.AutoDetect(surveyDbConnectionString),
-			optionsBuilder => optionsBuilder.CommandTimeout(120))
+			databaseOptions?.ConnectionString,
+			ServerVersion.AutoDetect(databaseOptions?.ConnectionString),
+			optionsBuilder => optionsBuilder.CommandTimeout(databaseOptions?.CommandTimeout ?? 120))
 	);
 
 builder.Services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDataProvider>();
@@ -48,18 +54,32 @@ builder.Services.AddScoped<FilterService>();
 
 // Add cached service decorators
 builder.Services.AddScoped<ICompanyService>(provider =>
-    new CachedCompanyService(provider.GetRequiredService<CompanyService>(), provider.GetRequiredService<IDistributedCache>()));
+    new CachedCompanyService(
+        provider.GetRequiredService<CompanyService>(),
+        provider.GetRequiredService<IDistributedCache>(),
+        provider.GetRequiredService<IOptions<CacheOptions>>()));
 builder.Services.AddScoped<IMetaService>(provider =>
-    new CachedMetaService(provider.GetRequiredService<MetaService>(), provider.GetRequiredService<IDistributedCache>()));
+    new CachedMetaService(
+        provider.GetRequiredService<MetaService>(),
+        provider.GetRequiredService<IDistributedCache>(),
+        provider.GetRequiredService<IOptions<CacheOptions>>()));
 builder.Services.AddScoped<IFilterService>(provider =>
-    new CachedFilterService(provider.GetRequiredService<FilterService>(), provider.GetRequiredService<IDistributedCache>()));
+    new CachedFilterService(
+        provider.GetRequiredService<FilterService>(),
+        provider.GetRequiredService<IDistributedCache>(),
+        provider.GetRequiredService<IOptions<CacheOptions>>()));
 
 // Add controllers
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "29500";
+// Validate configuration
+ConfigurationValidator.ValidateConfiguration(app.Services);
+
+// Configure server port
+var serverOptions = builder.Configuration.GetSection(ServerOptions.SectionName).Get<ServerOptions>();
+var port = Environment.GetEnvironmentVariable("PORT") ?? serverOptions?.Port.ToString() ?? "29500";
 app.Urls.Add($"http://*:{port}");
 
 if (!app.Environment.IsDevelopment())
