@@ -1,17 +1,16 @@
 ﻿using RndTech.DevRel.App.Model;
-using RndTech.DevRel.App.Model.Queries;
 
 namespace RndTech.DevRel.App.Mapping;
 
 public static class FilterMappers
 {
-	public static TQuery ToQuery<TQuery>(this UserFilter filter) where TQuery : IFilteredIntervieweesQuery, new()
+	public static FilteredIntervieweesQuery ToFilteredQuery(this UserFilter filter)
 	{
 		var ageFilter = GetAgeFilter(filter);
 		var communityFilter = GetCommunityFilter(filter);
 		var languagesFilter = UpdateLanguagesFilter(filter);
 
-		return new TQuery
+		return new FilteredIntervieweesQuery
 		{
 			Ages = ageFilter,
 			Cities = filter.Cities,

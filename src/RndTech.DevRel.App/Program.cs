@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Prometheus;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
-using RndTech.DevRel.App.Implementation.QueryHandlers;
-using RndTech.DevRel.App.Implementation.QueryHandlers.Filters;
-using RndTech.DevRel.App.Model;
-using RndTech.DevRel.App.Model.Queries;
+using RndTech.DevRel.App.Repositories;
+using RndTech.DevRel.App.Services;
+using RndTech.DevRel.App.Services.Decorators;
 using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -36,15 +36,26 @@ builder.Services.AddDbContextFactory<SurveyDbContext>(options =>
 
 builder.Services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDataProvider>();
 
-// Add query handlers to handle client requests
-builder.Services.AddQueryHandler<GetCompanyModelsQuery, CompanyModel[], GetCompanyModelsQueryHandler>();
-builder.Services.AddQueryHandler<GetMetaQuery, MetaModel, GetMetaQueryHandler>();
-builder.Services.AddQueryHandler<GetCitiesQuery, string[], GetCitiesQueryHandler>();
-builder.Services.AddQueryHandler<GetCommunitySourcesQuery, string[], GetCommunitySourcesQueryHandler>();
-builder.Services.AddQueryHandler<GetExperienceLevelsQuery, string[], GetExperienceLevelsQueryHandler>();
-builder.Services.AddQueryHandler<GetEducationsQuery, string[], GetEducationsQueryHandler>();
-builder.Services.AddQueryHandler<GetProfessionsQuery, string[], GetProfessionsQueryHandler>();
-builder.Services.AddQueryHandler<GetProgrammingLanguagesQuery, string[], GetProgrammingLanguagesQueryHandler>();
+// Add repositories
+builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
+builder.Services.AddScoped<IIntervieweeRepository, IntervieweeRepository>();
+builder.Services.AddScoped<IFilterRepository, FilterRepository>();
+
+// Add services
+builder.Services.AddScoped<CompanyService>();
+builder.Services.AddScoped<MetaService>();
+builder.Services.AddScoped<FilterService>();
+
+// Add cached service decorators
+builder.Services.AddScoped<ICompanyService>(provider =>
+    new CachedCompanyService(provider.GetRequiredService<CompanyService>(), provider.GetRequiredService<IDistributedCache>()));
+builder.Services.AddScoped<IMetaService>(provider =>
+    new CachedMetaService(provider.GetRequiredService<MetaService>(), provider.GetRequiredService<IDistributedCache>()));
+builder.Services.AddScoped<IFilterService>(provider =>
+    new CachedFilterService(provider.GetRequiredService<FilterService>(), provider.GetRequiredService<IDistributedCache>()));
+
+// Add controllers
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
@@ -64,9 +75,8 @@ app.MapMetrics();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Map endpoints for client requests
-app.MapResultRoutes();
-app.MapFilterRoutes();
+// Map controllers
+app.MapControllers();
 
 app.MapFallbackToFile("index.html");
 
