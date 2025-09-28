@@ -1,37 +1,24 @@
-using RndTech.DevRel.App.Implementation;
-using RndTech.DevRel.App.Mapping;
+using RndTech.DevRel.App.Infrastructure;
 using RndTech.DevRel.App.Model;
-using RndTech.DevRel.App.Queries;
 
-namespace RndTech.DevRel.App.QueryHandlers;
+namespace RndTech.DevRel.App.Services;
 
-public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
+public class MetaService : IMetaService
 {
     private readonly IIntervieweesDataProvider dataProvider;
+    private readonly IFilteringService filteringService;
 
-    public GetMetaQueryHandler(IIntervieweesDataProvider dataProvider)
+    public MetaService(IIntervieweesDataProvider dataProvider, IFilteringService filteringService)
     {
         this.dataProvider = dataProvider;
+        this.filteringService = filteringService;
     }
 
-    public Task<MetaModel> HandleAsync(GetMetaQuery query, CancellationToken cancellationToken = default)
+    public Task<MetaModel> GetMetaAsync(UserFilter filter, CancellationToken cancellationToken = default)
     {
-        var filter = query.Filter.ToFilteredQuery();
         var answers = dataProvider.GetAllIntervieweeAnswers();
-
-        var filteredAnswers = answers
-            .Where(kvp => filter.Ages.Length == 0 || filter.Ages.Contains(kvp.Key.Age))
-            .Where(kvp => filter.Cities.Length == 0 || filter.Cities.Contains(kvp.Key.City))
-            .Where(kvp => filter.Educations.Length == 0 || filter.Educations.Contains(kvp.Key.Education))
-            .Where(kvp => filter.Experiences.Length == 0 || filter.Experiences.Contains(kvp.Key.ProfessionLevel))
-            .Where(kvp => filter.Professions.Length == 0 || filter.Professions.Contains(kvp.Key.Profession))
-            .Where(kvp =>
-                filter.ProgrammingLanguages.Length == 0 ||
-                filter.ProgrammingLanguages.Any(filterValue => kvp.Key.Languages.Contains(filterValue)))
-            .Where(kvp => !filter.IsCommunity.HasValue || filter.IsCommunity.Value == kvp.Key.VisitMeetups)
-            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-        var ci = filteredAnswers.Select(kvp => kvp.Key).ToArray();
+        var filteredAnswers = filteringService.FilterIntervieweeAnswers(answers, filter);
+        var filteredInterviewees = filteredAnswers.Keys.ToArray();
 
         var data = new Dictionary<string, MetaModelTableRow[]>();
 
@@ -41,14 +28,14 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             answers.Count(kvp => kvp.Key.Year == 2021),
             answers.Count(kvp => kvp.Key.Year == 2022));
         var filtered = new MetaModelTableRow("Выбрано",
-            ci.Count(c => c.Year == 2019),
-            ci.Count(c => c.Year == 2020),
-            ci.Count(c => c.Year == 2021),
-            ci.Count(c => c.Year == 2022));
+            filteredInterviewees.Count(c => c.Year == 2019),
+            filteredInterviewees.Count(c => c.Year == 2020),
+            filteredInterviewees.Count(c => c.Year == 2021),
+            filteredInterviewees.Count(c => c.Year == 2022));
         var meta = new MetaModel(total, filtered, data);
 
         // Города cities
-        data.Add("cities", ci
+        data.Add("cities", filteredInterviewees
             .Select(i => (i.Year, i.City))
             .GroupBy(c => c.City)
             .Select(g => new MetaModelTableRow(g.Key,
@@ -61,7 +48,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Возрасты ages
-        data.Add("ages", ci
+        data.Add("ages", filteredInterviewees
             .Select(i => (i.Year, i.Age))
             .GroupBy(c => c.Age / 5)
             .OrderBy(g => g.Key)
@@ -73,7 +60,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Образование education
-        data.Add("education", ci
+        data.Add("education", filteredInterviewees
             .Select(i => (i.Year, i.Education))
             .GroupBy(c => c.Education)
             .OrderBy(g => g.Key)
@@ -85,7 +72,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Уровни levels
-        data.Add("levels", ci
+        data.Add("levels", filteredInterviewees
             .Select(i => (i.Year, i.ProfessionLevel))
             .GroupBy(c => c.ProfessionLevel)
             .OrderBy(g => g.Key)
@@ -97,7 +84,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Профессии professions
-        data.Add("professions", ci
+        data.Add("professions", filteredInterviewees
             .Select(i => (i.Year, i.Profession))
             .GroupBy(c => c.Profession)
             .OrderBy(g => g.Key)
@@ -109,7 +96,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Языки программирования languages
-        data.Add("languages", ci
+        data.Add("languages", filteredInterviewees
             .SelectMany(i => i.Languages.Select(languageName => (i.Year, languageName)))
             .GroupBy(g => g.languageName)
             .OrderBy(g => g.Key)
@@ -121,7 +108,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Ходит ли человек на митапы
-        data.Add("isCommunity", ci
+        data.Add("isCommunity", filteredInterviewees
             .Select(i => (i.Year, i.VisitMeetups))
             .GroupBy(c => c.VisitMeetups)
             .OrderBy(g => g.Key)
@@ -133,7 +120,7 @@ public class GetMetaQueryHandler : IQueryHandler<GetMetaQuery, MetaModel>
             .ToArray());
 
         // Откуда узнают информацию о компаниях
-        data.Add("communitySource", ci
+        data.Add("communitySource", filteredInterviewees
             .SelectMany(i => i.CommunitySources.Select(communitySource => (i.Year, communitySource)))
             .GroupBy(g => g.communitySource)
             .OrderBy(g => g.Key)

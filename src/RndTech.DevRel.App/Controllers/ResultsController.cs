@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using RndTech.DevRel.App.Model;
-using RndTech.DevRel.App.Queries;
-using RndTech.DevRel.App.QueryHandlers;
+using RndTech.DevRel.App.Services;
 
 namespace RndTech.DevRel.App.Controllers;
 
@@ -9,15 +8,13 @@ namespace RndTech.DevRel.App.Controllers;
 [Route("api/results")]
 public class ResultsController : ControllerBase
 {
-    private readonly IQueryHandler<GetCompanyModelsQuery, CompanyModel[]> companyQueryHandler;
-    private readonly IQueryHandler<GetMetaQuery, MetaModel> metaQueryHandler;
+    private readonly ICompanyService companyService;
+    private readonly IMetaService metaService;
 
-    public ResultsController(
-        IQueryHandler<GetCompanyModelsQuery, CompanyModel[]> companyQueryHandler,
-        IQueryHandler<GetMetaQuery, MetaModel> metaQueryHandler)
+    public ResultsController(ICompanyService companyService, IMetaService metaService)
     {
-        this.companyQueryHandler = companyQueryHandler;
-        this.metaQueryHandler = metaQueryHandler;
+        this.companyService = companyService;
+        this.metaService = metaService;
     }
 
     [HttpPost("known-and-wanted")]
@@ -25,8 +22,7 @@ public class ResultsController : ControllerBase
         [FromBody] UserFilter filter,
         CancellationToken cancellationToken)
     {
-        var query = new GetCompanyModelsQuery(filter);
-        var result = await companyQueryHandler.HandleAsync(query, cancellationToken);
+        var result = await companyService.GetCompaniesAsync(filter, cancellationToken);
         return Ok(result);
     }
 
@@ -35,8 +31,7 @@ public class ResultsController : ControllerBase
         [FromBody] UserFilter filter,
         CancellationToken cancellationToken)
     {
-        var query = new GetMetaQuery(filter);
-        var result = await metaQueryHandler.HandleAsync(query, cancellationToken);
+        var result = await metaService.GetMetaAsync(filter, cancellationToken);
         return Ok(result);
     }
 }

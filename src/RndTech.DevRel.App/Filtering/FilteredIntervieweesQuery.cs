@@ -1,4 +1,4 @@
-namespace RndTech.DevRel.App.Model;
+namespace RndTech.DevRel.App.Filtering;
 
 public class FilteredIntervieweesQuery
 {

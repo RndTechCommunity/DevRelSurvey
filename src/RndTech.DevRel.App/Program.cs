@@ -7,17 +7,15 @@ var builder = WebApplication.CreateSlimBuilder(args);
 EnvironmentVariablesProvider.ConfigureEnvironmentVariables(builder.Configuration);
 
 // Регистрация всех сервисов приложения
-builder.Services.AddDevRelApplication(builder.Configuration);
+builder.Services.AddDevRelServices(builder.Configuration);
+builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Валидация конфигурации
-app.Services.ValidateConfiguration();
-
 // Настройка middleware pipeline
-app.ConfigureMiddlewarePipeline();
+app.ConfigureDevRelPipeline();
 
 // Предзагрузка данных
-app.Services.WarmUpApplication();
+await app.WarmUpApplicationAsync();
 
 app.Run();

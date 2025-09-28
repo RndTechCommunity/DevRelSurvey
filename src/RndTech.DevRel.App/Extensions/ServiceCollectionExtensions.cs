@@ -1,75 +1,129 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RndTech.DevRel.App.Configuration;
-using RndTech.DevRel.App.Model;
-using RndTech.DevRel.App.Queries;
-using RndTech.DevRel.App.QueryHandlers;
-using RndTech.DevRel.App.QueryHandlers.Decorators;
+using RndTech.DevRel.App.Infrastructure;
 using RndTech.DevRel.App.Services;
+using RndTech.DevRel.App.Services.Decorators;
+using RndTech.DevRel.Database;
 
 namespace RndTech.DevRel.App.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddDevRelApplication(
+    public static IServiceCollection AddDevRelServices(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Конфигурация
         services.AddApplicationConfiguration(configuration);
-
-        // База данных
         services.AddDatabase(configuration);
-
-        // Кэширование
         services.AddCaching(configuration);
+        services.AddApplicationServices();
+        return services;
+    }
 
-        // Query Handlers с кэшированием (автоматическое сканирование)
-        services.AddQueryHandlersWithAutomaticScanning();
+    private static IServiceCollection AddApplicationConfiguration(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddOptions<DatabaseOptions>()
+            .Bind(configuration.GetSection(DatabaseOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-        // Контроллеры
-        services.AddControllers();
+        services.AddOptions<CacheOptions>()
+            .Bind(configuration.GetSection(CacheOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<ServerOptions>()
+            .Bind(configuration.GetSection(ServerOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<FilterOptions>()
+            .Bind(configuration.GetSection(FilterOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         return services;
     }
 
-    public static IServiceCollection AddCachedQueryHandler<TQuery, TResult, THandler>(
-        this IServiceCollection services)
-        where TQuery : class, IQuery<TResult>
-        where THandler : class, IQueryHandler<TQuery, TResult>
+    private static IServiceCollection AddDatabase(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
-        // Регистрируем основной handler
-        services.AddScoped<THandler>();
+        var databaseOptions = configuration
+            .GetSection(DatabaseOptions.SectionName)
+            .Get<DatabaseOptions>();
 
-        // Регистрируем кэширующий декоратор
-        services.AddScoped<IQueryHandler<TQuery, TResult>>(provider =>
+        services.AddDbContextFactory<SurveyDbContext>(options =>
+            options.UseMySql(
+                databaseOptions?.ConnectionString,
+                ServerVersion.AutoDetect(databaseOptions?.ConnectionString),
+                optionsBuilder => optionsBuilder.CommandTimeout(
+                    databaseOptions?.CommandTimeout ?? 120)));
+
+        services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDataProvider>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddCaching(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var cacheOptions = configuration
+            .GetSection(CacheOptions.SectionName)
+            .Get<CacheOptions>();
+
+        if (cacheOptions?.UseInMemoryCache == true)
         {
-            var innerHandler = provider.GetRequiredService<THandler>();
-            var cacheService = provider.GetRequiredService<ICacheService>();
-            var cacheOptions = provider.GetRequiredService<IOptions<CacheOptions>>();
-            var logger = provider.GetRequiredService<ILogger<CachingQueryHandlerDecorator<TQuery, TResult>>>();
-
-            return new CachingQueryHandlerDecorator<TQuery, TResult>(
-                innerHandler, cacheService, cacheOptions, logger);
-        });
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = cacheOptions?.RedisConnectionString;
+            });
+        }
 
         return services;
     }
 
-    public static IServiceCollection AddQueryHandlers(this IServiceCollection services)
+    private static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Регистрируем кэш-сервис
         services.AddScoped<ICacheService, CacheService>();
+        services.AddScoped<FilterValueConverter>();
 
-        // Регистрируем query handlers с кэшированием
-        services.AddCachedQueryHandler<GetCompanyModelsQuery, CompanyModel[], GetCompanyModelsQueryHandler>();
-        services.AddCachedQueryHandler<GetMetaQuery, MetaModel, GetMetaQueryHandler>();
-        services.AddCachedQueryHandler<GetCitiesQuery, string[], GetCitiesQueryHandler>();
-        services.AddCachedQueryHandler<GetCommunitySourcesQuery, string[], GetCommunitySourcesQueryHandler>();
-        services.AddCachedQueryHandler<GetEducationsQuery, string[], GetEducationsQueryHandler>();
-        services.AddCachedQueryHandler<GetExperienceLevelsQuery, string[], GetExperienceLevelsQueryHandler>();
-        services.AddCachedQueryHandler<GetProfessionsQuery, string[], GetProfessionsQueryHandler>();
-        services.AddCachedQueryHandler<GetProgrammingLanguagesQuery, string[], GetProgrammingLanguagesQueryHandler>();
+        services.AddScoped<FilteringService>();
+        services.AddScoped<IFilteringService>(provider => provider.GetRequiredService<FilteringService>());
+        services.AddScoped<CompanyService>();
+        services.AddScoped<MetaService>();
+        services.AddScoped<FilterService>();
+
+        services.AddCachedService<ICompanyService, CompanyService, CachedCompanyService>();
+        services.AddCachedService<IMetaService, MetaService, CachedMetaService>();
+        services.AddCachedService<IFilterService, FilterService, CachedFilterService>();
 
         return services;
     }
+
+    private static IServiceCollection AddCachedService<TInterface, TImplementation, TCachedImplementation>(
+        this IServiceCollection services)
+        where TInterface : class
+        where TImplementation : class, TInterface
+        where TCachedImplementation : class, TInterface
+    {
+        services.AddScoped<TInterface>(provider =>
+            (TInterface)Activator.CreateInstance(
+                typeof(TCachedImplementation),
+                provider.GetRequiredService<TImplementation>(),
+                provider.GetRequiredService<ICacheService>(),
+                provider.GetRequiredService<IOptions<CacheOptions>>(),
+                provider.GetRequiredService(typeof(ILogger<>).MakeGenericType(typeof(TCachedImplementation))))!);
+
+        return services;
+    }
+
 }

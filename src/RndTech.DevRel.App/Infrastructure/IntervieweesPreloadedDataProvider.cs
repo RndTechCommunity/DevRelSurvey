@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RndTech.DevRel.App.Model;
 using RndTech.DevRel.Database;
 
-namespace RndTech.DevRel.App.Implementation;
+namespace RndTech.DevRel.App.Infrastructure;
 
 public class IntervieweesPreloadedDataProvider : IIntervieweesDataProvider
 {
