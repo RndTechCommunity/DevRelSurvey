@@ -122,7 +122,7 @@ export function KnownAndWantedPage(props: Props) {
                 let y = b[sortColumn];
 
                 if (sortColumn === 'companyName') {
-                    return x < y ? (sortType === 'asc' ? 1 : -1) : (sortType === 'asc' ? -1 : 1);
+                    return x < y ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
                 }
                 
                 if (typeof x === 'string' && typeof y === 'string') {

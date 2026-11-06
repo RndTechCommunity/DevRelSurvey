@@ -33,7 +33,7 @@ export function DataMetaTable(props: DataMetaTableProps) {
                 // @ts-ignore
                 let y = b[sortColumn];
                 if (typeof x === 'string' && typeof y === 'string') {
-                    return x < y ? (sortType === 'asc' ? 1 : -1) : (sortType === 'asc' ? -1 : 1);
+                    return x < y ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
                 }
                 if (sortType === 'asc') {
                     return x - y;
