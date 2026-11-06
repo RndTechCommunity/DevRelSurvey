@@ -26,7 +26,9 @@
     "prestart": "node aspnetcore-https && node aspnetcore-react",
     "start": "rimraf ./build && react-scripts start",
     "build": "react-scripts build",
-    "test": "cross-env CI=true react-scripts test --env=jsdom",
+    "test": "react-scripts test --watchAll=false",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
     "eject": "react-scripts eject",
     "lint": "eslint ./src/"
   },
@@ -47,5 +49,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
   }
 }
