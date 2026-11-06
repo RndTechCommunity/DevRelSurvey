@@ -25,7 +25,6 @@ type Props = {
 
 function App(props: Props) {
   const [isModalOpened, setIsModalOpened] = React.useState<boolean>(true)
-  const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' })
   const isDesktopOrLaptop = useMediaQuery({ query: '(min-width: 1224px)' })
 
   return (
@@ -33,8 +32,7 @@ function App(props: Props) {
       <CustomProvider theme='dark'>
         <Container className='App'>
           <Content>
-            { isDesktopOrLaptop && <Results modalOpened={false} /> }
-            { isTabletOrMobile && <ResultsMobile /> }
+            { isDesktopOrLaptop ? <Results modalOpened={false} /> : <ResultsMobile /> }
           </Content>
         </Container>
       </CustomProvider>
