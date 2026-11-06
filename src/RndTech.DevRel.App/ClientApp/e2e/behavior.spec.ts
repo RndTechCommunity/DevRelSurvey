@@ -13,6 +13,9 @@ function firstColumn(tableLocator: Locator) {
     return tableLocator.locator('.rs-table-body-row-wrapper .rs-table-cell-first')
 }
 
+// Сортировка применяется сразу; в исходной версии — через 500 ms.
+const WITHOUT_DELAY = { timeout: 300 }
+
 for (const width of [390, 768, 1223]) {
     test(`width ${width} mounts only the mobile view`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
@@ -47,8 +50,9 @@ test.describe('desktop 1440', () => {
 
         await companies.getByRole('columnheader', { name: 'Компания' }).click()
         await expect(firstColumn(companies)).toHaveText(
-            ['Тинькофф', 'Почтатех', 'Контур', 'ИТРУМ (ex Exceed Team)', 'IBS Dunice', 'Gamma%'])
+            ['Тинькофф', 'Почтатех', 'Контур', 'ИТРУМ (ex Exceed Team)', 'IBS Dunice', 'Gamma%'], WITHOUT_DELAY)
 
+        await expect(companies.locator('.rs-table-cell-header-icon-sort-desc')).toBeVisible()
         await companies.getByRole('columnheader', { name: 'Компания' }).click()
         await expect(firstColumn(companies)).toHaveText(
             ['Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Контур', 'Почтатех', 'Тинькофф'])
@@ -61,6 +65,6 @@ test.describe('desktop 1440', () => {
         const languages = table(page, 'Язык программирования')
 
         await languages.getByRole('columnheader', { name: 'Язык программирования' }).click()
-        await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'])
+        await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'], WITHOUT_DELAY)
     })
 })

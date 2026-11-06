@@ -98,7 +98,6 @@ export function KnownAndWantedPage(props: Props) {
     const [selectedCompanies, setSelectedCompanies] = React.useState<string[]>(props.selectedCompanies);
     const [sortColumn, setSortColumn] = React.useState<string>();
     const [sortType, setSortType] = React.useState<'desc' | 'asc'>();
-    const [tableLoading, setTableLoading] = React.useState<boolean>();
 
     const prepareTableData = (row: KnownAndWantedData) => {
         return {
@@ -331,14 +330,9 @@ export function KnownAndWantedPage(props: Props) {
                 sortType={sortType}
                 style={{marginRight: '50px', marginTop: '30px'}}
                 onSortColumn={(sortColumn, sortType) => {
-                    setTableLoading(true);
-                    setTimeout(() => {
-                        setSortColumn(sortColumn);
-                        setSortType(sortType);
-                        setTableLoading(false);
-                    }, 500);
+                    setSortColumn(sortColumn);
+                    setSortType(sortType);
                 }}
-                loading={tableLoading}
             >
                 <Table.Column width={290} sortable>
                     <Table.HeaderCell>Компания</Table.HeaderCell>

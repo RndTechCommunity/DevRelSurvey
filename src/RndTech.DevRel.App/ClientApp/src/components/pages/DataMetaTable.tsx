@@ -12,7 +12,6 @@ type DataMetaTableProps = {
 export function DataMetaTable(props: DataMetaTableProps) {
     const [sortColumn, setSortColumn] = React.useState<string>();
     const [sortType, setSortType] = React.useState<SortType>('desc');
-    const [loading, setLoading] = React.useState<boolean>(false);
 
     const prepareTableData = (row: MetaModelTableRow) => {
         const total = props.filteredTotal;
@@ -46,12 +45,8 @@ export function DataMetaTable(props: DataMetaTableProps) {
     }
     type SortType = 'desc' | 'asc';
     const handleSortColumn = (sortColumn: string, sortType: SortType | undefined) => {
-        setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            setSortColumn(sortColumn);
-            setSortType(sortType!);
-        }, 500);
+        setSortColumn(sortColumn);
+        setSortType(sortType!);
     };
     
     return (
@@ -62,7 +57,6 @@ export function DataMetaTable(props: DataMetaTableProps) {
             sortType={sortType}
             onSortColumn={handleSortColumn}
             defaultSortType={'desc'}
-            loading={loading}
             width={1100}
         >
             <Table.Column flexGrow={1} sortable>
