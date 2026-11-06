@@ -1,6 +1,7 @@
 import * as React from 'react'
-import { getMeta, MetaData } from '../../api'
-import { Filter } from '../filters/Filter'
+import { getSurveyMeta } from '../../api/client'
+import { SurveyMeta } from '../../api/types'
+import { RespondentFilter } from '../../features/filters/model'
 import injectSheet from 'react-jss';
 import { DataMetaTable } from './DataMetaTable';
 import { Col, Container, Content, Divider, Grid, Loader, Row } from 'rsuite';
@@ -39,15 +40,15 @@ const styles = {
 
 type Props = {
     classes?: any,
-    filter: Filter
+    filter: RespondentFilter
 }
 
 export function SelectionFactorsPage(props: Props) {
     const [isReady, setIsReady] = React.useState<boolean>(false);
-    const [meta, setMeta] = React.useState<MetaData>();
+    const [meta, setMeta] = React.useState<SurveyMeta>();
 
     useEffect(() => {
-        getMeta(props.filter)
+        getSurveyMeta(props.filter)
             .then(data => setMeta(data))
             .then(() => setIsReady(true));
     }, [props.filter]);

@@ -18,9 +18,9 @@ interface IProps {
     classes?: any,
     items?: MultiSelectItem[],
     fetch?: () => Promise<string[]>,
-    selected: string[],
+    selected: readonly string[],
     placeholder: string,
-    onChange: (selected: string[]) => void
+    onChange: (selected: readonly string[]) => void
 }
 
 interface MultiSelectItem {
@@ -32,7 +32,7 @@ export function MultiSelect(props: IProps) {
     const [items, setItems] = React.useState<MultiSelectItem[]>(props.items || []);
     const [indeterminate, setIndeterminate] = React.useState<boolean>(false);
     const [checkAll, setCheckAll] = React.useState<boolean>(false);
-    const [value, setValue] = React.useState<string[]>(props.selected);
+    const [value, setValue] = React.useState<readonly string[]>(props.selected);
 
     const updateGroupCheckbox = () => {
         setIndeterminate(value.length > 0 && value.length < items.length)
@@ -72,7 +72,7 @@ export function MultiSelect(props: IProps) {
             data={items}
             placeholder={props.placeholder}
             style={{width: 224}}
-            value={props.selected}
+            value={[...props.selected]}
             onChange={handleChange}
             renderExtraFooter={() => (
                 <div style={footerStyles}>

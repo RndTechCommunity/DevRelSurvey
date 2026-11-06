@@ -1,19 +1,19 @@
 import { Table } from 'rsuite';
 import React from 'react';
-import { MetaModelTableRow } from '../../api';
-import { toPercentWithTenths } from '../../format';
+import { MetaRow } from '../../api/types';
+import { toPercentWithTenths } from '../../shared/format';
 
 type DataMetaTableProps = {
-    data: MetaModelTableRow[];
+    data: readonly MetaRow[];
     header: string;
-    filteredTotal: MetaModelTableRow
+    filteredTotal: MetaRow
 }
 
 export function DataMetaTable(props: DataMetaTableProps) {
     const [sortColumn, setSortColumn] = React.useState<string>();
     const [sortType, setSortType] = React.useState<SortType>('desc');
 
-    const prepareTableData = (row: MetaModelTableRow) => {
+    const prepareTableData = (row: MetaRow) => {
         const total = props.filteredTotal;
         return {
             name: row.name,
@@ -26,7 +26,7 @@ export function DataMetaTable(props: DataMetaTableProps) {
 
     const getData = () => {
         if (sortColumn && sortType) {
-            return props.data.sort((a, b) => {
+            return (props.data as MetaRow[]).sort((a, b) => {
                 // @ts-ignore
                 let x = a[sortColumn];
                 // @ts-ignore

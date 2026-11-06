@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import injectSheet from 'react-jss';
-import { Filter } from './filters/Filter'
+import { RespondentFilter } from '../features/filters/model'
 import {
     BarChart,
     ResponsiveContainer,
@@ -13,9 +13,10 @@ import {
     Pie
 } from 'recharts'
 import { useEffect } from 'react';
-import { getKnownAndWantedData, getCities, getMeta, KnownAndWantedData, MetaData } from '../api';
+import { getCities, getCompanyResults, getSurveyMeta } from '../api/client';
+import { CompanyResult, SurveyMeta } from '../api/types';
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
-import { toPercentWithTenths } from '../format';
+import { toPercentWithTenths } from '../shared/format';
 
 
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name}) => {
@@ -57,7 +58,7 @@ type BarData = {
     level: number
 }
 
-const defaultFilter: Filter = {
+const defaultFilter: RespondentFilter = {
     cities: ['Ростов-на-Дону'],
     educations: [],
     languages: [],
@@ -74,10 +75,10 @@ type Props = {
 export function ResultsMobile(props: Props) {
     const [city, setCity] = React.useState<string | null>('Ростов-на-Дону');
     const [cities, setCities] = React.useState<string[]>([]);
-    const [data, setData] = React.useState<KnownAndWantedData[]>([]);
+    const [data, setData] = React.useState<CompanyResult[]>([]);
     const [mostKnown, setMostKnown] = React.useState<BarData[]>([]);
     const [mostWanted, setMostWanted] = React.useState<BarData[]>([]);
-    const [meta, setMeta] = React.useState<MetaData>();
+    const [meta, setMeta] = React.useState<SurveyMeta>();
     const [ages, setAges] = React.useState<BarData[]>([]);
     const [levels, setLevels] = React.useState<BarData[]>([]);
     const [professions, setProfessions] = React.useState<BarData[]>([]);
@@ -88,10 +89,10 @@ export function ResultsMobile(props: Props) {
             const filter = defaultFilter;
             filter.cities = city !== null ? [ city ] : [];
 
-            const data = await getKnownAndWantedData(filter)
+            const data = await getCompanyResults(filter)
             await setData(data)
 
-            const meta = await getMeta(filter)
+            const meta = await getSurveyMeta(filter)
             await setMeta(meta)
             await setAges(meta.sources.ages.map(l => ({ name: l.name, level: l.count2022} as BarData)))
             await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData)))

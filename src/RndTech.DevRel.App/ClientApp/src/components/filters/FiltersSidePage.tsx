@@ -1,22 +1,14 @@
 import * as React from 'react'
 import injectSheet from 'react-jss';
 import {
-    getAges,
     getCities,
     getEducations,
     getExperienceLevels,
     getProfessions,
     getProgrammingLanguages
-} from '../../api'
+} from '../../api/client'
 import MultiSelect from '../MultiSelect'
-import {
-    topRostovFilter,
-    topTaganrogFilter,
-    topQAFilter,
-    topFrontendFilter,
-    topStudentsFilter,
-    Filter,
-} from './Filter'
+import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter } from '../../features/filters/model'
 import { Button, Nav, SelectPicker } from 'rsuite';
 import { Split, Pin, TagFilter } from '@rsuite/icons';
 
@@ -35,22 +27,24 @@ const styles = {
 
 type Props = {
     classes?: any,
-    filter: Filter,
-    onSetFilter: (filter: Filter) => void,
+    filter: RespondentFilter,
+    onSetFilter: (filter: RespondentFilter) => void,
     onOpenDuplicate: () => void,
 }
 
-type State = Filter
+type State = RespondentFilter
+
+const ageItems = AGE_OPTIONS.map(x => ({ value: x, label: x }))
 
 class FiltersSidePage extends React.Component<Props, State> {
     state = this.props.filter
-    isCommunityDataSource = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
+    isCommunityDataSource: { value: 'Да' | 'Нет', label: string }[] = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
 
     notify(state: State) {
         this.props.onSetFilter(state)
     }
 
-    reset(newFilter: any) {
+    reset(newFilter: RespondentFilter) {
         this.notify(newFilter)
         this.setState(newFilter)
     }
@@ -80,7 +74,7 @@ class FiltersSidePage extends React.Component<Props, State> {
                 </Nav.Item>
                 <Nav.Item eventKey='1-2' as='span'>
                             <MultiSelect
-                                fetch={getAges}
+                                items={ageItems}
                                 selected={this.state.ages}
                                 placeholder='Возраст'
                                 onChange={ages => {
@@ -183,57 +177,23 @@ class FiltersSidePage extends React.Component<Props, State> {
                 </Nav.Item>
                 </Nav.Menu>
                 <Nav.Menu eventKey='2' open={true} title='Популярные фильтры' icon={<Pin />}>
-                    <Nav.Item>
-                        <Button
-                            appearance='link'
-                            disabled={FiltersSidePage.IsEqualFilters(this.state, topRostovFilter)}
-                            onClick={() => this.reset(topRostovFilter)}
-                        >
-                            Топ Ростова
-                        </Button>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Button
-                            appearance='link'
-                            disabled={FiltersSidePage.IsEqualFilters(this.state, topTaganrogFilter)}
-                            onClick={() => this.reset(topTaganrogFilter)}
-                        >
-                            Топ Таганрога
-                        </Button>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Button
-                            appearance='link'
-                            disabled={FiltersSidePage.IsEqualFilters(this.state, topQAFilter)}
-                            onClick={() => this.reset(topQAFilter)}
-                        >
-                            Какие компании знают QA
-                        </Button>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Button
-                            appearance='link'
-                            disabled={FiltersSidePage.IsEqualFilters(this.state, topFrontendFilter)}
-                            onClick={() => this.reset(topFrontendFilter)}
-                        >
-                            Куда хотят фронтендеры
-                        </Button>
-                    </Nav.Item>
-                    <Nav.Item>
-                        <Button
-                            appearance='link'
-                            disabled={FiltersSidePage.IsEqualFilters(this.state, topStudentsFilter)}
-                            onClick={() => this.reset(topStudentsFilter)}
-                        >
-                            Известные студентам
-                        </Button>
-                    </Nav.Item>
+                    {FILTER_PRESETS.map(preset => (
+                        <Nav.Item key={preset.label}>
+                            <Button
+                                appearance='link'
+                                disabled={FiltersSidePage.IsEqualFilters(this.state, preset.filter)}
+                                onClick={() => this.reset(preset.filter)}
+                            >
+                                {preset.label}
+                            </Button>
+                        </Nav.Item>
+                    ))}
                 </Nav.Menu>
             </Nav>
         )
     }
 
-    private static IsEqualFilters(currentFilter: Filter, hotFilter: Filter) {
+    private static IsEqualFilters(currentFilter: RespondentFilter, hotFilter: RespondentFilter) {
         return currentFilter.isCommunity === hotFilter.isCommunity
             && currentFilter.ages === hotFilter.ages
             && currentFilter.cities === hotFilter.cities

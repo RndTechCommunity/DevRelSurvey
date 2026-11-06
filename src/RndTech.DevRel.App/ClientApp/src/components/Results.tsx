@@ -1,13 +1,15 @@
 ﻿import * as React from 'react'
 import injectSheet from 'react-jss';
-import { topRostovFilter, Filter, selectedCompanies } from './filters/Filter'
+import { DEFAULT_FILTER, RespondentFilter } from '../features/filters/model'
+import { DEFAULT_COMPANIES } from '../app/surveyState'
 import Menu, { MenuId } from './Menu'
 import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
 import { Container, Content, Sidebar, Sidenav } from 'rsuite';
 import FiltersSidePage from './filters/FiltersSidePage';
 import { useEffect } from 'react';
-import { getKnownAndWantedData, KnownAndWantedData } from '../api';
+import { getCompanyResults } from '../api/client';
+import { CompanyResult } from '../api/types';
 
 const styles = {
     app: {
@@ -44,29 +46,29 @@ export function App(props: Props) {
         const maybeFilter = params.get('filter')
 
         return maybeFilter !== null
-            ? JSON.parse(decodeURIComponent(maybeFilter)) as Filter
-            : topRostovFilter
+            ? JSON.parse(decodeURIComponent(maybeFilter)) as RespondentFilter
+            : DEFAULT_FILTER
     }
 
     const [tab, setTab] = React.useState<MenuId>(restoreTab());
-    const [filter, setFilter] = React.useState<Filter>(restoreFilter());
-    const [companiesFilter, setCompaniesFilter] = React.useState<string[]>(selectedCompanies);
+    const [filter, setFilter] = React.useState<RespondentFilter>(restoreFilter());
+    const [companiesFilter, setCompaniesFilter] = React.useState<readonly string[]>(DEFAULT_COMPANIES);
     const [useError, setUseError] = React.useState<boolean>(false);
     const [useGood, setUseGood] = React.useState<boolean>(true);
     const [useWanted, setUseWanted] = React.useState<boolean>(true);
-    const [filteredData, setFilteredData] = React.useState<KnownAndWantedData[]>();
+    const [filteredData, setFilteredData] = React.useState<readonly CompanyResult[]>();
     
     useEffect(() => {
         const fetchData = async () => {
-            const data = await getKnownAndWantedData(filter)
+            const data = await getCompanyResults(filter)
             await setFilteredData(data)
         };
 
         fetchData();
     }, [filter])
     
-    const calculateCompaniesList = (entries: KnownAndWantedData[] | undefined) => {
-        return !entries ? [] : entries.reduce((all: string[], current: KnownAndWantedData) => {
+    const calculateCompaniesList = (entries: readonly CompanyResult[] | undefined) => {
+        return !entries ? [] : entries.reduce((all: string[], current: CompanyResult) => {
             if (all.indexOf(current.name) === -1) {
                 all.push(current.name)
             }

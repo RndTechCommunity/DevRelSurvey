@@ -1,4 +1,4 @@
-import type { KnownAndWantedData, MetaData, MetaModelTableRow } from '../api'
+import type { CompanyResult, MetaRow, SurveyMeta } from '../api/types'
 
 // Синтетические ответы API для unit- и e2e-тестов. Не содержат данных production.
 
@@ -11,7 +11,7 @@ function deepFreeze<T>(value: T): T {
 }
 
 function company(name: string, year: number, selectionCount: number,
-                 knownVotes: number, goodVotes: number, wantedVotes: number): KnownAndWantedData {
+                 knownVotes: number, goodVotes: number, wantedVotes: number): CompanyResult {
     return {
         name,
         year,
@@ -26,7 +26,7 @@ function company(name: string, year: number, selectionCount: number,
     }
 }
 
-function metaRow(name: string, count2019: number, count2020: number, count2021: number, count2022: number): MetaModelTableRow {
+function metaRow(name: string, count2019: number, count2020: number, count2021: number, count2022: number): MetaRow {
     return { name, count2019, count2020, count2021, count2022 }
 }
 
@@ -60,7 +60,7 @@ export const companyResults = deepFreeze([
 ])
 
 // Языки допускают несколько ответов: сумма долей за 2022 больше 100 %.
-export const surveyMeta: MetaData = deepFreeze({
+export const surveyMeta: SurveyMeta = deepFreeze({
     total: metaRow('Всего', 300, 400, 500, 600),
     filtered: metaRow('Выбрано', 50, 80, 60, 100),
     sources: {
@@ -105,7 +105,7 @@ export const singleYearCompanyResults = deepFreeze([
     company('IBS Dunice', 2022, 1, 1, 0, 0)
 ])
 
-export const singleYearMeta: MetaData = deepFreeze({
+export const singleYearMeta: SurveyMeta = deepFreeze({
     total: metaRow('Всего', 300, 400, 500, 600),
     filtered: metaRow('Выбрано', 0, 0, 0, 1),
     sources: {
@@ -121,9 +121,9 @@ export const singleYearMeta: MetaData = deepFreeze({
 })
 
 // Ни один респондент не подходит под фильтр.
-export const emptyCompanyResults: readonly KnownAndWantedData[] = deepFreeze([])
+export const emptyCompanyResults: readonly CompanyResult[] = deepFreeze([])
 
-export const emptyMeta: MetaData = deepFreeze({
+export const emptyMeta: SurveyMeta = deepFreeze({
     total: metaRow('Всего', 300, 400, 500, 600),
     filtered: metaRow('Выбрано', 0, 0, 0, 0),
     sources: {

@@ -8,9 +8,9 @@ import {
     XAxis,
     YAxis
 } from 'recharts'
-import { KnownAndWantedData } from '../../api'
-import { toPercent, toPercentWithTenths } from '../../format'
-import { Filter } from '../filters/Filter'
+import { CompanyResult } from '../../api/types'
+import { toPercent, toPercentWithTenths } from '../../shared/format'
+import { RespondentFilter } from '../../features/filters/model'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
 import { Checkbox, Loader, Table, Tooltip, Whisper } from 'rsuite';
@@ -75,14 +75,14 @@ const companyFillColorMap = {
 
 type Props = {
     classes?: any,
-    filter: Filter,
+    filter: RespondentFilter,
     year: number,
-    selectedCompanies: string[],
-    onCompaniesChanged: (filter: string[]) => void,
+    selectedCompanies: readonly string[],
+    onCompaniesChanged: (filter: readonly string[]) => void,
     useError: boolean,
     useGood: boolean,
     useWanted: boolean,
-    companyEntries: KnownAndWantedData[] | undefined,
+    companyEntries: readonly CompanyResult[] | undefined,
     onUseErrorChanged: (filter: boolean) => void,
     onUseGoodChanged: (filter: boolean) => void,
     onUseWantedChanged: (filter: boolean) => void,
@@ -90,16 +90,16 @@ type Props = {
 }
 
 export function KnownAndWantedPage(props: Props) {
-    const [companyEntries, setCompanyEntries] = React.useState<KnownAndWantedData[]>();
+    const [companyEntries, setCompanyEntries] = React.useState<CompanyResult[]>();
     const [maxWantedLevel, setMaxWantedLevel] = React.useState<number>(0.3);
     const [useError, setUseError] = React.useState<boolean>(props.useError);
     const [useGood, setUseGood] = React.useState<boolean>(props.useGood);
     const [useWanted, setUseWanted] = React.useState<boolean>(props.useWanted);
-    const [selectedCompanies, setSelectedCompanies] = React.useState<string[]>(props.selectedCompanies);
+    const [selectedCompanies, setSelectedCompanies] = React.useState<readonly string[]>(props.selectedCompanies);
     const [sortColumn, setSortColumn] = React.useState<string>();
     const [sortType, setSortType] = React.useState<'desc' | 'asc'>();
 
-    const prepareTableData = (row: KnownAndWantedData) => {
+    const prepareTableData = (row: CompanyResult) => {
         return {
             companyName: row.name,
             knownLevel: toPercentWithTenths(row.knownLevel) + '%',
@@ -179,7 +179,7 @@ export function KnownAndWantedPage(props: Props) {
         return parts.join('\u00A0')
     }
 
-    const renderCompanyEntry = (entry: KnownAndWantedData & { cx: number, cy: number }) => {
+    const renderCompanyEntry = (entry: CompanyResult & { cx: number, cy: number }) => {
         const { name, error, cx, cy, knownVotes, goodVotes, wantedVotes, selectionCount } = entry
 
         const tooltip = (
