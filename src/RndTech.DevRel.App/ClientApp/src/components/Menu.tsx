@@ -1,6 +1,7 @@
 import * as React from 'react'
 import injectSheet from 'react-jss';
 import { Nav } from 'rsuite';
+import { SURVEY_YEARS, SurveyYear } from '../api/types';
 
 const styles = {
     container: {
@@ -27,32 +28,12 @@ type MenuItem = {
     title: string
 }
 
-export type MenuId =
-    'known-and-wanted-2022' |
-    'known-and-wanted-2021' |
-    'known-and-wanted-2020' |
-    'known-and-wanted-2019' |
-    'data-meta'
+export type MenuId = SurveyYear | 'sample'
 
 const items: MenuItem[] = [
+    ...[...SURVEY_YEARS].reverse().map(year => ({ id: year, title: String(year) })),
     {
-        id: 'known-and-wanted-2022',
-        title: '2022'
-    },
-    {
-        id: 'known-and-wanted-2021',
-        title: '2021'
-    },
-    {
-        id: 'known-and-wanted-2020',
-        title: '2020'
-    },
-    {
-        id: 'known-and-wanted-2019',
-        title: '2019'
-    },
-    {
-        id: 'data-meta',
+        id: 'sample',
         title: 'Состав выборки'
     }
 ]
@@ -68,11 +49,15 @@ class Menu extends React.Component<Props> {
         return (
             <div className={classes.container}>
                 <div className={classes.menu}>
-                    <Nav activeKey={active} onSelect={(active: MenuId) => onChange(active)} appearance='subtle'>
+                    <Nav
+                        activeKey={String(active)}
+                        onSelect={(key: string) => onChange(SURVEY_YEARS.find(year => String(year) === key) ?? 'sample')}
+                        appearance='subtle'
+                    >
                         {items.map(item => (
                             <Nav.Item 
                                 style={menuItemStyle} 
-                                eventKey={item.id}
+                                eventKey={String(item.id)}
                                 key={item.id}
                             >
                                 {item.title}

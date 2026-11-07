@@ -2,7 +2,9 @@
 
 import * as React from 'react'
 import injectSheet from 'react-jss';
-import { RespondentFilter } from '../features/filters/model'
+import { DEFAULT_FILTER, sameFilter } from '../features/filters/model'
+import { SurveyState } from '../app/surveyState'
+import { UpdateSurveyState } from '../app/useSurveyState'
 import {
     BarChart,
     ResponsiveContainer,
@@ -14,10 +16,10 @@ import {
 } from 'recharts'
 import { useEffect } from 'react';
 import { getCities, getCompanyResults, getSurveyMeta } from '../api/client';
-import { CompanyResult, SurveyMeta } from '../api/types';
+import { CompanyResult, countOf, LATEST_YEAR, SurveyMeta } from '../api/types';
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { toPercentWithTenths } from '../shared/format';
-import { selectCompanyRows, topCompanies } from '../features/companies/companyMetrics';
+import { chartY, selectCompanyRows, topCompanies } from '../features/companies/companyMetrics';
 
 
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name}) => {
@@ -59,22 +61,14 @@ type BarData = {
     level: number
 }
 
-const defaultFilter: RespondentFilter = {
-    cities: ['Ростов-на-Дону'],
-    educations: [],
-    languages: [],
-    professions: [],
-    experiences: [],
-    ages: ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет'],
-    isCommunity: null
-}
-
 type Props = {
     classes?: any,
+    state: SurveyState,
+    update: UpdateSurveyState
 }
 
 export function ResultsMobile(props: Props) {
-    const [city, setCity] = React.useState<string | null>('Ростов-на-Дону');
+    const { filter, year } = props.state
     const [cities, setCities] = React.useState<string[]>([]);
     const [data, setData] = React.useState<CompanyResult[]>([]);
     const [mostKnown, setMostKnown] = React.useState<BarData[]>([]);
@@ -87,31 +81,28 @@ export function ResultsMobile(props: Props) {
 
     useEffect(() => {
         const fetchData = async () => {
-            const filter = defaultFilter;
-            filter.cities = city !== null ? [ city ] : [];
-
             const data = await getCompanyResults(filter)
             await setData(data)
 
             const meta = await getSurveyMeta(filter)
             await setMeta(meta)
-            await setAges(meta.sources.ages.map(l => ({ name: l.name, level: l.count2022} as BarData)))
-            await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData)))
+            await setAges(meta.sources.ages.map(l => ({ name: l.name, level: countOf(l, year)} as BarData)))
+            await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData)))
             await setProfessions(meta
                 .sources
                 .professions
-                .map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData))
+                .map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData))
                 .sort((l1, l2) => l2.level - l1.level)
                 .slice(0,10))
 
             await setLanguages(meta
                 .sources
                 .languages
-                .map(l => ({ name: l.name.split('/')[0], level: l.count2022} as BarData))
+                .map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData))
                 .sort((l1, l2) => l2.level - l1.level)
                 .slice(0,10))
 
-            const top = topCompanies(selectCompanyRows(data, 2022));
+            const top = topCompanies(selectCompanyRows(data, year));
             const popular = top.known
                 .map(d => ({
                     name: d.name.split('(')[0],
@@ -122,13 +113,13 @@ export function ResultsMobile(props: Props) {
             const wanted = top.attractive
                 .map(d => ({
 					name: d.name.split('(')[0],
-                    level: toPercentWithTenths(d.wantedLevel + d.goodLevel)
+                    level: toPercentWithTenths(chartY(d, { showGood: true, showWanted: true }))
                 } as BarData))
             await setMostWanted(wanted)
         };
 
         fetchData();
-        }, [city])
+        }, [filter, year])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -138,6 +129,12 @@ export function ResultsMobile(props: Props) {
 
         fetchData();
         }, [])
+
+    // Мобильный вид выбирает только один город; остальные ограничения задаются в полной версии.
+    const city = filter.cities.length === 1 ? filter.cities[0] : null
+    const hasOtherFilters = filter.cities.length > 1
+        || (city !== null && cities.length > 0 && !cities.includes(city))
+        || !sameFilter({ ...filter, cities: [] }, { ...DEFAULT_FILTER, cities: [] })
 
     return (
             <Container>
@@ -160,16 +157,25 @@ export function ResultsMobile(props: Props) {
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
 
+                    {year !== LATEST_YEAR && (
+                        <FlexboxGrid justify="center">
+                            <FlexboxGrid.Item colspan={20}>
+                                <b>Данные {year} года</b>
+                            </FlexboxGrid.Item>
+                        </FlexboxGrid>
+                    )}
+
                     <Divider>Город выборки</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
                             <SelectPicker
                                 data={cities.map(item => ({ label: item, value: item }))}
-                                defaultValue={'Ростов-на-Дону'}
-                                onChange={(value, event) => {
-                                setCity(value)
-                            }}
+                                value={city}
+                                onChange={value => props.update({ filter: { ...filter, cities: value ? [value] : [] } })}
                                 block />
+                            {hasOtherFilters && (
+                                <i className={props.classes.smallText}>Применены дополнительные фильтры полной версии</i>
+                            )}
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
 

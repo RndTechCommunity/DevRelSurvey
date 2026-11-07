@@ -32,3 +32,50 @@ export const FILTER_PRESETS: readonly { readonly label: string, readonly filter:
     { label: 'Куда хотят фронтендеры', filter: { ...DEFAULT_FILTER, cities: [], professions: ['Frontend-разработчик'] } },
     { label: 'Известные студентам', filter: { ...DEFAULT_FILTER, cities: [], educations: ['Высшее, в процессе получения'], ages: [] } }
 ]
+
+const FILTER_ARRAY_KEYS = ['cities', 'educations', 'languages', 'professions', 'experiences', 'ages'] as const
+
+function sameValues(a: readonly string[], b: readonly string[]) {
+    const left = [...a].sort()
+    const right = [...b].sort()
+    return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+// Порядок значений внутри массива не влияет на группу респондентов (OR).
+export function sameFilter(a: RespondentFilter, b: RespondentFilter): boolean {
+    return a.isCommunity === b.isCommunity && FILTER_ARRAY_KEYS.every(key => sameValues(a[key], b[key]))
+}
+
+function stringArray(value: unknown): readonly string[] | null {
+    return Array.isArray(value) && value.every(item => typeof item === 'string') ? value : null
+}
+
+// Фильтр из внешней ссылки. Невалидный → null; порядок элементов сохраняется.
+export function parseRespondentFilter(value: unknown): RespondentFilter | null {
+    if (typeof value !== 'object' || value === null) {
+        return null
+    }
+    const source = value as { readonly [key: string]: unknown }
+    const cities = stringArray(source.cities)
+    const educations = stringArray(source.educations)
+    const languages = stringArray(source.languages)
+    const professions = stringArray(source.professions)
+    const experiences = stringArray(source.experiences)
+    const ages = stringArray(source.ages)
+    const isCommunity = source.isCommunity
+    if (!cities || !educations || !languages || !professions || !experiences || !ages
+        || !ages.every(age => AGE_OPTIONS.includes(age))
+        || (isCommunity !== undefined && isCommunity !== null && typeof isCommunity !== 'string')) {
+        return null
+    }
+    return {
+        cities,
+        educations,
+        languages,
+        professions,
+        experiences,
+        ages,
+        // Сервер ограничивает выборку только для «Да» и «Нет»; «Неважно» из ссылок 2019–2020 — без ограничения.
+        isCommunity: isCommunity === 'Да' || isCommunity === 'Нет' ? isCommunity : null
+    }
+}

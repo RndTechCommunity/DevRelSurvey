@@ -8,7 +8,7 @@ import {
     getProgrammingLanguages
 } from '../../api/client'
 import MultiSelect from '../MultiSelect'
-import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter } from '../../features/filters/model'
+import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter, sameFilter } from '../../features/filters/model'
 import { Button, Nav, SelectPicker } from 'rsuite';
 import { Split, Pin, TagFilter } from '@rsuite/icons';
 
@@ -32,25 +32,17 @@ type Props = {
     onOpenDuplicate: () => void,
 }
 
-type State = RespondentFilter
-
 const ageItems = AGE_OPTIONS.map(x => ({ value: x, label: x }))
 
-class FiltersSidePage extends React.Component<Props, State> {
-    state = this.props.filter
+class FiltersSidePage extends React.Component<Props> {
     isCommunityDataSource: { value: 'Да' | 'Нет', label: string }[] = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
 
-    notify(state: State) {
-        this.props.onSetFilter(state)
-    }
-
-    reset(newFilter: RespondentFilter) {
-        this.notify(newFilter)
-        this.setState(newFilter)
+    change(patch: Partial<RespondentFilter>) {
+        this.props.onSetFilter({ ...this.props.filter, ...patch })
     }
 
     render() {
-        const { onOpenDuplicate } = this.props
+        const { filter, onOpenDuplicate, onSetFilter } = this.props
 
         return (             
             <Nav>
@@ -60,96 +52,48 @@ class FiltersSidePage extends React.Component<Props, State> {
                             <MultiSelect
                                 fetch={getCities}
                                 placeholder='Город'
-                                selected={this.state.cities}
-                                onChange={cities => {
-                                    const state = {
-                                        ...this.state,
-                                        cities
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ cities })
-                                }}
+                                selected={filter.cities}
+                                onChange={cities => this.change({ cities })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-2' as='span'>
                             <MultiSelect
                                 items={ageItems}
-                                selected={this.state.ages}
+                                selected={filter.ages}
                                 placeholder='Возраст'
-                                onChange={ages => {
-                                    const state = {
-                                        ...this.state,
-                                        ages
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ ages })
-                                }}
+                                onChange={ages => this.change({ ages })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-3' as='span'>
                             <MultiSelect
                                 fetch={getEducations}
-                                selected={this.state.educations}
+                                selected={filter.educations}
                                 placeholder='Образование'
-                                onChange={educations => {
-                                    const state = {
-                                        ...this.state,
-                                        educations
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ educations })
-                                }}
+                                onChange={educations => this.change({ educations })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-4' as='span'>
                             <MultiSelect
                                 fetch={getExperienceLevels}
-                                selected={this.state.experiences}
+                                selected={filter.experiences}
                                 placeholder='Опыт'
-                                onChange={experiences => {
-                                    const state = {
-                                        ...this.state,
-                                        experiences
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ experiences })
-                                }}
+                                onChange={experiences => this.change({ experiences })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-5' as='span'>
                             <MultiSelect
                                 fetch={getProfessions}
-                                selected={this.state.professions}
+                                selected={filter.professions}
                                 placeholder='Профессия'
-                                onChange={professions => {
-                                    const state = {
-                                        ...this.state,
-                                        professions
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ professions })
-                                }}
+                                onChange={professions => this.change({ professions })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-6' as='span'>
                             <MultiSelect
                                 fetch={getProgrammingLanguages}
                                 placeholder='Язык'
-                                selected={this.state.languages}
-                                onChange={languages => {
-                                    const state = {
-                                        ...this.state,
-                                        languages
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ languages })
-                                }}
+                                selected={filter.languages}
+                                onChange={languages => this.change({ languages })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-7' as='span'>
@@ -157,16 +101,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                                 block
                                 data={this.isCommunityDataSource}
                                 placeholder='Посещает митапы'
-                                value={this.state.isCommunity}
-                                onChange={isCommunity => {
-                                    const state = {
-                                        ...this.state,
-                                        isCommunity
-                                    }
-
-                                    this.notify(state)
-                                    this.setState({ isCommunity })
-                                }}
+                                value={filter.isCommunity}
+                                onChange={isCommunity => this.change({ isCommunity })}
                             />
                 </Nav.Item>
                 <Nav.Item eventKey='1-8' as='span'>
@@ -181,8 +117,8 @@ class FiltersSidePage extends React.Component<Props, State> {
                         <Nav.Item key={preset.label}>
                             <Button
                                 appearance='link'
-                                disabled={FiltersSidePage.IsEqualFilters(this.state, preset.filter)}
-                                onClick={() => this.reset(preset.filter)}
+                                disabled={sameFilter(filter, preset.filter)}
+                                onClick={() => onSetFilter(preset.filter)}
                             >
                                 {preset.label}
                             </Button>
@@ -191,16 +127,6 @@ class FiltersSidePage extends React.Component<Props, State> {
                 </Nav.Menu>
             </Nav>
         )
-    }
-
-    private static IsEqualFilters(currentFilter: RespondentFilter, hotFilter: RespondentFilter) {
-        return currentFilter.isCommunity === hotFilter.isCommunity
-            && currentFilter.ages === hotFilter.ages
-            && currentFilter.cities === hotFilter.cities
-            && currentFilter.educations === hotFilter.educations
-            && currentFilter.experiences === hotFilter.experiences
-            && currentFilter.languages === hotFilter.languages
-            && currentFilter.professions === hotFilter.professions;
     }
 }
 

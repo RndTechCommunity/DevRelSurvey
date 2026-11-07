@@ -1,8 +1,8 @@
 ﻿import * as React from 'react'
 import injectSheet from 'react-jss';
-import { DEFAULT_FILTER, RespondentFilter } from '../features/filters/model'
-import { DEFAULT_COMPANIES } from '../app/surveyState'
-import Menu, { MenuId } from './Menu'
+import { SurveyState } from '../app/surveyState'
+import { UpdateSurveyState } from '../app/useSurveyState'
+import Menu from './Menu'
 import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
 import { Container, Content, Sidebar, Sidenav } from 'rsuite';
@@ -29,34 +29,14 @@ const styles = {
 
 type Props = {
     classes?: any,
-    modalOpened: boolean
+    state: SurveyState,
+    update: UpdateSurveyState,
+    onDuplicate: () => void
 }
 
 export function App(props: Props) {
-    const restoreTab = () => {
-        const params = new URLSearchParams(window.location.search);
-        const maybeTab = params.get('tab')
-
-        return maybeTab !== null
-            ? JSON.parse(decodeURIComponent(maybeTab)) as MenuId
-            : 'known-and-wanted-2022'
-    }
-
-    const restoreFilter = () => {
-        const params = new URLSearchParams(window.location.search);
-        const maybeFilter = params.get('filter')
-
-        return maybeFilter !== null
-            ? JSON.parse(decodeURIComponent(maybeFilter)) as RespondentFilter
-            : DEFAULT_FILTER
-    }
-
-    const [tab, setTab] = React.useState<MenuId>(restoreTab());
-    const [filter, setFilter] = React.useState<RespondentFilter>(restoreFilter());
-    const [companiesFilter, setCompaniesFilter] = React.useState<readonly string[]>(DEFAULT_COMPANIES);
-    const [useError, setUseError] = React.useState<boolean>(false);
-    const [useGood, setUseGood] = React.useState<boolean>(true);
-    const [useWanted, setUseWanted] = React.useState<boolean>(true);
+    const { state, update } = props
+    const filter = state.filter
     const [filteredData, setFilteredData] = React.useState<readonly CompanyResult[]>();
     
     useEffect(() => {
@@ -72,27 +52,23 @@ export function App(props: Props) {
         return companyNames(entries ?? []).map(x => ({ value: x, label: x }))
     }
     
-    const openDuplicate = () => {
-        const uri = `?tab=${encodeURIComponent(JSON.stringify(tab))}` +
-            `&filter=${encodeURIComponent(JSON.stringify(filter))}`
-        window.open(uri, '_blank')
-    }
-
     let content =
-        tab === 'data-meta' ? <DataMetaPage filter={filter}/> :
+        state.page === 'sample' ? <DataMetaPage filter={filter}/> :
             <KnownAndWantedPage
-                selectedCompanies={companiesFilter}
+                selectedCompanies={state.companies}
                 filter={filter}
-                year={tab === 'known-and-wanted-2022' ? 2022 : (tab === 'known-and-wanted-2021' ? 2021 : (tab === 'known-and-wanted-2020' ? 2020 : 2019))}
-                onCompaniesChanged={companies => setCompaniesFilter(companies)}
-                useError={useError}
-                onUseErrorChanged={ue => setUseError(ue)}
-                useGood={useGood}
+                year={state.year}
+                onCompaniesChanged={companies => update({ companies })}
+                useError={state.showLegacyError}
+                onUseErrorChanged={showLegacyError => update({ showLegacyError })}
+                useGood={state.showGood}
                 companyEntries={filteredData}
-                useWanted={useWanted}
+                useWanted={state.showWanted}
                 companies={calculateCompaniesList(filteredData)}
-                onUseGoodChanged={ue => setUseGood(ue)}
-                onUseWantedChanged={ue => setUseWanted(ue)}
+                onUseGoodChanged={showGood => update({ showGood })}
+                onUseWantedChanged={showWanted => update({ showWanted })}
+                sort={state.sort}
+                onSortChanged={sort => update({ sort })}
             />
 
     return (
@@ -109,8 +85,8 @@ export function App(props: Props) {
                     <Sidenav.Body>
                         <FiltersSidePage
                             filter={filter}
-                            onSetFilter={filter => setFilter(filter)}
-                            onOpenDuplicate={() => openDuplicate()}
+                            onSetFilter={filter => update({ filter })}
+                            onOpenDuplicate={props.onDuplicate}
                         />
                     </Sidenav.Body>
                 </Sidenav>
@@ -120,8 +96,8 @@ export function App(props: Props) {
                 <Content>
                     <div className={props.classes.menuContainer}>
                         <Menu
-                            active={tab}
-                            onChange={tab => setTab(tab)}
+                            active={state.page === 'sample' ? 'sample' : state.year}
+                            onChange={item => update(item === 'sample' ? { page: 'sample' } : { page: 'companies', year: item }, 'push')}
                         />
                         <div className={props.classes.playground}>
                             {content}

@@ -11,6 +11,7 @@ import {
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
 import { RespondentFilter } from '../../features/filters/model'
+import { COMPANY_SORT_KEYS, SurveyState } from '../../app/surveyState'
 import {
     chartY,
     selectCompanyRows,
@@ -92,26 +93,25 @@ type Props = {
     onUseErrorChanged: (filter: boolean) => void,
     onUseGoodChanged: (filter: boolean) => void,
     onUseWantedChanged: (filter: boolean) => void,
-    companies: { value: string; label: any; }[]
+    companies: { value: string; label: any; }[],
+    sort: SurveyState['sort'],
+    onSortChanged: (sort: SurveyState['sort']) => void
 }
 
 export function KnownAndWantedPage(props: Props) {
-    const [useError, setUseError] = React.useState<boolean>(props.useError);
-    const [useGood, setUseGood] = React.useState<boolean>(props.useGood);
-    const [useWanted, setUseWanted] = React.useState<boolean>(props.useWanted);
-    const [selectedCompanies, setSelectedCompanies] = React.useState<readonly string[]>(props.selectedCompanies);
-    const [sortColumn, setSortColumn] = React.useState<string>();
-    const [sortType, setSortType] = React.useState<'desc' | 'asc'>();
+    const { useError, useGood, useWanted, selectedCompanies } = props
+    const sortColumn = props.sort?.key
+    const sortType = props.sort?.direction
 
     const prepareTableData = (row: CompanyResult) => {
         const metrics = toCompanyMetrics(row)
         return {
-            companyName: metrics.name,
-            knownLevel: toPercentWithTenths(metrics.known) + '%',
-            goodLevel: toPercentWithTenths(metrics.good) + '%',
-            wantedLevel: toPercentWithTenths(metrics.wanted) + '%',
-            goodAndWantedLevel: toPercentWithTenths(metrics.goodAndWanted) + '%',
-            brandRatingComplex: toPercentWithTenths(metrics.brandRating),
+            name: metrics.name,
+            known: toPercentWithTenths(metrics.known) + '%',
+            good: toPercentWithTenths(metrics.good) + '%',
+            wanted: toPercentWithTenths(metrics.wanted) + '%',
+            goodAndWanted: toPercentWithTenths(metrics.goodAndWanted) + '%',
+            brandRating: toPercentWithTenths(metrics.brandRating),
             brandPower: toPercentWithTenths(metrics.brandPower),
         };
     }
@@ -122,19 +122,12 @@ export function KnownAndWantedPage(props: Props) {
     const getTableData = () => {
         if (sortColumn && sortType) {
             return companyEntries?.map(prepareTableData).sort((a, b) => {
-                // @ts-ignore
-                let x = a[sortColumn];
-                // @ts-ignore
-                let y = b[sortColumn];
+                if (sortColumn === 'name') {
+                    return a.name < b.name ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
+                }
 
-                if (sortColumn === 'companyName') {
-                    return x < y ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
-                }
-                
-                if (typeof x === 'string' && typeof y === 'string') {
-                    x = parseFloat(x)
-                    y = parseFloat(y)
-                }
+                const x = parseFloat(String(a[sortColumn]))
+                const y = parseFloat(String(b[sortColumn]))
                 if (sortType === 'asc') {
                     return x - y;
                 } else {
@@ -223,35 +216,23 @@ export function KnownAndWantedPage(props: Props) {
                         items={props.companies}
                         placeholder='Компании'
                         selected={selectedCompanies}
-                        onChange={selectedCompanies => {
-                            setSelectedCompanies(selectedCompanies)
-                            onCompaniesChanged(selectedCompanies)
-                        }}
+                        onChange={onCompaniesChanged}
                     />
                     <Checkbox
                         checked={useError}
-                        onChange={(v, ch) => {
-                            setUseError(ch)
-                            onUseErrorChanged(ch)
-                        }}
+                        onChange={(v, ch) => onUseErrorChanged(ch)}
                     >
                         Отображать доверительный интервал
                     </Checkbox>
                     <Checkbox
                         checked={useGood}
-                        onChange={(v, ch) => {
-                            setUseGood(ch)
-                            onUseGoodChanged(ch)
-                        }}
+                        onChange={(v, ch) => onUseGoodChanged(ch)}
                     >
                         Знаю и рекомендую
                     </Checkbox>
                     <Checkbox
                         checked={useWanted}
-                        onChange={(v, ch) => {
-                            setUseWanted(ch)
-                            onUseWantedChanged(ch)
-                        }}
+                        onChange={(v, ch) => onUseWantedChanged(ch)}
                     >
                         Знаю и хочу работать
                     </Checkbox>
@@ -305,34 +286,36 @@ export function KnownAndWantedPage(props: Props) {
                 sortColumn={sortColumn}
                 sortType={sortType}
                 style={{marginRight: '50px', marginTop: '30px'}}
-                onSortColumn={(sortColumn, sortType) => {
-                    setSortColumn(sortColumn);
-                    setSortType(sortType);
+                onSortColumn={(dataKey, direction) => {
+                    const key = COMPANY_SORT_KEYS.find(k => k === dataKey)
+                    if (key && direction) {
+                        props.onSortChanged({ key, direction })
+                    }
                 }}
             >
                 <Table.Column width={290} sortable>
                     <Table.HeaderCell>Компания</Table.HeaderCell>
-                    <Table.Cell dataKey='companyName' />
+                    <Table.Cell dataKey='name' />
                 </Table.Column>
 
                 <Table.Column width={100} sortable>
                     <Table.HeaderCell>Знают</Table.HeaderCell>
-                    <Table.Cell dataKey='knownLevel' />
+                    <Table.Cell dataKey='known' />
                 </Table.Column>
 
                 <Table.Column width={120} sortable>
                     <Table.HeaderCell>Рекомендуют</Table.HeaderCell>
-                    <Table.Cell dataKey='goodLevel' />
+                    <Table.Cell dataKey='good' />
                 </Table.Column>
 
                 <Table.Column width={100} sortable>
                     <Table.HeaderCell>Хотят</Table.HeaderCell>
-                    <Table.Cell dataKey='wantedLevel' />
+                    <Table.Cell dataKey='wanted' />
                 </Table.Column>
 
                 <Table.Column width={160} sortable>
                     <Table.HeaderCell>Рекомендуют + хотят</Table.HeaderCell>
-                    <Table.Cell dataKey='goodAndWantedLevel' />
+                    <Table.Cell dataKey='goodAndWanted' />
                 </Table.Column>
 
                 <Table.Column width={140} sortable>
@@ -342,7 +325,7 @@ export function KnownAndWantedPage(props: Props) {
 
                 <Table.Column width={140} sortable>
                     <Table.HeaderCell>Рейтинг бренда</Table.HeaderCell>
-                    <Table.Cell dataKey='brandRatingComplex' />
+                    <Table.Cell dataKey='brandRating' />
                 </Table.Column>
             </Table>
         </div>

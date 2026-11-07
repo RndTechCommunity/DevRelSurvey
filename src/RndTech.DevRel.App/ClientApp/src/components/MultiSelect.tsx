@@ -30,42 +30,24 @@ interface MultiSelectItem {
 
 export function MultiSelect(props: IProps) {
     const [items, setItems] = React.useState<MultiSelectItem[]>(props.items || []);
-    const [indeterminate, setIndeterminate] = React.useState<boolean>(false);
-    const [checkAll, setCheckAll] = React.useState<boolean>(false);
-    const [value, setValue] = React.useState<readonly string[]>(props.selected);
 
-    const updateGroupCheckbox = () => {
-        setIndeterminate(value.length > 0 && value.length < items.length)
-        setCheckAll(value.length === items.length)
-    }
-
-    const handleChange = (value: string[]) => {
-        setValue(value)
-        setIndeterminate(value.length > 0 && value.length < items.length)
-        setCheckAll(value.length === items.length)
-
-        props.onChange(value.map(x => x))
-    }
-    
     useEffect(() => {
-        const {fetch, selected, items} = props
+        const {fetch, items} = props
 
         if (fetch !== undefined) {
             fetch().then(items => setItems(
                 items.filter(x => x !== '').map(x => ({
                     value: x, label: x
                 } as MultiSelectItem))
-            )).then(() => updateGroupCheckbox())
+            ))
         }
         if (items !== undefined) {
             setItems(items)
         }
-        if (selected !== undefined) {
-            setValue(selected)
-        }
-
-        updateGroupCheckbox()
     }, [props.items, props.selected, props.fetch])
+
+    const selectedCount = items.filter(item => props.selected.includes(item.value)).length
+    const checkAll = items.length > 0 && selectedCount === items.length
 
     return (
         <CheckPicker
@@ -73,20 +55,14 @@ export function MultiSelect(props: IProps) {
             placeholder={props.placeholder}
             style={{width: 224}}
             value={[...props.selected]}
-            onChange={handleChange}
+            onChange={props.onChange}
             renderExtraFooter={() => (
                 <div style={footerStyles}>
                     <Checkbox
                         inline
-                        indeterminate={indeterminate}
+                        indeterminate={selectedCount > 0 && !checkAll}
                         checked={checkAll}
-                        onChange={(value1, checked) => {
-                            const nextValue = checked ? items.map(x => x.value) : [];
-                            setValue(nextValue)
-                            setIndeterminate(false)
-                            setCheckAll(checked)
-                            props.onChange(nextValue.map(x => x))
-                        }}
+                        onChange={(value1, checked) => props.onChange(checked ? items.map(x => x.value) : [])}
                     >
                         Выбрать все
                     </Checkbox>

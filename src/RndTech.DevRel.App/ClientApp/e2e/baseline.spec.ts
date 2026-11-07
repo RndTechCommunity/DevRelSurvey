@@ -1,17 +1,7 @@
 import { expect, Page, test } from '@playwright/test'
-import { isCompanies, mockApi } from './mockApi'
+import { INITIAL_FILTER, isCompanies, mockApi } from './mockApi'
 
 // Инварианты, общие для исходного и переработанного интерфейса.
-
-const INITIAL_FILTER = {
-    cities: ['Ростов-на-Дону'],
-    educations: [],
-    languages: [],
-    professions: [],
-    experiences: [],
-    ages: ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет'],
-    isCommunity: null
-}
 
 const WIDTHS = [390, 768, 1223, 1224, 1225, 1440]
 
