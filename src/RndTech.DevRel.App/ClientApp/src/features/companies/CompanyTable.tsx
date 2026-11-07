@@ -12,7 +12,7 @@ type Props = {
     onSort: (sort: NonNullable<SurveyState['sort']>) => void
 }
 
-const UNDEFINED_INDEX = 'Не определено: знают не больше, чем рекомендуют и хотят работать'
+const UNDEFINED_INDEX = 'Не определено: «Знают» не больше, чем «Рекомендуют + хотят»'
 
 const share = (value: number) => toPercentWithTenths(value) + '%'
 
