@@ -153,6 +153,15 @@ export default function MobileSummary({ state, update, companies, meta, options 
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
 
+                    <Divider>Всего участников</Divider>
+                    <FlexboxGrid justify="center">
+                        <FlexboxGrid.Item colspan={20}>
+                            <AsyncState state={meta}>
+                                {loaded => <h1 className={styles.headerText}>{countOf(loaded.filtered, year)}</h1>}
+                            </AsyncState>
+                        </FlexboxGrid.Item>
+                    </FlexboxGrid>
+
                     <AsyncState state={companies}>
                         {data => {
                             const top = topCompanies(selectCompanyRows(data, year))
@@ -166,15 +175,6 @@ export default function MobileSummary({ state, update, companies, meta, options 
                             }))
                             return (
                                 <>
-                                    <Divider>Всего участников</Divider>
-                                    <FlexboxGrid justify="center">
-                                        <FlexboxGrid.Item colspan={20}>
-                                            <h1 className={styles.headerText}>{Math.max.apply(null, !data.length
-                                                ? [0]
-                                                : data.map(ca => ca.selectionCount))}</h1>
-                                        </FlexboxGrid.Item>
-                                    </FlexboxGrid>
-
                                     <Divider>Топ узнаваемости</Divider>
                                     <FlexboxGrid justify="center">
                                         <FlexboxGrid.Item colspan={20}>

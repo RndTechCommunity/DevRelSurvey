@@ -298,4 +298,21 @@ test.describe('desktop 1440', () => {
         await navButton(page, 'Состав выборки').click()
         await expect(page.getByText('В выбранной группе нет респондентов')).toBeVisible()
     })
+
+    test('the group size is the number of respondents of the selected year', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        await navButton(page, '2021').click()
+
+        await expect(page.getByText('В выборке 60 человек')).toBeVisible()
+    })
+})
+
+test('mobile shows the number of respondents of the selected year', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 })
+    await mockApi(page)
+    await page.goto('/?v=1&year=2021')
+
+    await expect(page.getByText('Данные 2021 года')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('60')
 })

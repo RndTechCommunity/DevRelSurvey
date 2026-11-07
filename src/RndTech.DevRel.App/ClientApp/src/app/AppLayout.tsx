@@ -67,7 +67,7 @@ export default function AppLayout({ state, update, onDuplicate, companies, meta,
                         <div className={styles.playground}>
                             {state.page === 'sample'
                                 ? <SamplePage meta={meta} />
-                                : <CompaniesPage state={state} update={update} companies={companies} />}
+                                : <CompaniesPage state={state} update={update} companies={companies} meta={meta} />}
                         </div>
                     </div>
                 </Content>
