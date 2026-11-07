@@ -61,7 +61,7 @@ DevRelSurvey публикует агрегированные результат�
 - Mobile получает год, фильтр и данные из общего состояния и выбирает один город. Если фильтр полной версии нельзя выразить одним городом, показывается «Применены дополнительные фильтры полной версии»; для не последнего года — «Данные {год} года».
 - Стили — CSS Modules рядом с компонентами, `index.css` и тема RSuite.
 - Unit-тесты `*.test.ts` лежат рядом с модулями, синтетические ответы API — в `test/fixtures.ts`; браузерные сценарии — в `ClientApp/e2e/` и `ClientApp/playwright.config.ts`.
-- Остатки шаблона CRA (`setupProxy.js`, service worker, `reportWebVitals.ts`, `aspnetcore-*.js`) пока остаются; их удаление — часть перехода на Vite.
+- Остатки шаблона CRA (`setupProxy.js`, service worker, `reportWebVitals.ts`, `ClientApp/aspnetcore-*.js`) пока остаются; их удаление — часть перехода на Vite.
 
 ## Сценарии, которые нужно учитывать
 
@@ -113,11 +113,11 @@ Development использует distributed memory cache; остальные о
 - `isCommunity`: `Да` → true, `Нет` → false, другое/null → без ограничения. На предзагрузке фактически используется `VisitMeetups || IsCommunity`; надпись «Посещает митапы» уже текущего смысла признака.
 - При выборе JavaScript или TypeScript сервер дополнительно включает историческое значение `JavaScript / TypeScript`. Из справочника языков это комбинированное значение исключено.
 - Справочник городов показывает только группы с числом записей больше двух **по всем годам**, не по текущему году/фильтру. Остальные справочники тоже не являются динамическими facets текущей выборки.
-- `communitySources` имеет GET endpoint, но не является полем `UserFilter`. `getCompanySources()` в клиенте обращается к отсутствующему endpoint и сейчас не используется.
+- `communitySources` имеет GET endpoint, но не является полем `UserFilter`; клиент этот endpoint не вызывает.
 
 ### Компании: знаменатели и показатели
 
-Источники: `GetCompanyModelsQueryHandler.cs` и `KnownAndWantedPage.tsx`.
+Источники: `GetCompanyModelsQueryHandler.cs`, `ClientApp/src/features/companies/companyMetrics.ts` (формулы) и `ClientApp/src/features/companies/CompanyTable.tsx` (вывод).
 
 Для одной компании и года после фильтрации:
 
