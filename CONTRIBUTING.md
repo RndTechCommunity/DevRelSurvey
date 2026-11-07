@@ -159,7 +159,7 @@ npm run build       # typecheck и сборка Vite в build/
 npm run test:e2e    # браузерные сценарии Playwright
 ```
 
-`npm run test:e2e` требует установленного Google Chrome. Playwright сам собирает приложение, запускает `vite preview` на свободном порту 4173 и подменяет `/api/**` синтетическими ответами: БД и production не нужны.
+`npm run test:e2e` требует установленного Google Chrome. Playwright сам собирает приложение, запускает `vite preview` на порту 4173 (он должен быть свободен) и подменяет `/api/**` синтетическими ответами: БД и production не нужны.
 
 Упаковку проверяет `dotnet publish src/RndTech.DevRel.App -c Release`: он выполняет `npm ci` и `npm run build` и копирует сборку в `wwwroot`. `dotnet build` её не проверяет.
 
@@ -168,13 +168,14 @@ npm run test:e2e    # браузерные сценарии Playwright
 `tests/smoke/seed.sql` создаёт схему и синтетические данные только для локальной одноразовой MariaDB. Не применяйте его к production.
 
 ```bash
-# БД (если порт 3306 занят, замените его в -p и в строке подключения)
+# Из корня репозитория
+# БД (если порт 3306 занят, замените порт хоста — первое число в -p — и порт в строке подключения)
 docker run -d --name devrel-smoke-db -p 3306:3306 \
   -e MARIADB_ROOT_PASSWORD=smoke -e MARIADB_DATABASE=devrel mariadb:10.11
 until docker exec devrel-smoke-db healthcheck.sh --connect --innodb_initialized; do sleep 2; done
 docker exec -i devrel-smoke-db mariadb -uroot -psmoke devrel < tests/smoke/seed.sql
 
-# Backend, корень репозитория
+# Backend
 DEVRELAPP_CONFIG_DATABASE="Server=localhost;Port=3306;Database=devrel;User Id=root;Password=smoke" \
   ASPNETCORE_ENVIRONMENT=Development \
   dotnet run --no-launch-profile --project src/RndTech.DevRel.App
