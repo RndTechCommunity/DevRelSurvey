@@ -50,7 +50,7 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
             }}
         >
             {COLUMNS.map(column => (
-                <Table.Column key={column.key} width={column.width} sortable>
+                <Table.Column key={column.key} width={column.width} flexGrow={column.key === 'name' ? 1 : undefined} minWidth={column.width} sortable>
                     <Table.HeaderCell>{column.header}</Table.HeaderCell>
                     <Table.Cell dataKey={column.key} />
                 </Table.Column>
