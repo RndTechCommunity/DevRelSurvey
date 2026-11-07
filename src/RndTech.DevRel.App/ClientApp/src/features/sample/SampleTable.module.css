@@ -1,0 +1,25 @@
+.share {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Одинаковая ширина числа: полосы соседних строк начинаются на одной линии. */
+.value {
+    flex: 0 0 7em;
+    font-variant-numeric: tabular-nums;
+}
+
+.track {
+    flex: 1;
+    height: var(--space-2);
+    border-radius: var(--radius);
+    background: var(--rs-bg-well);
+}
+
+.bar {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius);
+    background: var(--bar-color);
+}

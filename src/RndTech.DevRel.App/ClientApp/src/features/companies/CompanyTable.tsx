@@ -42,7 +42,6 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
             data={data}
             sortColumn={sort?.key}
             sortType={sort?.direction}
-            style={{marginRight: '50px', marginTop: '30px'}}
             onSortColumn={(dataKey, direction) => {
                 const key = COMPANY_SORT_KEYS.find(k => k === dataKey)
                 if (key && direction) {
@@ -51,7 +50,7 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
             }}
         >
             {COLUMNS.map(column => (
-                <Table.Column key={column.key} width={column.width} sortable>
+                <Table.Column key={column.key} width={column.width} flexGrow={column.key === 'name' ? 1 : undefined} minWidth={column.width} sortable>
                     <Table.HeaderCell>{column.header}</Table.HeaderCell>
                     <Table.Cell dataKey={column.key} />
                 </Table.Column>

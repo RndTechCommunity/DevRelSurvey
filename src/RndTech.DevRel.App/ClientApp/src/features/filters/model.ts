@@ -10,8 +10,9 @@ export type RespondentFilter = {
     readonly isCommunity: 'Да' | 'Нет' | null
 }
 
-export const AGE_OPTIONS: readonly string[] = [15, 20, 25, 30, 35, 40, 45, 50, 55]
-    .map(start => `${start} - ${start + 4} лет`)
+const AGE_STARTS = [15, 20, 25, 30, 35, 40, 45, 50, 55]
+
+export const AGE_OPTIONS: readonly string[] = AGE_STARTS.map(start => `${start} - ${start + 4} лет`)
 
 const WORKING_AGES = ['20 - 24 лет', '25 - 29 лет', '30 - 34 лет', '35 - 39 лет', '40 - 44 лет']
 
@@ -44,6 +45,53 @@ function sameValues(a: readonly string[], b: readonly string[]) {
 // Порядок значений внутри массива не влияет на группу респондентов (OR).
 export function sameFilter(a: RespondentFilter, b: RespondentFilter): boolean {
     return a.isCommunity === b.isCommunity && FILTER_ARRAY_KEYS.every(key => sameValues(a[key], b[key]))
+}
+
+// Смежные группы объединяются: «20–44 года», «20–24, 30–34 года». Верхняя граница группы оканчивается на 4 или 9.
+function formatAges(ages: readonly string[]) {
+    const ranges: [number, number][] = []
+    AGE_STARTS.forEach((start, index) => {
+        if (ages.includes(AGE_OPTIONS[index])) {
+            const last = ranges[ranges.length - 1]
+            if (last?.[1] === start - 1) {
+                last[1] = start + 4
+            } else {
+                ranges.push([start, start + 4])
+            }
+        }
+    })
+    const upper = ranges[ranges.length - 1][1]
+    return `${ranges.map(([from, to]) => `${from}–${to}`).join(', ')} ${upper % 10 === 4 ? 'года' : 'лет'}`
+}
+
+// Полный список остаётся в поле фильтра; иначе «Выбрать все» городов дало бы строку из десятков названий.
+const brief = (values: readonly string[]) =>
+    values.length > 2 ? `${values[0]}, ${values[1]} и ещё ${values.length - 2}` : values.join(', ')
+
+const FILTER_FIELDS: readonly { readonly key: typeof FILTER_ARRAY_KEYS[number], readonly label: string }[] = [
+    { key: 'cities', label: 'Город' },
+    { key: 'ages', label: 'Возраст' },
+    { key: 'educations', label: 'Образование' },
+    { key: 'experiences', label: 'Опыт' },
+    { key: 'professions', label: 'Профессия' },
+    { key: 'languages', label: 'Язык' }
+]
+
+type FilterRestriction = { readonly key: keyof RespondentFilter, readonly label: string, readonly value: string }
+
+// Ограничения группы в порядке полей фильтра; пустой список — все участники.
+export function describeFilter(filter: RespondentFilter): readonly FilterRestriction[] {
+    const restrictions: FilterRestriction[] = FILTER_FIELDS
+        .filter(({ key }) => filter[key].length > 0)
+        .map(({ key, label }) => ({ key, label, value: key === 'ages' ? formatAges(filter.ages) : brief(filter[key]) }))
+    if (filter.isCommunity !== null) {
+        restrictions.push({
+            key: 'isCommunity',
+            label: 'Митапы',
+            value: filter.isCommunity === 'Да' ? 'посещает митапы' : 'не посещает митапы'
+        })
+    }
+    return restrictions
 }
 
 function stringArray(value: unknown): readonly string[] | null {

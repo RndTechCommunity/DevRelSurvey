@@ -10,6 +10,12 @@ export function formatIndex(value: number | null): string {
     return value === null || !Number.isFinite(value) ? '—' : String(toPercentWithTenths(value))
 }
 
+// Нулевой знаменатель — доля не определена, а не 0.
+export function shareOf(count: number, total: number): number | null {
+    return total > 0 ? count / total : null
+}
+
 export function formatShare(count: number, total: number): string {
-    return total > 0 ? `${count} (${toPercentWithTenths(count / total)}%)` : `${count} (—)`
+    const share = shareOf(count, total)
+    return share === null ? `${count} (—)` : `${count} (${toPercentWithTenths(share)}%)`
 }

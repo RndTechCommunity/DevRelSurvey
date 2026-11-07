@@ -3,7 +3,7 @@ import { usePickerFocusReturn } from './usePickerFocusReturn';
 
 const footerStyles = {
     padding: '10px 2px',
-    borderTop: '1px solid #e5e5e5'
+    borderTop: '1px solid var(--rs-border-primary)'
 };
 
 type Props = {
@@ -26,7 +26,6 @@ export default function MultiSelect({ options, value, placeholder, onChange }: P
                 data={options.map(option => ({ value: option, label: option }))}
                 placeholder={placeholder}
                 block
-                style={{width: 224}}
                 value={[...value]}
                 onChange={onChange}
                 renderExtraFooter={() => (

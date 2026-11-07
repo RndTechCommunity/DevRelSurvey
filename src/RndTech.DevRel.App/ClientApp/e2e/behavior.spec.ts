@@ -19,8 +19,14 @@ const WITHOUT_DELAY = { timeout: 300 }
 
 const TAGANROG = { ...INITIAL_FILTER, cities: ['Таганрог'] }
 
-const activeTab = (page: Page) => page.locator('[role="button"][aria-selected="true"]')
+const currentSection = (page: Page) => page.getByRole('navigation', { name: 'Разделы' }).locator('[aria-current="page"]')
 const navButton = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
+const yearRadio = (page: Page, year: string) =>
+    page.getByRole('radiogroup', { name: 'Год исследования' }).getByRole('radio', { name: year })
+// Поле radio скрыто библиотекой, щёлкаем по подписи года.
+const selectYear = (page: Page, year: string) =>
+    page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
+const filterPanel = (page: Page) => page.getByRole('complementary')
 // Кнопки боковой панели вложены в пункты меню с ролью button.
 const sidebarButton = (page: Page, name: string) => page.locator('button', { hasText: name })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
@@ -66,7 +72,7 @@ for (const width of [768, 1223]) {
         await page.goto('/')
 
         await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toBeVisible()
-        await expect(page.locator('.rs-sidebar')).toHaveCount(0)
+        await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(0)
     })
 }
 
@@ -76,8 +82,8 @@ for (const width of [1224, 1225, 1440]) {
         await mockApi(page)
         await page.goto('/')
 
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
-        await expect(page.locator('.rs-sidebar')).toHaveCount(1)
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        await expect(filterPanel(page)).toHaveCount(1)
         await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toHaveCount(0)
         await expect(page.locator('.recharts-wrapper')).toHaveCount(1)
     })
@@ -116,7 +122,7 @@ test.describe('desktop 1440', () => {
         for (const [search, parameter] of [['?filter=not-json', 'filter'], ['?tab=%22unknown%22', 'tab'], ['?v=1&year=2031', 'year']]) {
             await page.goto(`/${search}`)
             await expect(page.getByText(`«${parameter}»`)).toBeVisible()
-            await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+            await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         }
         for (const post of api.posts()) {
             expect(post.body).toBe(JSON.stringify(INITIAL_FILTER))
@@ -126,25 +132,27 @@ test.describe('desktop 1440', () => {
     test('Back and Forward restore the year and the page', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')
-        await navButton(page, '2021').click()
+        await selectYear(page, '2021')
         await navButton(page, 'Состав выборки').click()
-        await expect(activeTab(page)).toHaveText('Состав выборки')
+        await expect(currentSection(page)).toHaveText('Состав выборки')
+        await expect(yearRadio(page, '2021')).toBeChecked()
 
         await page.goBack()
-        await expect(activeTab(page)).toHaveText('2021')
+        await expect(currentSection(page)).toHaveText('Компании')
+        await expect(yearRadio(page, '2021')).toBeChecked()
         await page.goBack()
-        await expect(activeTab(page)).toHaveText('2022')
+        await expect(yearRadio(page, '2022')).toBeChecked()
         await page.goForward()
-        await expect(activeTab(page)).toHaveText('2021')
+        await expect(yearRadio(page, '2021')).toBeChecked()
     })
 
     test('clicking the active year does not add a history entry', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         const historyLength = await page.evaluate(() => history.length)
 
-        await navButton(page, '2022').click()
+        await selectYear(page, '2022')
 
         expect(await page.evaluate(() => history.length)).toBe(historyLength)
     })
@@ -153,7 +161,7 @@ test.describe('desktop 1440', () => {
         const api = await mockApi(page)
         await page.goto('/')
         await sidebarButton(page, 'Топ Таганрога').click()
-        await navButton(page, '2021').click()
+        await selectYear(page, '2021')
         await toggleCheckbox(page, 'Отображать доверительный интервал')
         await page.waitForLoadState('networkidle')
         const loaded = api.calls.length
@@ -164,7 +172,7 @@ test.describe('desktop 1440', () => {
         await expect(page.getByText('Данные 2021 года')).toBeVisible()
 
         await page.setViewportSize({ width: 1440, height: 900 })
-        await expect(activeTab(page)).toHaveText('2021')
+        await expect(yearRadio(page, '2021')).toBeChecked()
         await expect(sidebarButton(page, 'Топ Таганрога')).toBeDisabled()
         await expect(page.getByRole('checkbox', { name: 'Отображать доверительный интервал' })).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
@@ -174,8 +182,8 @@ test.describe('desktop 1440', () => {
     test('Escape and Tab from an opened list keep the keyboard focus on the filter fields', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
-        const [city, ages] = [0, 1].map(i => page.locator('.rs-sidebar').getByRole('combobox').nth(i))
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        const [city, ages] = [0, 1].map(i => filterPanel(page).getByRole('combobox').nth(i))
 
         await city.focus()
         await page.keyboard.press('Enter')
@@ -202,10 +210,10 @@ test.describe('desktop 1440', () => {
         await spyOnWindowOpen(page)
         await mockApi(page)
         await page.goto('/')
-        await navButton(page, '2020').click()
+        await selectYear(page, '2020')
         await toggleCheckbox(page, 'Знаю и рекомендую')
 
-        await sidebarButton(page, 'Дублировать').click()
+        await page.getByRole('button', { name: 'Дублировать' }).click()
 
         const search = await page.evaluate(() => location.search)
         expect(search).toContain('good=0')
@@ -217,16 +225,16 @@ test.describe('desktop 1440', () => {
         const cities = ['Ростов-на-Дону', ...Array.from({ length: 300 }, (_, i) => `Населённый пункт ${i}`)]
         await mockApi(page, { ...filterOptions, cities })
         await page.goto('/')
-        await navButton(page, '2021').click()
+        await selectYear(page, '2021')
         const search = await page.evaluate(() => location.search)
 
-        await page.locator('.rs-sidebar .rs-picker-toggle').first().click()
+        await filterPanel(page).locator('.rs-picker-toggle').first().click()
         await toggleCheckbox(page, 'Выбрать все')
         await page.keyboard.press('Escape')
 
         await expect(page.getByText('Ссылка слишком длинная')).toBeVisible()
         expect(await page.evaluate(() => location.search)).toBe(search)
-        await sidebarButton(page, 'Дублировать').click()
+        await page.getByRole('button', { name: 'Дублировать' }).click()
         expect(await openedUrl(page)).toBeUndefined()
     })
 
@@ -234,11 +242,11 @@ test.describe('desktop 1440', () => {
     test('the year, companies, chart flags, sorting and Back send no requests, a preset sends two', async ({ page }) => {
         const api = await mockApi(page)
         await page.goto('/')
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         await page.waitForLoadState('networkidle')
         const loaded = api.calls.length
 
-        await navButton(page, '2021').click()
+        await selectYear(page, '2021')
         await toggleCheckbox(page, 'Знаю и хочу работать')
         await table(page, 'Компания').getByRole('columnheader', { name: 'Знают' }).click()
         await page.locator('.rs-picker-toggle', { hasText: 'IBS Dunice' }).click()
@@ -247,7 +255,7 @@ test.describe('desktop 1440', () => {
         await navButton(page, 'Состав выборки').click()
         await page.goBack()
 
-        await expect(activeTab(page)).toHaveText('2021')
+        await expect(yearRadio(page, '2021')).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
 
         await sidebarButton(page, 'Топ Таганрога').click()
@@ -278,12 +286,14 @@ test.describe('desktop 1440', () => {
         const restore = api.override(isMeta, 500)
         await page.goto('/')
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+        await expect(page.getByText('Выборка: не удалось загрузить')).toBeVisible()
         await navButton(page, 'Состав выборки').click()
 
         await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
         restore()
-        await page.getByRole('button', { name: 'Повторить' }).click()
+        await page.getByRole('main').getByRole('button', { name: 'Повторить' }).click()
         await expect(page.getByRole('columnheader', { name: 'Язык программирования' })).toBeVisible()
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
     })
 
     test('a network error of the company request recovers on retry', async ({ page }) => {
@@ -320,11 +330,11 @@ test.describe('desktop 1440', () => {
         const restore = api.override(isFilterOptions, 500)
         await page.goto('/')
 
-        await expect(page.locator('.rs-sidebar').getByText('Не удалось загрузить данные')).toBeVisible()
+        await expect(filterPanel(page).getByText('Не удалось загрузить данные')).toBeVisible()
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
         restore()
-        await page.locator('.rs-sidebar').getByRole('button', { name: 'Повторить' }).click()
-        await expect(page.locator('.rs-sidebar .rs-picker-toggle', { hasText: 'Ростов-на-Дону' })).toBeVisible()
+        await filterPanel(page).getByRole('button', { name: 'Повторить' }).click()
+        await expect(filterPanel(page).locator('.rs-picker-toggle', { hasText: 'Ростов-на-Дону' })).toBeVisible()
     })
 
     test('a group without respondents shows messages instead of tables', async ({ page }) => {
@@ -333,15 +343,15 @@ test.describe('desktop 1440', () => {
 
         await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
         await navButton(page, 'Состав выборки').click()
-        await expect(page.getByText('В выбранной группе нет респондентов')).toBeVisible()
+        await expect(page.getByText('В выбранной группе нет респондентов за 2022 год.')).toBeVisible()
     })
 
     test('the group size is the number of respondents of the selected year', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')
-        await navButton(page, '2021').click()
+        await selectYear(page, '2021')
 
-        await expect(page.getByText('В выборке 60 человек')).toBeVisible()
+        await expect(page.getByText('2021 · Ростов-на-Дону, 20–44 года · Выборка: 60 из 500')).toBeVisible()
     })
 
     test('an undefined brand rating is shown as a dash and sorted last', async ({ page }) => {
@@ -357,12 +367,15 @@ test.describe('desktop 1440', () => {
             .toHaveText(['66.7', '66.7', '60', '33.3', '—', '—'])
     })
 
-    test('a year without respondents shows a dash instead of a share', async ({ page }) => {
+    test('the sample composition of a year without respondents is a message, not zero shares', async ({ page }) => {
         await mockApi(page)
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&page=sample'))
 
         await expect(page.locator('.rs-table-row', { hasText: 'Тбилиси' }).locator('.rs-table-cell'))
-            .toHaveText(['Тбилиси', '0 (—)', '0 (—)', '0 (—)', '1 (100%)'])
+            .toHaveText(['Тбилиси', '1 (100%)'])
+        await selectYear(page, '2021')
+        await expect(page.getByText('В выбранной группе нет респондентов за 2021 год.')).toBeVisible()
+        await expect(page.getByText('Выборка: 0 из 500')).toBeVisible()
     })
 })
 

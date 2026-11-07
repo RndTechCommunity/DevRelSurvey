@@ -1,22 +1,22 @@
-.companies {
-    position: absolute;
-    margin: 15px;
-    z-index: 1000;
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-4);
 }
 
+.companyPicker {
+    width: 280px;
+}
+
+/* Карта занимает ширину контейнера (width задан явно: иначе max-height через aspect-ratio ограничил бы и ширину);
+   высота ограничена, чтобы карта помещалась на экране. */
 .chart {
     font-size: 12px;
-}
-
-.graphicFilter {
-    display: flex;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.graphicFilterCompanies {
-    padding-top: 10px;
-    padding-bottom: 10px;
-    line-height: 1;
-    padding-right: 10px;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    max-height: 70vh;
+    min-height: 300px;
+    margin-bottom: var(--space-4);
 }

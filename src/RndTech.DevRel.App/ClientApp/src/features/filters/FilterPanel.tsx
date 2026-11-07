@@ -4,18 +4,17 @@ import { FilterOptions } from '../../api/types'
 import { AsyncState, RequestState } from '../../shared/AsyncState'
 import { usePickerFocusReturn } from '../../shared/usePickerFocusReturn'
 import { Button, Nav, SelectPicker } from 'rsuite';
-import { Split, Pin, TagFilter } from '@rsuite/icons';
+import { Pin, TagFilter } from '@rsuite/icons';
 
 type Props = {
     filter: RespondentFilter,
     options: RequestState<FilterOptions>,
-    onChange: (filter: RespondentFilter) => void,
-    onDuplicate: () => void,
+    onChange: (filter: RespondentFilter) => void
 }
 
 const isCommunityOptions: { value: 'Да' | 'Нет', label: string }[] = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
 
-export default function FilterPanel({ filter, options, onChange, onDuplicate }: Props) {
+export default function FilterPanel({ filter, options, onChange }: Props) {
     const change = (patch: Partial<RespondentFilter>) => onChange({ ...filter, ...patch })
     const { ref, wrapperProps } = usePickerFocusReturn()
 
@@ -87,12 +86,6 @@ export default function FilterPanel({ filter, options, onChange, onDuplicate }: 
                             onChange={isCommunity => change({ isCommunity })}
                         />
                     </div>
-                </Nav.Item>
-                <Nav.Item eventKey='1-8' as='span'>
-                    <Button appearance='link' onClick={onDuplicate}>
-                        <Split />&nbsp;
-                        Дублировать
-                    </Button>
                 </Nav.Item>
             </Nav.Menu>
             <Nav.Menu eventKey='2' open={true} title='Популярные фильтры' icon={<Pin />}>

@@ -1,7 +1,7 @@
+/* Шрифт — системный стек, --rs-font-family-base в shared/styles/tokens.css. */
 body {
     margin: 0;
     padding: 0;
-    font-family: "Segoe UI", "Helvetica Neue", sans-serif;
     font-size: 14px;
     line-height: 20px;
     -webkit-font-smoothing: antialiased;
@@ -20,4 +20,15 @@ h2 {
     font-size: 22px;
     line-height: 30px;
     margin: 20px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

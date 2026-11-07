@@ -100,7 +100,7 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
     const points: MapPoint[] = rows.map(row => ({ ...row, chartY: chartY(row, flags) }))
 
     return (
-        <ResponsiveContainer aspect={1.5} width={1100}>
+        <ResponsiveContainer width='100%' height='100%'>
             <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false}>
                 <CartesianGrid strokeDasharray='1 1' />
                 <XAxis

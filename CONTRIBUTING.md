@@ -181,7 +181,7 @@ DEVRELAPP_CONFIG_DATABASE="Server=localhost;Port=3306;Database=devrel;User Id=ro
   dotnet run --no-launch-profile --project src/RndTech.DevRel.App
 ```
 
-Ожидаемый результат: `curl http://localhost:29500/api/filters/cities` возвращает `["Ростов-на-Дону","Таганрог"]`. После `npm start` в `ClientApp` интерфейс `http://localhost:44422` с исходным фильтром показывает «В выборке 100 человек» за 2022 год и 60 — за 2021.
+Ожидаемый результат: `curl http://localhost:29500/api/filters/cities` возвращает `["Ростов-на-Дону","Таганрог"]`. После `npm start` в `ClientApp` интерфейс `http://localhost:44422` с исходным фильтром показывает сводку «2022 · Ростов-на-Дону, 20–44 года · Выборка: 100 из 116», а для 2021 года — «Выборка: 60 из 71».
 
 Удаление стенда: `docker rm -f devrel-smoke-db`.
 
