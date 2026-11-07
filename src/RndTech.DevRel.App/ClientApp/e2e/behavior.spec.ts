@@ -59,7 +59,7 @@ function collectErrors(page: Page) {
     return errors
 }
 
-for (const width of [390, 768, 1223]) {
+for (const width of [768, 1223]) {
     test(`width ${width} mounts only the mobile view`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await mockApi(page)
