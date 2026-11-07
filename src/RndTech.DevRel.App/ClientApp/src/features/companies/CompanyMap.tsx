@@ -4,6 +4,7 @@ import {
     ResponsiveContainer,
     Scatter,
     ScatterChart,
+    ScatterPointItem,
     XAxis,
     YAxis
 } from 'recharts'
@@ -59,8 +60,11 @@ type Props = {
 }
 
 export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: Props) {
-    const renderCompanyEntry = (entry: MapPoint & { cx: number, cy: number }) => {
-        const { name, error, cx, cy, knownVotes, goodVotes, wantedVotes, selectionCount } = entry
+    const renderCompanyEntry = ({ payload, cx, cy }: ScatterPointItem) => {
+        const { name, error, knownLevel, knownVotes, goodVotes, wantedVotes, selectionCount }: MapPoint = payload
+        if (cx === undefined || cy === undefined) {
+            return null
+        }
 
         const tooltip = (
             <Tooltip>
@@ -74,11 +78,11 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
         );
 
         // При нулевой узнаваемости формула даёт Infinity или NaN — круг не рисуется.
-        const radius = (showLegacyError ? error : 0) * cx / entry.knownLevel
+        const radius = (showLegacyError ? error : 0) * cx / knownLevel
 
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
-                <g fill={companyFillColorMap[nbspLabel(name)] || defaultFillColor}>
+                <g fill={companyFillColorMap[nbspLabel(name)] || defaultFillColor} data-company={name}>
                     <g fillOpacity={0.1}>
                         <Dot cx={cx} cy={cy} r={Number.isFinite(radius) ? radius : 0} />
                     </g>
@@ -97,7 +101,7 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
 
     return (
         <ResponsiveContainer aspect={1.5} width={1100}>
-            <ScatterChart margin={{ bottom: 10, right: 10 }}>
+            <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false}>
                 <CartesianGrid strokeDasharray='1 1' />
                 <XAxis
                     label={{

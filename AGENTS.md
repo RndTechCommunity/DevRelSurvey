@@ -46,7 +46,7 @@ DevRelSurvey публикует агрегированные результат�
 | `.github/workflows/verify.yml` | Проверки pull request: фронтенд (`npm ci` … `test:e2e`) и `docker build` с проверкой `/wwwroot/index.html` в образе |
 | `tests/smoke/seed.sql` | Синтетическая схема и данные MariaDB для локального smoke-стенда |
 
-Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, RSuite 5.22.1, Recharts 2.1.16, Axios 1.21.0, react-responsive 9.0.2; сборка и проверки — Vite 8.3, TypeScript 5.9, Vitest 5.1, ESLint 10 (flat config, typescript-eslint 8, react-hooks 7), Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Node — 24 (`.nvmrc`, `NODE_VERSION=24.x` в Dockerfile).
+Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, RSuite 6.2.5 (таблицы — rsuite-table 5.19), Recharts 3.10.1, Axios 1.21.0, react-responsive 9.0.2; сборка и проверки — Vite 8.3, TypeScript 5.9, Vitest 5.1, ESLint 10 (flat config, typescript-eslint 8, react-hooks 7), Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Node — 24 (`.nvmrc`, `NODE_VERSION=24.x` в Dockerfile).
 
 ### Устройство фронтенда
 
@@ -59,7 +59,7 @@ DevRelSurvey публикует агрегированные результат�
 - `features/filters/model.ts` — `RespondentFilter`, исходный фильтр, пресеты, сравнение по значению, разбор фильтра из ссылки; `FilterPanel.tsx` — панель фильтров без собственной копии состояния.
 - `features/companies/companyMetrics.ts` — строки года и карты, правило 2019 года (`chartY`), шкала Y, индексы бренда (`brandRating = null` при неположительном знаменателе), топы для mobile. `CompanyMap.tsx` и `CompanyTable.tsx` компонует `pages/CompaniesPage.tsx`; выбор компаний влияет на карту, таблица показывает весь год.
 - `pages/SamplePage.tsx`, `features/sample/SampleTable.tsx` — состав выборки по `SURVEY_YEARS`.
-- `shared/`: `format.ts` («—» для неопределённых индексов и долей), `sort.ts` (сортировка копии по исходным значениям, отсутствующие — в конце), `AsyncState.tsx` (первая загрузка, «Обновление…» поверх прежних данных, ошибка с «Повторить», пустой результат), `MultiSelect.tsx` (CheckPicker с «Выбрать все»).
+- `shared/`: `format.ts` («—» для неопределённых индексов и долей), `sort.ts` (сортировка копии по исходным значениям, отсутствующие — в конце), `AsyncState.tsx` (первая загрузка, «Обновление…» поверх прежних данных, ошибка с «Повторить», пустой результат), `MultiSelect.tsx` (CheckPicker с «Выбрать все»), `usePickerFocusReturn.ts` (возвращает фокус в поле списка после Escape и Tab: RSuite 6 сам этого не делает).
 - Mobile получает год, фильтр и данные из общего состояния и выбирает один город. Если фильтр полной версии нельзя выразить одним городом, показывается «Применены дополнительные фильтры полной версии»; для не последнего года — «Данные {год} года».
 - Стили — CSS Modules рядом с компонентами, `index.css` и тема RSuite.
 - Unit-тесты `*.test.ts` лежат рядом с модулями, синтетические ответы API — в `test/fixtures.ts`; браузерные сценарии — в `ClientApp/e2e/` и `ClientApp/playwright.config.ts`.

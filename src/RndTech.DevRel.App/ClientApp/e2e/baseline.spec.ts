@@ -1,12 +1,22 @@
 import { expect, Page, test } from '@playwright/test'
+import { companyResults } from '../src/test/fixtures'
 import { INITIAL_FILTER, isCompanies, mockApi } from './mockApi'
 
 // Инварианты, общие для исходного и переработанного интерфейса.
 
 const WIDTHS = [390, 768, 1223, 1224, 1225, 1440]
 
+const activeTab = (page: Page) => page.locator('[role="button"][aria-selected="true"]')
+
 function rowCells(page: Page, name: string) {
     return page.locator('.rs-table-row').filter({ hasText: name }).first().locator('.rs-table-cell')
+}
+
+// Координата деления оси графика с подписью label, в единицах SVG.
+async function tickAt(page: Page, axis: 'x' | 'y', label: string) {
+    const tick = page.locator(`.recharts-${axis}Axis-tick-labels .recharts-cartesian-axis-tick-value`)
+        .filter({ hasText: new RegExp(`^${label}$`) })
+    return Number(await tick.getAttribute(axis))
 }
 
 test.describe('desktop 1440', () => {
@@ -18,8 +28,41 @@ test.describe('desktop 1440', () => {
 
         await expect(page.getByText('В выборке 100 человек')).toBeVisible()
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
-        await expect(page.locator('.rs-nav-item-active')).toHaveText('2022')
+        await expect(activeTab(page)).toHaveText('2022')
         await expect(rowCells(page, 'IBS Dunice')).toHaveText(['IBS Dunice', '40%', '10%', '5%', '15%', '95', '60'])
+
+        // График не добавляет остановку Tab между controls и таблицей.
+        const companyHeader = page.getByRole('columnheader', { name: 'Компания' })
+        const focusedTags: string[] = []
+        while (focusedTags.length < 60 && !await companyHeader.evaluate(header => header === document.activeElement)) {
+            await page.keyboard.press('Tab')
+            focusedTags.push(await page.evaluate(() => document.activeElement?.tagName ?? ''))
+        }
+        await expect(companyHeader).toBeFocused()
+        expect(focusedTags).not.toContain('svg')
+    })
+
+    test('places company points by their values and shows their numbers on hover', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        const points = page.locator('[data-company]')
+        await expect(points).toHaveCount(5)
+
+        const [x10, x100, y0, y120] = await Promise.all([
+            tickAt(page, 'x', '10 %'), tickAt(page, 'x', '100 %'), tickAt(page, 'y', '0 %'), tickAt(page, 'y', '120 %')
+        ])
+        for (const name of await points.evaluateAll(groups => groups.map(g => g.getAttribute('data-company') ?? ''))) {
+            const row = companyResults.find(r => r.year === 2022 && r.name === name)!
+            const center = page.locator(`[data-company="${name}"] circle`).first()
+            const cx = Number(await center.getAttribute('cx'))
+            const cy = Number(await center.getAttribute('cy'))
+            expect(Math.abs(cx - (x10 + (row.knownLevel - 0.1) * (x100 - x10) / 0.9)), name).toBeLessThanOrEqual(1)
+            expect(Math.abs(cy - (y0 + (row.goodLevel + row.wantedLevel) * (y120 - y0) / 1.2)), name).toBeLessThanOrEqual(1)
+        }
+
+        await page.locator('[data-company="IBS Dunice"]').hover()
+        await expect(page.getByRole('tooltip')).toHaveText(
+            'Знают: 40 человек, 40%Рекомендуют: 10 человек, 10%Хотят работать: 5 человек, 5%')
     })
 
     test('switches the year without a new request', async ({ page }) => {
@@ -50,7 +93,7 @@ test.describe('desktop 1440', () => {
             + `&filter=${encodeURIComponent(JSON.stringify(INITIAL_FILTER))}`)
 
         await expect(page.getByText('В выборке 80 человек')).toBeVisible()
-        await expect(page.locator('.rs-nav-item-active')).toHaveText('2020')
+        await expect(activeTab(page)).toHaveText('2020')
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
     })
 })

@@ -5,7 +5,9 @@ import {
     Bar,
     YAxis,
     PieChart,
-    Pie
+    Pie,
+    PieLabelRenderProps,
+    RenderableText
 } from 'recharts'
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { CompanyResult, countOf, FilterOptions, LATEST_YEAR, MetaRow, SurveyMeta } from '../api/types';
@@ -15,18 +17,10 @@ import { chartY, selectCompanyRows, topCompanies } from '../features/companies/c
 import { DEFAULT_FILTER, sameFilter } from '../features/filters/model'
 import { AsyncState, RequestState } from '../shared/AsyncState';
 import { toPercentWithTenths } from '../shared/format';
+import { usePickerFocusReturn } from '../shared/usePickerFocusReturn';
 import styles from './MobileSummary.module.css'
 
-type PieLabelProps = {
-    cx: number,
-    cy: number,
-    midAngle: number,
-    innerRadius: number,
-    outerRadius: number,
-    name: string
-}
-
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name }: PieLabelProps) => {
+const renderCustomizedLabel = ({ cx, cy, midAngle = 0, innerRadius, outerRadius, name }: PieLabelRenderProps) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -47,7 +41,7 @@ type BarData = {
 function TopBarChart({ data, fill }: { data: BarData[], fill: string }) {
     return (
         <ResponsiveContainer width='100%' aspect={1}>
-            <BarChart data={data} layout='vertical'>
+            <BarChart data={data} layout='vertical' accessibilityLayer={false}>
                 <XAxis type="number" hide={true} />
                 <YAxis width={100} type="category" dataKey="name" />
                 <Bar dataKey="level"
@@ -55,7 +49,7 @@ function TopBarChart({ data, fill }: { data: BarData[], fill: string }) {
                     label={{
                         position: "center",
                         fill: "black",
-                        formatter: (v: string) => v + ' %',
+                        formatter: (v: RenderableText) => `${v} %`,
                     }}
                     fill={fill} />
             </BarChart>
@@ -95,6 +89,7 @@ const TOP_SIZE = 10
 export default function MobileSummary({ state, update, companies, meta, options }: Props) {
     const { filter, year } = state
     const cities = options.data?.cities ?? []
+    const { ref, wrapperProps } = usePickerFocusReturn()
 
     // Мобильный вид выбирает только один город; остальные ограничения задаются в полной версии.
     const city = filter.cities.length === 1 ? filter.cities[0] : null
@@ -141,11 +136,14 @@ export default function MobileSummary({ state, update, companies, meta, options 
                         <FlexboxGrid.Item colspan={20}>
                             <AsyncState state={options}>
                                 {loaded => (
-                                    <SelectPicker
-                                        data={loaded.cities.map(item => ({ label: item, value: item }))}
-                                        value={city}
-                                        onChange={value => update({ filter: { ...filter, cities: value ? [value] : [] } })}
-                                        block />
+                                    <div {...wrapperProps}>
+                                        <SelectPicker
+                                            ref={ref}
+                                            data={loaded.cities.map(item => ({ label: item, value: item }))}
+                                            value={city}
+                                            onChange={value => update({ filter: { ...filter, cities: value ? [value] : [] } })}
+                                            block />
+                                    </div>
                                 )}
                             </AsyncState>
                             {hasOtherFilters && (
@@ -201,9 +199,9 @@ export default function MobileSummary({ state, update, companies, meta, options 
                                 <FlexboxGrid justify="center">
                                     <FlexboxGrid.Item colspan={20}>
                                         <ResponsiveContainer width='100%' aspect={1}>
-                                            <PieChart>
-                                                <Pie data={loaded.sources.ages.map(l => ({ name: l.name, level: countOf(l, year) }))} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} />
-                                                <Pie data={toBars(loaded.sources.levels)} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} />
+                                            <PieChart accessibilityLayer={false}>
+                                                <Pie data={loaded.sources.ages.map(l => ({ name: l.name, level: countOf(l, year) }))} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} rootTabIndex={-1} />
+                                                <Pie data={toBars(loaded.sources.levels)} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} rootTabIndex={-1} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </FlexboxGrid.Item>
