@@ -51,7 +51,9 @@ export default function SampleTable({ data, header, year, filteredTotal, total }
             onSortColumn={handleSortColumn}
             defaultSortType={'desc'}
         >
-            <Table.Column flexGrow={1} sortable>
+            {/* Названиям — две трети ширины: самые длинные помещаются в строку от 1224 px.
+                Перенос (wordWrap) не подходит: rsuite-table не пересчитывает высоту строк при изменении ширины. */}
+            <Table.Column flexGrow={2} sortable>
                 <Table.HeaderCell>{header}</Table.HeaderCell>
                 <Table.Cell dataKey='name'/>
             </Table.Column>

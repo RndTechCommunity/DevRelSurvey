@@ -18,6 +18,10 @@ function rowCells(page: Page, name: string) {
 
 const horizontalOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
 
+// Названия в первой колонке таблиц, обрезанные многоточием.
+const cutNames = (page: Page) => page.locator('.rs-table-body-row-wrapper .rs-table-cell-first .rs-table-cell-content')
+    .evaluateAll(cells => cells.filter(cell => cell.scrollWidth > cell.clientWidth).map(cell => cell.textContent))
+
 // Координата деления оси графика с подписью label, в единицах SVG.
 async function tickAt(page: Page, axis: 'x' | 'y', label: string) {
     const tick = page.locator(`.recharts-${axis}Axis-tick-labels .recharts-cartesian-axis-tick-value`)
@@ -138,6 +142,7 @@ test('screenshots of the initial page', async ({ page }) => {
             await page.getByRole('button', { name: 'Состав выборки' }).click()
             await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
             expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
+            expect(await cutNames(page), `sample names ${width}`).toEqual([])
             await page.getByRole('button', { name: 'Компании', exact: true }).click()
         }
         await test.info().attach(`initial-${width}.png`, {
