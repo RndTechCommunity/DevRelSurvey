@@ -14,7 +14,8 @@ export type CompanyMetrics = {
     readonly wanted: number,
     readonly goodAndWanted: number,
     readonly brandPower: number,
-    readonly brandRating: number
+    // null — знаменатель не положителен, индекс не определён.
+    readonly brandRating: number | null
 }
 
 export function selectCompanyRows(rows: readonly CompanyResult[], year: number): readonly CompanyResult[] {
@@ -41,6 +42,7 @@ export function yAxisMax(yearRows: readonly CompanyResult[], flags: ChartFlags):
 }
 
 export function toCompanyMetrics(row: CompanyResult): CompanyMetrics {
+    const brandRatingDenominator = row.knownVotes - row.wantedVotes - row.goodVotes
     return {
         name: row.name,
         known: row.knownLevel,
@@ -48,7 +50,7 @@ export function toCompanyMetrics(row: CompanyResult): CompanyMetrics {
         wanted: row.wantedLevel,
         goodAndWanted: row.wantedLevel + row.goodLevel,
         brandPower: row.knownLevel + row.goodLevel * 3 + row.wantedLevel * 5,
-        brandRating: (row.wantedVotes + row.goodVotes) / (row.knownVotes - row.wantedVotes - row.goodVotes)
+        brandRating: brandRatingDenominator > 0 ? (row.wantedVotes + row.goodVotes) / brandRatingDenominator : null
     }
 }
 

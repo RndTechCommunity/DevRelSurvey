@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Table } from 'rsuite';
 import { countOf, MetaRow, SURVEY_YEARS } from '../../api/types';
-import { SortDirection } from '../../app/surveyState';
-import { toPercentWithTenths } from '../../shared/format';
+import { formatShare } from '../../shared/format';
+import { sortRows, SortDirection } from '../../shared/sort';
 
 type Props = {
     data: readonly MetaRow[];
@@ -20,42 +20,26 @@ export default function SampleTable(props: Props) {
     const [sortType, setSortType] = useState<SortDirection>('desc');
 
     const prepareTableData = (row: MetaRow) => {
-        const total = props.filteredTotal;
         const cells: { [column: string]: string } = { name: row.name }
         SURVEY_YEARS.forEach(year => {
-            cells[`count${year}`] = countOf(row, year) + ' ('
-                + toPercentWithTenths(countOf(row, year) / countOf(total, year)) + '%)'
+            cells[`count${year}`] = formatShare(countOf(row, year), countOf(props.filteredTotal, year))
         })
         return cells
     }
 
-    const getData = () => {
-        if (sortColumn && sortType) {
-            return (props.data as MetaRow[]).sort((a, b) => {
-                const x = cellValue(a, sortColumn);
-                const y = cellValue(b, sortColumn);
-                if (typeof x === 'string' && typeof y === 'string') {
-                    return x < y ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
-                }
-                if (sortType === 'asc') {
-                    return Number(x) - Number(y);
-                } else {
-                    return Number(y) - Number(x);
-                }
-            }).map(prepareTableData);
-        }
-        return props.data.map(prepareTableData);
-    }
+    const rows = sortColumn
+        ? sortRows(props.data, row => cellValue(row, sortColumn), sortType)
+        : props.data
 
     const handleSortColumn = (sortColumn: string, sortType: SortDirection | undefined) => {
         setSortColumn(sortColumn);
-        setSortType(sortType!);
+        setSortType(sortType ?? 'desc');
     };
 
     return (
         <Table
             autoHeight={true}
-            data={getData()}
+            data={rows.map(prepareTableData)}
             sortColumn={sortColumn}
             sortType={sortType}
             onSortColumn={handleSortColumn}

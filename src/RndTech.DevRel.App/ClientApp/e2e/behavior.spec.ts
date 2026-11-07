@@ -306,6 +306,27 @@ test.describe('desktop 1440', () => {
 
         await expect(page.getByText('В выборке 60 человек')).toBeVisible()
     })
+
+    test('an undefined brand rating is shown as a dash and sorted last', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        const companies = table(page, 'Компания')
+
+        await companies.getByRole('columnheader', { name: 'Рейтинг бренда' }).click()
+
+        await expect(firstColumn(companies)).toHaveText(
+            ['Контур', 'Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Тинькофф', 'Почтатех'])
+        await expect(companies.locator('.rs-table-body-row-wrapper .rs-table-cell-last'))
+            .toHaveText(['66.7', '66.7', '60', '33.3', '—', '—'])
+    })
+
+    test('a year without respondents shows a dash instead of a share', async ({ page }) => {
+        await mockApi(page)
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&page=sample'))
+
+        await expect(page.locator('.rs-table-row', { hasText: 'Тбилиси' }).locator('.rs-table-cell'))
+            .toHaveText(['Тбилиси', '0 (—)', '0 (—)', '0 (—)', '1 (100%)'])
+    })
 })
 
 test('mobile shows the number of respondents of the selected year', async ({ page }) => {

@@ -1,8 +1,10 @@
+import { ReactNode } from 'react'
 import { Table } from 'rsuite'
 import { CompanyResult } from '../../api/types'
-import { COMPANY_SORT_KEYS, SurveyState } from '../../app/surveyState'
-import { toPercentWithTenths } from '../../shared/format'
-import { toCompanyMetrics } from './companyMetrics'
+import { COMPANY_SORT_KEYS, CompanySortKey, SurveyState } from '../../app/surveyState'
+import { formatIndex, toPercentWithTenths } from '../../shared/format'
+import { sortRows } from '../../shared/sort'
+import { CompanyMetrics, toCompanyMetrics } from './companyMetrics'
 
 type Props = {
     rows: readonly CompanyResult[],
@@ -10,46 +12,34 @@ type Props = {
     onSort: (sort: NonNullable<SurveyState['sort']>) => void
 }
 
-function toTableRow(row: CompanyResult) {
-    const metrics = toCompanyMetrics(row)
-    return {
-        name: metrics.name,
-        known: toPercentWithTenths(metrics.known) + '%',
-        good: toPercentWithTenths(metrics.good) + '%',
-        wanted: toPercentWithTenths(metrics.wanted) + '%',
-        goodAndWanted: toPercentWithTenths(metrics.goodAndWanted) + '%',
-        brandRating: toPercentWithTenths(metrics.brandRating),
-        brandPower: toPercentWithTenths(metrics.brandPower),
-    };
-}
+const UNDEFINED_INDEX = 'Не определено: знают не больше, чем рекомендуют и хотят работать'
+
+const share = (value: number) => toPercentWithTenths(value) + '%'
+
+const index = (value: number | null) => (
+    <span title={value === null ? UNDEFINED_INDEX : undefined}>{formatIndex(value)}</span>
+)
+
+const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, render: (row: CompanyMetrics) => ReactNode }[] = [
+    { key: 'name', header: 'Компания', width: 290, render: row => row.name },
+    { key: 'known', header: 'Знают', width: 100, render: row => share(row.known) },
+    { key: 'good', header: 'Рекомендуют', width: 120, render: row => share(row.good) },
+    { key: 'wanted', header: 'Хотят', width: 100, render: row => share(row.wanted) },
+    { key: 'goodAndWanted', header: 'Рекомендуют + хотят', width: 160, render: row => share(row.goodAndWanted) },
+    { key: 'brandPower', header: 'Сила бренда', width: 140, render: row => index(row.brandPower) },
+    { key: 'brandRating', header: 'Рейтинг бренда', width: 140, render: row => index(row.brandRating) }
+]
 
 export default function CompanyTable({ rows, sort, onSort }: Props) {
-    const getTableData = () => {
-        const tableRows = rows.map(toTableRow)
-        if (!sort) {
-            return tableRows
-        }
-        const { key, direction } = sort
-        return tableRows.sort((a, b) => {
-            if (key === 'name') {
-                return a.name < b.name ? (direction === 'asc' ? -1 : 1) : (direction === 'asc' ? 1 : -1);
-            }
-
-            const x = parseFloat(String(a[key]))
-            const y = parseFloat(String(b[key]))
-            if (direction === 'asc') {
-                return x - y;
-            } else {
-                return y - x;
-            }
-        });
-    }
+    const metrics = rows.map(toCompanyMetrics)
+    const sorted = sort ? sortRows(metrics, row => row[sort.key], sort.direction) : metrics
+    const data = sorted.map(row => Object.fromEntries(COLUMNS.map(column => [column.key, column.render(row)])))
 
     return (
         <Table
             autoHeight={false}
             height={500}
-            data={getTableData()}
+            data={data}
             sortColumn={sort?.key}
             sortType={sort?.direction}
             style={{marginRight: '50px', marginTop: '30px'}}
@@ -60,40 +50,12 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
                 }
             }}
         >
-            <Table.Column width={290} sortable>
-                <Table.HeaderCell>Компания</Table.HeaderCell>
-                <Table.Cell dataKey='name' />
-            </Table.Column>
-
-            <Table.Column width={100} sortable>
-                <Table.HeaderCell>Знают</Table.HeaderCell>
-                <Table.Cell dataKey='known' />
-            </Table.Column>
-
-            <Table.Column width={120} sortable>
-                <Table.HeaderCell>Рекомендуют</Table.HeaderCell>
-                <Table.Cell dataKey='good' />
-            </Table.Column>
-
-            <Table.Column width={100} sortable>
-                <Table.HeaderCell>Хотят</Table.HeaderCell>
-                <Table.Cell dataKey='wanted' />
-            </Table.Column>
-
-            <Table.Column width={160} sortable>
-                <Table.HeaderCell>Рекомендуют + хотят</Table.HeaderCell>
-                <Table.Cell dataKey='goodAndWanted' />
-            </Table.Column>
-
-            <Table.Column width={140} sortable>
-                <Table.HeaderCell>Сила бренда</Table.HeaderCell>
-                <Table.Cell dataKey='brandPower' />
-            </Table.Column>
-
-            <Table.Column width={140} sortable>
-                <Table.HeaderCell>Рейтинг бренда</Table.HeaderCell>
-                <Table.Cell dataKey='brandRating' />
-            </Table.Column>
+            {COLUMNS.map(column => (
+                <Table.Column key={column.key} width={column.width} sortable>
+                    <Table.HeaderCell>{column.header}</Table.HeaderCell>
+                    <Table.Cell dataKey={column.key} />
+                </Table.Column>
+            ))}
         </Table>
     )
 }

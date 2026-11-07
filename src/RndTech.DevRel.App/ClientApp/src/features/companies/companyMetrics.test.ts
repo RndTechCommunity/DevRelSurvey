@@ -1,5 +1,5 @@
 import { CompanyResult } from '../../api/types'
-import { toPercentWithTenths } from '../../shared/format'
+import { formatIndex } from '../../shared/format'
 import { companyResults } from '../../test/fixtures'
 import {
     chartY,
@@ -27,8 +27,13 @@ test('40 known, 10 good and 5 wanted of 100 respondents give the published value
     expect(metrics.good).toBe(0.1)
     expect(metrics.wanted).toBe(0.05)
     expect(metrics.goodAndWanted).toBeCloseTo(0.15, 10)
-    expect(toPercentWithTenths(metrics.brandPower)).toBe(95)
-    expect(toPercentWithTenths(metrics.brandRating)).toBe(60)
+    expect(formatIndex(metrics.brandPower)).toBe('95')
+    expect(formatIndex(metrics.brandRating)).toBe('60')
+})
+
+test('the brand rating is undefined when its denominator is not positive', () => {
+    expect(toCompanyMetrics(row('Почтатех', 2022)).brandRating).toBeNull()
+    expect(toCompanyMetrics(row('Тинькофф', 2022)).brandRating).toBeNull()
 })
 
 test('chartY sums enabled shares in 2022 and uses only wanted in 2019', () => {
