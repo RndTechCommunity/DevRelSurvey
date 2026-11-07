@@ -24,3 +24,18 @@
 .main {
     padding: var(--space-4) var(--space-6) var(--space-6);
 }
+
+@media (max-width: 1223px) {
+    .body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .header, .main {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+
+    .filters {
+        padding: var(--space-4) var(--space-4) 0;
+    }
+}

@@ -25,3 +25,9 @@
     gap: 4px;
     margin-bottom: var(--space-4);
 }
+
+@media (pointer: coarse) {
+    .panel > button {
+        min-height: 44px;
+    }
+}

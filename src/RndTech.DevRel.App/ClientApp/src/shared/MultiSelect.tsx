@@ -17,7 +17,7 @@ const ALL = -1
 export default function MultiSelect({ options, value, placeholder, labelledBy, onChange }: Props) {
     const [query, setQuery] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
-    const { ref, wrapperProps } = usePickerFocusReturn()
+    const { ref, wrapperProps, pickerProps } = usePickerFocusReturn()
     const choices = [...new Set([...options, ...value])]
     const allSelected = choices.length > 0 && choices.every(option => value.includes(option))
     const items = choices.map((label, index) => ({ value: index + 1, label }))
@@ -28,6 +28,7 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, o
         <div {...wrapperProps}>
             <CheckPicker
                 ref={ref}
+                onOpen={pickerProps.onOpen}
                 data={[{ value: ALL, label: 'Выбрать все' }, ...shown]}
                 placeholder={placeholder}
                 aria-labelledby={labelledBy}
@@ -36,7 +37,10 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, o
                 value={allSelected ? [ALL, ...selected] : selected}
                 renderValue={() => value.join(', ')}
                 onEntered={() => searchRef.current?.focus({ preventScroll: true })}
-                onClose={() => setQuery('')}
+                onClose={() => {
+                    pickerProps.onClose()
+                    setQuery('')
+                }}
                 onChange={next => {
                     const nextAll = next.includes(ALL)
                     onChange(nextAll !== allSelected

@@ -12,3 +12,9 @@
     overflow-wrap: anywhere;
     text-align: left;
 }
+
+@media (pointer: coarse) {
+    .chips button {
+        min-height: 44px;
+    }
+}

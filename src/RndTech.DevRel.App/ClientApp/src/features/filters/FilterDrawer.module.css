@@ -1,0 +1,24 @@
+.drawer {
+    max-width: 100%;
+}
+
+.dialog {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.dialog .body {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    padding: 0;
+}
+
+.footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-top: 1px solid var(--rs-border-primary);
+}

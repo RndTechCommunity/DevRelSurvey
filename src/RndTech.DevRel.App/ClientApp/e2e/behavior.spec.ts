@@ -5,14 +5,12 @@ import { forCity, INITIAL_FILTER, isCompanies, isFilterOptions, isMeta, mockApi 
 
 // Исправленное поведение (разрешённые изменения issue #19).
 
-const MOBILE_TITLE = 'Исследование Ростовского ИТ-сообщества'
-
 function table(page: Page, header: string) {
-    return page.locator('.rs-table').filter({ has: page.getByRole('columnheader', { name: header }) })
+    return page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: header }) })
 }
 
 function firstColumn(tableLocator: Locator) {
-    return tableLocator.locator('.rs-table-body-row-wrapper .rs-table-cell-first')
+    return tableLocator.locator('tbody td:first-child')
 }
 
 // Сортировка применяется сразу; в исходной версии — через 500 ms.
@@ -66,25 +64,25 @@ function collectErrors(page: Page) {
 }
 
 for (const width of [768, 1223]) {
-    test(`width ${width} mounts only the mobile view`, async ({ page }) => {
+    test(`width ${width} shows the full interface with a filter drawer`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await mockApi(page)
         await page.goto('/')
 
-        await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toBeVisible()
-        await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Фильтры · 2' })).toBeVisible()
+        await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(1)
     })
 }
 
 for (const width of [1224, 1225, 1440]) {
-    test(`width ${width} mounts only the desktop view`, async ({ page }) => {
+    test(`width ${width} shows one interface with a filter sidebar`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await mockApi(page)
         await page.goto('/')
 
         await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         await expect(filterPanel(page)).toHaveCount(1)
-        await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: /^Фильтры ·/ })).toHaveCount(0)
         await expect(page.locator('.recharts-wrapper')).toHaveCount(1)
     })
 }
@@ -97,12 +95,12 @@ test.describe('desktop 1440', () => {
         await page.goto('/')
         const companies = table(page, 'Компания')
 
-        await companies.getByRole('columnheader', { name: 'Компания' }).click()
+        await companies.getByRole('button', { name: 'Компания' }).click()
         await expect(firstColumn(companies)).toHaveText(
             ['Тинькофф', 'Почтатех', 'Контур', 'ИТРУМ (ex Exceed Team)', 'IBS Dunice', 'Gamma%'], WITHOUT_DELAY)
 
         await expect(companies.getByRole('columnheader', { name: 'Компания' })).toHaveAttribute('aria-sort', 'descending')
-        await companies.getByRole('columnheader', { name: 'Компания' }).click()
+        await companies.getByRole('button', { name: 'Компания' }).click()
         await expect(firstColumn(companies)).toHaveText(
             ['Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Контур', 'Почтатех', 'Тинькофф'])
     })
@@ -113,7 +111,7 @@ test.describe('desktop 1440', () => {
         await page.getByRole('button', { name: 'Состав выборки' }).click()
         const languages = table(page, 'Язык программирования')
 
-        await languages.getByRole('columnheader', { name: 'Язык программирования' }).click()
+        await languages.getByRole('button', { name: 'Язык программирования' }).click()
         await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'], WITHOUT_DELAY)
     })
 
@@ -188,9 +186,8 @@ test.describe('desktop 1440', () => {
         const loaded = api.calls.length
 
         await page.setViewportSize({ width: 390, height: 900 })
-        await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toBeVisible()
-        await expect(page.locator('.rs-picker-toggle-value')).toHaveText('Таганрог')
-        await expect(page.getByText('Данные 2021 года')).toBeVisible()
+        await expect(yearRadio(page, '2021')).toBeChecked()
+        await expect(page.getByText('2021 · Таганрог, 20–44 года · Выборка: 60 из 500')).toBeVisible()
 
         await page.setViewportSize({ width: 1440, height: 900 })
         await expect(yearRadio(page, '2021')).toBeChecked()
@@ -377,7 +374,7 @@ test.describe('desktop 1440', () => {
 
         await selectYear(page, '2021')
         await toggleCheckbox(page, 'Знаю и хочу работать')
-        await table(page, 'Компания').getByRole('columnheader', { name: 'Знают' }).click()
+        await table(page, 'Компания').getByRole('button', { name: 'Знают' }).click()
         await page.locator('.rs-picker-toggle', { hasText: 'IBS Dunice' }).click()
         await toggleCheckbox(page, 'Выбрать все')
         await page.keyboard.press('Escape')
@@ -494,11 +491,11 @@ test.describe('desktop 1440', () => {
         await page.goto('/')
         const companies = table(page, 'Компания')
 
-        await companies.getByRole('columnheader', { name: 'Рейтинг бренда' }).click()
+        await companies.getByRole('button', { name: 'Рейтинг бренда' }).click()
 
         await expect(firstColumn(companies)).toHaveText(
             ['Контур', 'Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Тинькофф', 'Почтатех'])
-        await expect(companies.locator('.rs-table-body-row-wrapper .rs-table-cell-last'))
+        await expect(companies.locator('tbody td:last-child'))
             .toHaveText(['66.7', '66.7', '60', '33.3', '—', '—'])
     })
 
@@ -506,7 +503,7 @@ test.describe('desktop 1440', () => {
         await mockApi(page)
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&page=sample'))
 
-        await expect(page.locator('.rs-table-row', { hasText: 'Тбилиси' }).locator('.rs-table-cell'))
+        await expect(page.locator('tbody tr', { hasText: 'Тбилиси' }).locator('td'))
             .toHaveText(['Тбилиси', '1 (100%)'])
         await selectYear(page, '2021')
         await expect(page.getByText('В выбранной группе нет респондентов за 2021 год.')).toBeVisible()
@@ -514,24 +511,150 @@ test.describe('desktop 1440', () => {
     })
 })
 
-test('mobile shows the number of respondents of the selected year', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 900 })
-    await mockApi(page)
-    await page.goto('/?v=1&year=2021')
-
-    await expect(page.getByText('Данные 2021 года')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('60')
-})
-
-test('mobile shows the bar values when the sample arrives after the companies', async ({ page }) => {
+test('mobile keeps the selected year and renders a late sample independently of companies', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 })
     const api = await mockApi(page)
     let release = () => {}
     api.override(isMeta, new Promise<void>(resolve => { release = resolve }))
-    await page.goto('/')
-    await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(12)
-
+    await page.goto('/?v=1&year=2021')
+    await expect(yearRadio(page, '2021')).toBeChecked()
+    await expect(firstColumn(table(page, 'Компания'))).toHaveCount(3)
+    await expect(page.getByText('Выборка: …')).toBeVisible()
     release()
+    await expect(page.getByText('Выборка: 60 из 500')).toBeVisible()
+    await navButton(page, 'Состав выборки').click()
+    await expect(table(page, 'Язык программирования').getByText('40 (66.7%)')).toBeVisible()
+})
 
-    await expect(page.locator('.recharts-label-list')).toHaveCount(2)
+test.describe('filter draft', () => {
+    test.use({ viewport: { width: 390, height: 900 } })
+
+    test('cancel, close and Escape discard changes, unchanged apply sends nothing, two edits apply once', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        const trigger = page.getByRole('button', { name: 'Фильтры · 2' })
+        const drawer = page.getByRole('dialog', { name: 'Фильтры', exact: true })
+        const posts = api.posts().length
+        for (const action of ['Отмена', 'Закрыть', 'Escape', 'Показать результаты']) {
+            await trigger.click()
+            await expect(drawer).toBeVisible()
+            if (action !== 'Показать результаты') await drawer.getByRole('button', { name: 'Все участники', exact: true }).click()
+            if (action === 'Escape') await page.keyboard.press('Escape')
+            else await drawer.getByRole('button', { name: action, exact: true }).click()
+            await expect(drawer).toHaveCount(0)
+            await expect(trigger).toBeFocused()
+            expect(api.posts()).toHaveLength(posts)
+        }
+        await trigger.click()
+        await drawer.getByRole('button', { name: 'Таганрог, 20–44 года' }).click()
+        const community = drawer.getByRole('combobox', { name: 'Митапы или сообщество' })
+        await community.click()
+        await page.getByRole('option', { name: 'Да', exact: true }).click()
+        expect(api.posts()).toHaveLength(posts)
+        await drawer.getByRole('button', { name: 'Показать результаты' }).click()
+        await expect(drawer).toHaveCount(0)
+        await expect.poll(() => api.posts().length).toBe(posts + 2)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual({ ...TAGANROG, isCommunity: 'Да' })
+        await expect(page.getByRole('button', { name: 'Фильтры · 3' })).toBeFocused()
+    })
+
+    test('Back resets an open draft and resize discards it without resetting the page', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/')
+        await selectYear(page, '2021')
+        const trigger = page.getByRole('button', { name: 'Фильтры · 2' })
+        await trigger.click()
+        const drawer = page.getByRole('dialog', { name: 'Фильтры', exact: true })
+        await drawer.getByRole('button', { name: 'Все участники', exact: true }).click()
+        await page.goBack()
+        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await drawer.getByRole('button', { name: 'Отмена' }).click()
+        await expect(drawer).toHaveCount(0)
+        expect(api.posts()).toHaveLength(2)
+        await selectYear(page, '2021')
+        await trigger.click()
+        await drawer.getByRole('button', { name: 'Таганрог, 20–44 года' }).click()
+        await drawer.getByRole('button', { name: 'Показать результаты' }).click()
+        await expect(drawer).toHaveCount(0)
+        await expect(page.getByText('2021 · Таганрог')).toBeVisible()
+        await trigger.click()
+        await drawer.getByRole('button', { name: 'Все участники', exact: true }).click()
+        await page.goBack()
+        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await drawer.getByRole('button', { name: 'Таганрог, 20–44 года' }).click()
+        await page.setViewportSize({ width: 1440, height: 900 })
+        await expect(drawer).toHaveCount(0)
+        await expect(yearRadio(page, '2022')).toBeChecked()
+        await expect(sidebarButton(page, 'Исходная выборка')).toBeDisabled()
+        const posts = api.posts().length
+        await page.setViewportSize({ width: 390, height: 900 })
+        await trigger.click()
+        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await drawer.getByRole('button', { name: 'Показать результаты' }).click()
+        await expect(drawer).toHaveCount(0)
+        expect(api.posts()).toHaveLength(posts)
+    })
+})
+
+for (const width of [768, 1223]) {
+    test(`nested Escape and immediate reopening at ${width} keep draft and focus in the right panel`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 })
+        const api = await mockApi(page)
+        await page.goto('/')
+        const trigger = page.getByRole('button', { name: 'Фильтры · 2' })
+        await trigger.click()
+        const drawer = page.getByRole('dialog', { name: 'Фильтры', exact: true })
+        await drawer.getByRole('button', { name: 'Таганрог, 20–44 года' }).click()
+        const city = drawer.getByRole('combobox', { name: 'Город', exact: true })
+        await city.click()
+        await page.keyboard.press('Escape')
+        await expect(city).toBeFocused()
+        await expect(page.getByRole('listbox')).toHaveCount(0)
+        await expect(drawer.getByRole('button', { name: 'Таганрог, 20–44 года' })).toBeDisabled()
+        const posts = api.posts().length
+        await page.keyboard.press('Escape')
+        // Повторное открытие до завершения closing animation.
+        await trigger.evaluate(button => (button as HTMLButtonElement).click())
+        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        const cancel = drawer.getByRole('button', { name: 'Отмена' })
+        await cancel.focus()
+        await page.keyboard.press('Tab')
+        await expect(drawer.getByRole('button', { name: 'Закрыть', exact: true })).toBeFocused()
+        await page.keyboard.press('Shift+Tab')
+        await expect(cancel).toBeFocused()
+        for (let i = 0; i < 20; i++) {
+            await page.keyboard.press('Tab')
+            expect(await page.getByTestId('drawer-wrapper').evaluate(dialog => dialog.contains(document.activeElement))).toBe(true)
+        }
+        await page.keyboard.press('Escape')
+        await expect(drawer).toHaveCount(0)
+        await expect(trigger).toBeFocused()
+        expect(api.posts()).toHaveLength(posts)
+    })
+}
+
+test('resize keeps company selection and both sorts, without remounting main or requesting data', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 })
+    const api = await mockApi(page)
+    await page.goto('/?v=1&year=2021&companies=%5B%22IBS%20Dunice%22%5D')
+    const main = await page.getByRole('main').elementHandle()
+    const companyTable = table(page, 'Компания')
+    await companyTable.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
+    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'Zero Corp', 'IBS Dunice'])
+    const posts = api.posts().length
+    await page.setViewportSize({ width: 1440, height: 900 })
+    expect(await main!.evaluate(element => element.isConnected)).toBe(true)
+    await expect(page.getByRole('combobox', { name: 'Компании', exact: true })).toHaveText('IBS Dunice')
+    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'Zero Corp', 'IBS Dunice'])
+    await navButton(page, 'Состав выборки').click()
+    const languages = table(page, 'Язык программирования')
+    await languages.getByRole('button', { name: 'Язык программирования' }).press('Space')
+    await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'])
+    for (const width of [390, 1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'])
+        await expect(yearRadio(page, '2021')).toBeChecked()
+    }
+    expect(api.posts()).toHaveLength(posts)
 })

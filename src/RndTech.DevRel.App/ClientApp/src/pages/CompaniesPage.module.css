@@ -20,3 +20,15 @@
     min-height: 300px;
     margin-bottom: var(--space-4);
 }
+
+@media (max-width: 1223px) {
+    .chart {
+        aspect-ratio: 1;
+        max-height: none;
+        min-height: 0;
+    }
+
+    .companyPicker {
+        max-width: 100%;
+    }
+}

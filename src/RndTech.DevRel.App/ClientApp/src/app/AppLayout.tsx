@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Nav } from 'rsuite'
 import { CompanyResult, FilterOptions, SurveyMeta } from '../api/types'
+import FilterDrawer from '../features/filters/FilterDrawer'
 import FilterChips from '../features/filters/FilterChips'
 import { NO_RESTRICTIONS } from '../features/filters/model'
 import FilterPanel from '../features/filters/FilterPanel'
@@ -14,6 +15,7 @@ import { SurveyPage, SurveyState } from './surveyState'
 import { UpdateSurveyState } from './useSurveyState'
 
 type Props = {
+    isWide: boolean,
     state: SurveyState,
     update: UpdateSurveyState,
     onDuplicate: () => void,
@@ -28,7 +30,7 @@ const SECTIONS = [
     { page: 'methodology', label: 'О данных' }
 ] as const
 
-export default function AppLayout({ state, update, onDuplicate, companies, meta, options }: Props) {
+export default function AppLayout({ isWide, state, update, onDuplicate, companies, meta, options }: Props) {
     // Раздел «О данных», на который ведёт «Подробнее»; в адрес не пишется.
     const [aboutSection, setAboutSection] = useState<MethodologySection>()
 
@@ -71,13 +73,13 @@ export default function AppLayout({ state, update, onDuplicate, companies, meta,
                 : <>
                     <SurveyBar state={state} update={update} meta={meta} onDuplicate={onDuplicate} />
                     <div className={styles.body}>
-                        <aside className={styles.aside}>
-                            <FilterPanel
-                                filter={state.filter}
-                                options={options}
-                                onChange={filter => update({ filter })}
-                            />
-                        </aside>
+                        <div className={styles.filters}>
+                            {isWide
+                                ? <aside className={styles.aside}>
+                                    <FilterPanel filter={state.filter} options={options} onChange={filter => update({ filter })} />
+                                </aside>
+                                : <FilterDrawer filter={state.filter} options={options} onChange={filter => update({ filter })} />}
+                        </div>
                         <main className={styles.main}>
                             <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
                             {state.page === 'sample'

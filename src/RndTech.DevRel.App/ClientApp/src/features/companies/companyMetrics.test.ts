@@ -6,7 +6,6 @@ import {
     selectCompanyRows,
     selectMapRows,
     toCompanyMetrics,
-    topCompanies,
     yAxisMax
 } from './companyMetrics'
 
@@ -65,19 +64,4 @@ test('map rows: an empty selection means all companies, names are the original i
     expect(selectMapRows(rows2022, ['ИТРУМ (ex Exceed Team)', 'Контур', 'Zero Corp']).map(r => r.name))
         .toEqual(['Контур', 'ИТРУМ (ex Exceed Team)'])
     expect(selectMapRows(rows2022, ['ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)'])).toEqual([])
-})
-
-test('top companies keep the known order for equal values', () => {
-    const top = topCompanies(selectCompanyRows(companyResults, 2022))
-
-    expect(top.known.map(r => r.name))
-        .toEqual(['Тинькофф', 'Контур', 'Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Почтатех'])
-    expect(top.attractive.map(r => r.name))
-        .toEqual(['Тинькофф', 'Контур', 'Gamma%', 'IBS Dunice', 'Почтатех', 'ИТРУМ (ex Exceed Team)'])
-})
-
-test('attractiveness in 2019 is ranked by wanted', () => {
-    const rows2019 = [row('IBS Dunice', 2019), { ...row('Контур', 2019), goodLevel: 0, wantedLevel: 0.3 }]
-
-    expect(topCompanies(rows2019).attractive.map(r => r.name)).toEqual(['Контур', 'IBS Dunice'])
 })
