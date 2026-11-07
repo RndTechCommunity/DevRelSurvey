@@ -265,6 +265,34 @@ test.describe('desktop 1440', () => {
         expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(INITIAL_FILTER)
     })
 
+    test('Enter in search keeps the initial city, arrows and Enter select a visible match', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        const city = filterPanel(page).getByRole('combobox', { name: 'Город', exact: true })
+        await city.click()
+        const search = page.getByRole('textbox', { name: 'Поиск' })
+        await search.pressSequentially('таг')
+        await expect(search).toBeFocused()
+        await expect(page.getByRole('option')).toHaveText(['Выбрать все', 'Таганрог'])
+        const posts = api.posts().length
+
+        await search.press('Enter')
+        await page.waitForLoadState('networkidle')
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(INITIAL_FILTER)
+        expect(api.posts()).toHaveLength(posts)
+
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await expect.poll(() => api.posts().length).toBe(posts + 2)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual({
+            ...INITIAL_FILTER, cities: ['Ростов-на-Дону', 'Таганрог']
+        })
+        await page.keyboard.press('Escape')
+        await expect(city).toBeFocused()
+    })
+
     test('the first list item selects all with Enter, another Enter clears, Cyrillic search keeps old values', async ({ page }) => {
         const api = await mockApi(page)
         const archived = 'Город "А", __all__, -1'

@@ -53,7 +53,7 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, o
                                 value={query}
                                 onChange={setQuery}
                                 onKeyDown={event => {
-                                    if (event.key === 'Backspace') event.stopPropagation()
+                                    if (event.key === 'Backspace' || event.key === 'Enter') event.stopPropagation()
                                 }}
                             />
                         </div>
