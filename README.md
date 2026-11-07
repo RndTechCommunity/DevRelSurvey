@@ -2,7 +2,7 @@
 
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-purple)](https://dotnet.microsoft.com/)
 [![React 18](https://img.shields.io/badge/React-18-blue)](https://react.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue)](https://www.postgresql.org/)
+[![MariaDB/MySQL](https://img.shields.io/badge/MariaDB%2FMySQL-blue)](https://mariadb.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-blue)](https://www.typescriptlang.org/)
 
 Веб-приложение для визуализации результатов ежегодного опроса узнаваемости и привлекательности ИТ-компаний в Ростове-на-Дону и Ростовской области от сообщества [RndTech](https://rndtech.pro/).
@@ -26,7 +26,7 @@ DevRelSurvey — это платформа для анализа данных о
 **Backend:**
 - .NET 8 с ASP.NET Core Minimal API
 - Entity Framework Core 8.0
-- PostgreSQL (через Pomelo.EntityFrameworkCore.MySql)
+- MariaDB/MySQL (через Pomelo.EntityFrameworkCore.MySql)
 - Redis для кэширования (production)
 - Prometheus для метрик
 
@@ -36,6 +36,7 @@ DevRelSurvey — это платформа для анализа данных о
 - RSuite UI Components
 - Recharts для визуализации
 - Axios для HTTP-запросов
+- Vite (сборка и dev-сервер), Vitest и Playwright (тесты)
 
 ### Структура проекта
 
@@ -54,6 +55,7 @@ DevRelSurvey/
 │   │   └── ModelConfiguration/       # EF конфигурации
 │   └── RndTech.DevRel.Importer/      # Утилита импорта данных
 │       └── 2022/                     # Импортёр для формата 2022
+├── tests/smoke/seed.sql              # Синтетическая БД MariaDB для локального стенда
 ├── Dockerfile                         # Docker образ для деплоя
 └── RndTech.DevRel.sln                # Solution файл
 ```
@@ -76,21 +78,21 @@ DevRelSurvey/
 - **Metrics**: интеграция с Prometheus для мониторинга
 
 **Frontend компоненты:**
-- **KnownAndWantedPage**: главная страница с графиком компаний
-- **DataMetaPage**: статистика по демографии выборки
-- **FiltersSidePage**: панель фильтров с пресетами
-- **ResultsMobile**: мобильная версия интерфейса
+- **CompaniesPage**: главная страница с картой и таблицей компаний за выбранный год
+- **SamplePage**: состав выборки по годам
+- **FilterPanel**: панель фильтров с пресетами
+- **MobileSummary**: мобильная версия интерфейса (ширина меньше 1224 px)
 
 #### 3. RndTech.DevRel.Importer
-Консольная утилита для импорта очищенных данных опроса в БД. Поддерживает различные форматы данных для разных годов проведения опроса.
+Консольная утилита для импорта очищенных данных опроса в БД. Сейчас поддерживает только CSV 2022 года; имя файла `2022.csv` и пустая строка подключения заданы в коде (`2022/Importer.cs`), аргументов командной строки нет.
 
 ## 🚀 Быстрый старт
 
 ### Требования
 
 - .NET 8 SDK
-- Node.js 18+
-- Postgresql/MySql/MariaDb
+- Node.js 24 (`.nvmrc`)
+- MariaDB или MySQL со схемой и данными; для локальной работы подойдёт синтетический `tests/smoke/seed.sql` (только MariaDB, см. [CONTRIBUTING.md](CONTRIBUTING.md#smoke-стенд-с-mariadb))
 - Redis (для production)
 
 ### Локальная разработка
@@ -111,16 +113,20 @@ export DEVRELAPP_CONFIG_DATABASE="Server=localhost;Database=devrel;User Id=user;
 ```bash
 dotnet restore
 cd src/RndTech.DevRel.App/ClientApp
-npm install
+npm ci
 cd ../../..
 ```
 
-4. **Запустите приложение:**
+4. **Запустите backend и frontend в двух терминалах:**
 ```bash
-dotnet run --project src/RndTech.DevRel.App
+# Backend (API на http://localhost:29500), корень репозитория
+ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile --project src/RndTech.DevRel.App
+
+# Frontend, src/RndTech.DevRel.App/ClientApp
+npm start
 ```
 
-Приложение будет доступно по адресу: `http://localhost:29500`
+Интерфейс будет доступен по адресу `http://localhost:44422`: dev-сервер Vite проксирует `/api` на backend `http://localhost:29500`. Собранный фронтенд backend отдаёт на 29500 только из результата `dotnet publish` или в Docker-образе.
 
 ### Docker
 
@@ -154,14 +160,17 @@ docker run -p 29500:29500 \
 ```
 ClientApp/
 ├── src/
-│   ├── components/
-│   │   ├── filters/          # Компоненты фильтров
-│   │   └── pages/            # Страницы приложения
-│   ├── api.ts                # API клиент
-│   ├── config.ts             # Конфигурация
-│   └── format.ts             # Утилиты форматирования
-├── public/                   # Статические файлы
-└── package.json              # Зависимости npm
+│   ├── api/                  # HTTP-клиент (axios) и типы ответов API
+│   ├── app/                  # Корень, состояние исследования и адрес страницы, загрузка данных
+│   ├── pages/                # Компании, состав выборки, мобильная версия
+│   ├── features/             # Фильтры, карта и таблица компаний, расчёт показателей, таблица состава
+│   ├── shared/               # Форматирование, сортировка, общие компоненты
+│   └── test/fixtures.ts      # Синтетические ответы API для тестов
+├── e2e/                      # Браузерные сценарии Playwright
+├── public/                   # Статические файлы, копируются в сборку как есть
+├── index.html                # Точка входа Vite
+├── vite.config.ts            # Сборка в build/, dev-сервер, Vitest
+└── package.json              # Зависимости и скрипты npm
 ```
 
 ### Добавление нового фильтра
@@ -170,14 +179,14 @@ ClientApp/
 2. Реализуйте обработчик в `Implementation/QueryHandlers/Filters/`
 3. Зарегистрируйте обработчик в `Program.cs`
 4. Добавьте endpoint в `IEndpointRouteBuilderExtensions.cs`
-5. Обновите компонент фильтра в React
+5. На фронтенде добавьте справочник в `FilterOptions` и `getFilterOptions` (`ClientApp/src/api/`), поле — в `features/filters/model.ts` (тип, исходный фильтр, разбор ссылки) и `features/filters/FilterPanel.tsx`
 
 ### Импорт данных нового года
 
 1. Создайте папку с годом в `src/RndTech.DevRel.Importer/`
 2. Реализуйте классы для чтения формата данных
 3. Создайте маппинг в Entity модели
-4. Запустите импортёр с параметрами
+4. Укажите в коде путь к файлу и строку подключения: аргументов командной строки импортёр не принимает
 
 ## 📊 API Endpoints
 
@@ -213,7 +222,12 @@ GET /api/filters/communitySources
 
 ### CapRover
 
-Приложение автоматически деплоится на CapRover при push в ветку `master`.
+Production обновляется двумя независимыми механизмами:
+
+- **Push-webhook CapRover на ветку `master`.** Любой push в `master`, включая merge pull request, запускает production-сборку на сервере. Поэтому не пушьте в `master` напрямую: изменения попадают туда только через pull request, а merge — это релиз.
+- **`.github/workflows/deploy.yml`** запускается только вручную (`workflow_dispatch`): собирает образ, публикует его в GHCR и отправляет в CapRover.
+
+`.github/workflows/verify.yml` проверяет каждый pull request (фронтенд и `docker build`) и ничего не деплоит.
 
 **Настройки CapRover:**
 - Container HTTP Port: `29500`
@@ -234,7 +248,7 @@ GET /api/filters/communitySources
 
 ## 🤝 Участие в разработке
 
-Мы приветствуем вклад в развитие проекта!
+Мы приветствуем вклад в развитие проекта! Порядок работы, проверки и локальный стенд описаны в [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Как помочь
 
