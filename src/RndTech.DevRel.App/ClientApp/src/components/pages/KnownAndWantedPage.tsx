@@ -21,7 +21,7 @@ import {
 } from '../../features/companies/companyMetrics'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
-import { Checkbox, Loader, Table, Tooltip, Whisper } from 'rsuite';
+import { Checkbox, Table, Tooltip, Whisper } from 'rsuite';
 
 const defaultFillColor = '#AAAAAA'
 const axesColor = '#81E2E7'
@@ -89,11 +89,11 @@ type Props = {
     useError: boolean,
     useGood: boolean,
     useWanted: boolean,
-    companyEntries: readonly CompanyResult[] | undefined,
+    companyEntries: readonly CompanyResult[],
     onUseErrorChanged: (filter: boolean) => void,
     onUseGoodChanged: (filter: boolean) => void,
     onUseWantedChanged: (filter: boolean) => void,
-    companies: { value: string; label: any; }[],
+    companies: readonly string[],
     sort: SurveyState['sort'],
     onSortChanged: (sort: SurveyState['sort']) => void
 }
@@ -116,12 +116,12 @@ export function KnownAndWantedPage(props: Props) {
         };
     }
 
-    const companyEntries = props.companyEntries && selectCompanyRows(props.companyEntries, props.year)
+    const companyEntries = selectCompanyRows(props.companyEntries, props.year)
     const flags = { showGood: useGood, showWanted: useWanted }
 
     const getTableData = () => {
         if (sortColumn && sortType) {
-            return companyEntries?.map(prepareTableData).sort((a, b) => {
+            return companyEntries.map(prepareTableData).sort((a, b) => {
                 if (sortColumn === 'name') {
                     return a.name < b.name ? (sortType === 'asc' ? -1 : 1) : (sortType === 'asc' ? 1 : -1);
                 }
@@ -135,14 +135,10 @@ export function KnownAndWantedPage(props: Props) {
                 }
             });
         }
-        return companyEntries?.map(prepareTableData);
+        return companyEntries.map(prepareTableData);
     }
 
     const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = props
-
-    if (!companyEntries) {
-        return (<Loader content='Загрузка данных' center />)
-    }
 
     const getFillColor = (company: string) => {
         // @ts-ignore
@@ -213,9 +209,9 @@ export function KnownAndWantedPage(props: Props) {
                         <label>Компании</label>
                     </div>
                     <MultiSelect
-                        items={props.companies}
+                        options={props.companies}
                         placeholder='Компании'
-                        selected={selectedCompanies}
+                        value={selectedCompanies}
                         onChange={onCompaniesChanged}
                     />
                     <Checkbox

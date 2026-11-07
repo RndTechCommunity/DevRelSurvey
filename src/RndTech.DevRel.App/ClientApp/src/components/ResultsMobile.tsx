@@ -14,12 +14,11 @@ import {
     PieChart,
     Pie
 } from 'recharts'
-import { useEffect } from 'react';
-import { getCities, getCompanyResults, getSurveyMeta } from '../api/client';
-import { CompanyResult, countOf, LATEST_YEAR, SurveyMeta } from '../api/types';
+import { CompanyResult, countOf, FilterOptions, LATEST_YEAR, MetaRow, SurveyMeta } from '../api/types';
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { toPercentWithTenths } from '../shared/format';
 import { chartY, selectCompanyRows, topCompanies } from '../features/companies/companyMetrics';
+import { AsyncState, RequestState } from '../shared/AsyncState';
 
 
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name}) => {
@@ -64,77 +63,28 @@ type BarData = {
 type Props = {
     classes?: any,
     state: SurveyState,
-    update: UpdateSurveyState
+    update: UpdateSurveyState,
+    companies: RequestState<readonly CompanyResult[]>,
+    meta: RequestState<SurveyMeta>,
+    options: RequestState<FilterOptions>
 }
+
+const TOP_SIZE = 10
 
 export function ResultsMobile(props: Props) {
     const { filter, year } = props.state
-    const [cities, setCities] = React.useState<string[]>([]);
-    const [data, setData] = React.useState<CompanyResult[]>([]);
-    const [mostKnown, setMostKnown] = React.useState<BarData[]>([]);
-    const [mostWanted, setMostWanted] = React.useState<BarData[]>([]);
-    const [meta, setMeta] = React.useState<SurveyMeta>();
-    const [ages, setAges] = React.useState<BarData[]>([]);
-    const [levels, setLevels] = React.useState<BarData[]>([]);
-    const [professions, setProfessions] = React.useState<BarData[]>([]);
-    const [languages, setLanguages] = React.useState<BarData[]>([]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const data = await getCompanyResults(filter)
-            await setData(data)
-
-            const meta = await getSurveyMeta(filter)
-            await setMeta(meta)
-            await setAges(meta.sources.ages.map(l => ({ name: l.name, level: countOf(l, year)} as BarData)))
-            await setLevels(meta.sources.levels.map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData)))
-            await setProfessions(meta
-                .sources
-                .professions
-                .map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData))
-                .sort((l1, l2) => l2.level - l1.level)
-                .slice(0,10))
-
-            await setLanguages(meta
-                .sources
-                .languages
-                .map(l => ({ name: l.name.split('/')[0], level: countOf(l, year)} as BarData))
-                .sort((l1, l2) => l2.level - l1.level)
-                .slice(0,10))
-
-            const top = topCompanies(selectCompanyRows(data, year));
-            const popular = top.known
-                .map(d => ({
-                    name: d.name.split('(')[0],
-                    level: toPercentWithTenths(d.knownLevel)
-                } as BarData))
-            await setMostKnown(popular)
-
-            const wanted = top.attractive
-                .map(d => ({
-					name: d.name.split('(')[0],
-                    level: toPercentWithTenths(chartY(d, { showGood: true, showWanted: true }))
-                } as BarData))
-            await setMostWanted(wanted)
-        };
-
-        fetchData();
-        }, [filter, year])
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const data = await getCities()
-            await setCities(data)
-        };
-
-        fetchData();
-        }, [])
+    const cities = props.options.data?.cities ?? []
 
     // Мобильный вид выбирает только один город; остальные ограничения задаются в полной версии.
     const city = filter.cities.length === 1 ? filter.cities[0] : null
     const hasOtherFilters = filter.cities.length > 1
         || (city !== null && cities.length > 0 && !cities.includes(city))
         || !sameFilter({ ...filter, cities: [] }, { ...DEFAULT_FILTER, cities: [] })
+
+    const toBars = (rows: readonly MetaRow[]): BarData[] =>
+        rows.map(l => ({ name: l.name.split('/')[0], level: countOf(l, year) }))
+    const topBars = (rows: readonly MetaRow[]) =>
+        toBars(rows).sort((l1, l2) => l2.level - l1.level).slice(0, TOP_SIZE)
 
     return (
             <Container>
@@ -168,23 +118,39 @@ export function ResultsMobile(props: Props) {
                     <Divider>Город выборки</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <SelectPicker
-                                data={cities.map(item => ({ label: item, value: item }))}
-                                value={city}
-                                onChange={value => props.update({ filter: { ...filter, cities: value ? [value] : [] } })}
-                                block />
+                            <AsyncState state={props.options}>
+                                {options => (
+                                    <SelectPicker
+                                        data={options.cities.map(item => ({ label: item, value: item }))}
+                                        value={city}
+                                        onChange={value => props.update({ filter: { ...filter, cities: value ? [value] : [] } })}
+                                        block />
+                                )}
+                            </AsyncState>
                             {hasOtherFilters && (
                                 <i className={props.classes.smallText}>Применены дополнительные фильтры полной версии</i>
                             )}
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
 
+                    <AsyncState state={props.companies}>
+                    {data => {
+                    const top = topCompanies(selectCompanyRows(data, year))
+                    const mostKnown = top.known.map(d => ({
+                        name: d.name.split('(')[0],
+                        level: toPercentWithTenths(d.knownLevel)
+                    }))
+                    const mostWanted = top.attractive.map(d => ({
+                        name: d.name.split('(')[0],
+                        level: toPercentWithTenths(chartY(d, { showGood: true, showWanted: true }))
+                    }))
+                    return (<>
                     <Divider>Всего участников</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
-                            <h1 className={props.classes.headertext}>{Math.max.apply(null, !data?.length
+                            <h1 className={props.classes.headertext}>{Math.max.apply(null, !data.length
                     ? [0]
-                    : data?.map(ca => ca.selectionCount))}</h1>
+                    : data.map(ca => ca.selectionCount))}</h1>
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
 
@@ -225,14 +191,20 @@ export function ResultsMobile(props: Props) {
                             </ResponsiveContainer>
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
+                    </>)
+                    }}
+                    </AsyncState>
+
+                    <AsyncState state={props.meta}>
+                    {meta => (<>
 
                     <Divider>Возраст и грейд</Divider>
                     <FlexboxGrid justify="center">
                         <FlexboxGrid.Item colspan={20}>
                             <ResponsiveContainer width='100%' aspect={1}>
                                 <PieChart>
-                                    <Pie data={ages} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} />
-                                    <Pie data={levels} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} />
+                                    <Pie data={meta.sources.ages.map(l => ({ name: l.name, level: countOf(l, year) }))} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} />
+                                    <Pie data={toBars(meta.sources.levels)} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </FlexboxGrid.Item>
@@ -244,7 +216,7 @@ export function ResultsMobile(props: Props) {
                             <Table
                                 autoHeight={true}
                                 showHeader={false}
-                                data={professions}>
+                                data={topBars(meta.sources.professions)}>
                                 <Table.Column flexGrow={1}>
                                     <Table.HeaderCell />
                                     <Table.Cell dataKey='name'/>
@@ -264,7 +236,7 @@ export function ResultsMobile(props: Props) {
                             <Table
                                 autoHeight={true}
                                 showHeader={false}
-                                data={languages}>
+                                data={topBars(meta.sources.languages)}>
                                 <Table.Column flexGrow={1}>
                                     <Table.HeaderCell />
                                     <Table.Cell dataKey='name'/>
@@ -277,6 +249,8 @@ export function ResultsMobile(props: Props) {
                             </Table>
                         </FlexboxGrid.Item>
                     </FlexboxGrid>
+                    </>)}
+                    </AsyncState>
                 </div>
             </Container>
             )

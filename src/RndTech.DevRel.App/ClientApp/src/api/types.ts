@@ -33,6 +33,14 @@ export type SurveyMeta = {
     readonly sources: { readonly [K in MetaSourceKey]: readonly MetaRow[] }
 }
 
+export type FilterOptions = {
+    readonly cities: readonly string[],
+    readonly educations: readonly string[],
+    readonly experienceLevels: readonly string[],
+    readonly professions: readonly string[],
+    readonly programmingLanguages: readonly string[]
+}
+
 export function countOf(row: MetaRow, year: SurveyYear): number {
     return row[`count${year}`]
 }

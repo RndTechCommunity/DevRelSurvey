@@ -1,11 +1,7 @@
-import * as React from 'react'
-import { getSurveyMeta } from '../../api/client'
 import { SurveyMeta } from '../../api/types'
-import { RespondentFilter } from '../../features/filters/model'
 import injectSheet from 'react-jss';
 import { DataMetaTable } from './DataMetaTable';
-import { Col, Container, Content, Divider, Grid, Loader, Row } from 'rsuite';
-import { useEffect } from 'react';
+import { Col, Container, Content, Divider, Grid, Row } from 'rsuite';
 
 const styles = {
     container: {
@@ -40,42 +36,34 @@ const styles = {
 
 type Props = {
     classes?: any,
-    filter: RespondentFilter
+    meta: SurveyMeta
 }
 
 export function SelectionFactorsPage(props: Props) {
-    const [isReady, setIsReady] = React.useState<boolean>(false);
-    const [meta, setMeta] = React.useState<SurveyMeta>();
-
-    useEffect(() => {
-        getSurveyMeta(props.filter)
-            .then(data => setMeta(data))
-            .then(() => setIsReady(true));
-    }, [props.filter]);
+    const { meta } = props
 
     return (
-        !isReady ? <Loader content='Загрузка данных' center /> :
         <Container>
             <Content>
                 <div className={props.classes.groups}>
                     <Grid fluid>
                         <Row>
                             <Col>
-                                <DataMetaTable filteredTotal={meta!.filtered} data={meta!.sources.cities} header={'Город'} />
+                                <DataMetaTable filteredTotal={meta.filtered} data={meta.sources.cities} header={'Город'} />
                             </Col>
                         </Row>
                         <Divider />
                         <Row>
                             <Col>
-                                <DataMetaTable filteredTotal={meta!.filtered} data={meta!.sources.ages} header={'Возраст'} />
+                                <DataMetaTable filteredTotal={meta.filtered} data={meta.sources.ages} header={'Возраст'} />
                             </Col>
                         </Row>
                         <Divider />
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.education} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.education} 
                                     header={'Образование'} 
                                 />
                             </Col>
@@ -84,8 +72,8 @@ export function SelectionFactorsPage(props: Props) {
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.professions} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.professions} 
                                     header={'Профессия'} 
                                 />
                             </Col>
@@ -94,8 +82,8 @@ export function SelectionFactorsPage(props: Props) {
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.languages} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.languages} 
                                     header={'Язык программирования'} 
                                 />
                             </Col>
@@ -104,8 +92,8 @@ export function SelectionFactorsPage(props: Props) {
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.levels} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.levels} 
                                     header={'Грейд'} 
                                 />
                             </Col>
@@ -114,8 +102,8 @@ export function SelectionFactorsPage(props: Props) {
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.isCommunity} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.isCommunity} 
                                     header={'Посещает митапы'} 
                                 />
                             </Col>
@@ -124,8 +112,8 @@ export function SelectionFactorsPage(props: Props) {
                         <Row>
                             <Col>
                                 <DataMetaTable 
-                                    filteredTotal={meta!.filtered} 
-                                    data={meta!.sources.communitySource} 
+                                    filteredTotal={meta.filtered} 
+                                    data={meta.sources.communitySource} 
                                     header={'Откуда узнает о митапах'} 
                                 />
                             </Col>

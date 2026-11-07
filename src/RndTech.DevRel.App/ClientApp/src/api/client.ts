@@ -1,22 +1,27 @@
 import axios from 'axios'
 import { RespondentFilter } from '../features/filters/model'
-import { CompanyResult, SurveyMeta } from './types'
+import { CompanyResult, FilterOptions, SurveyMeta } from './types'
 
 const api = axios.create({
     baseURL: '/api'
 })
 
-function getList(path: string): Promise<string[]> {
+function getList(path: string, signal?: AbortSignal): Promise<string[]> {
     return api
-        .get<string[]>(path)
-        .then(response => response.data)
+        .get<string[]>(`filters/${path}`, { signal })
+        .then(response => response.data.filter(x => x !== ''))
 }
 
-export const getCities = () => getList('filters/cities')
-export const getEducations = () => getList('filters/educations')
-export const getExperienceLevels = () => getList('filters/experienceLevels')
-export const getProfessions = () => getList('filters/professions')
-export const getProgrammingLanguages = () => getList('filters/programmingLanguages')
+export async function getFilterOptions(signal?: AbortSignal): Promise<FilterOptions> {
+    const [cities, educations, experienceLevels, professions, programmingLanguages] = await Promise.all([
+        getList('cities', signal),
+        getList('educations', signal),
+        getList('experienceLevels', signal),
+        getList('professions', signal),
+        getList('programmingLanguages', signal)
+    ])
+    return { cities, educations, experienceLevels, professions, programmingLanguages }
+}
 
 export function getCompanyResults(filter: RespondentFilter, signal?: AbortSignal): Promise<readonly CompanyResult[]> {
     return api

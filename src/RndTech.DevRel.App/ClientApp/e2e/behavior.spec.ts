@@ -1,6 +1,6 @@
 import { expect, Locator, Page, test } from '@playwright/test'
 import { filterOptions } from '../src/test/fixtures'
-import { INITIAL_FILTER, mockApi } from './mockApi'
+import { forCity, INITIAL_FILTER, isCompanies, isFilterOptions, isMeta, mockApi } from './mockApi'
 
 // Исправленное поведение (разрешённые изменения issue #19).
 
@@ -37,6 +37,27 @@ async function spyOnWindowOpen(page: Page) {
 }
 
 const openedUrl = (page: Page) => page.evaluate(() => document.body.dataset.opened)
+
+const linkTo = (filter: object, extra = '') => `/?v=1&filter=${encodeURIComponent(JSON.stringify(filter))}${extra}`
+
+// Заблокированные счётчики Метрики и VK пишут в консоль свои ошибки — их не учитываем.
+const TRACKER_NOISE = /Failed to load resource|VK is not defined/
+
+function collectErrors(page: Page) {
+    const errors: string[] = []
+    const collect = (text: string) => {
+        if (!TRACKER_NOISE.test(text)) {
+            errors.push(text)
+        }
+    }
+    page.on('pageerror', error => collect(error.message))
+    page.on('console', message => {
+        if (message.type() === 'error') {
+            collect(message.text())
+        }
+    })
+    return errors
+}
 
 for (const width of [390, 768, 1223]) {
     test(`width ${width} mounts only the mobile view`, async ({ page }) => {
@@ -128,12 +149,14 @@ test.describe('desktop 1440', () => {
         expect(await page.evaluate(() => history.length)).toBe(historyLength)
     })
 
-    test('resizing to mobile and back keeps the research state', async ({ page }) => {
-        await mockApi(page)
+    test('resizing to mobile and back keeps the research state without new requests', async ({ page }) => {
+        const api = await mockApi(page)
         await page.goto('/')
         await sidebarButton(page, 'Топ Таганрога').click()
         await navButton(page, '2021').click()
         await toggleCheckbox(page, 'Отображать доверительный интервал')
+        await page.waitForLoadState('networkidle')
+        const loaded = api.calls.length
 
         await page.setViewportSize({ width: 390, height: 900 })
         await expect(page.getByRole('heading', { name: MOBILE_TITLE })).toBeVisible()
@@ -144,6 +167,7 @@ test.describe('desktop 1440', () => {
         await expect(activeTab(page)).toHaveText('2021')
         await expect(sidebarButton(page, 'Топ Таганрога')).toBeDisabled()
         await expect(page.getByRole('checkbox', { name: 'Отображать доверительный интервал' })).toBeChecked()
+        expect(api.calls).toHaveLength(loaded)
     })
 
     test('a preset is inactive for a link with the same values in another order', async ({ page }) => {
@@ -185,5 +209,93 @@ test.describe('desktop 1440', () => {
         expect(await page.evaluate(() => location.search)).toBe(search)
         await sidebarButton(page, 'Дублировать').click()
         expect(await openedUrl(page)).toBeUndefined()
+    })
+
+    // Счёт ведётся после начальной загрузки: в dev-сборке StrictMode повторяет эффекты при монтировании.
+    test('the year, companies, chart flags, sorting and Back send no requests, a preset sends two', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        await page.waitForLoadState('networkidle')
+        const loaded = api.calls.length
+
+        await navButton(page, '2021').click()
+        await toggleCheckbox(page, 'Знаю и хочу работать')
+        await table(page, 'Компания').getByRole('columnheader', { name: 'Знают' }).click()
+        await page.locator('.rs-picker-toggle', { hasText: 'IBS Dunice' }).click()
+        await toggleCheckbox(page, 'Выбрать все')
+        await page.keyboard.press('Escape')
+        await navButton(page, 'Состав выборки').click()
+        await page.goBack()
+
+        await expect(activeTab(page)).toHaveText('2021')
+        expect(api.calls).toHaveLength(loaded)
+
+        await sidebarButton(page, 'Топ Таганрога').click()
+        await expect.poll(() => api.calls.length).toBe(loaded + 2)
+        expect(api.calls.slice(loaded).map(call => call.method)).toEqual(['POST', 'POST'])
+    })
+
+    test('a late response for the previous group does not replace the current one', async ({ page }) => {
+        const errors = collectErrors(page)
+        const api = await mockApi(page)
+        let release = () => {}
+        api.override(forCity('Тбилиси'), new Promise<void>(resolve => { release = resolve }))
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }))
+        await expect(page.getByText('Загрузка данных').first()).toBeVisible()
+
+        await sidebarButton(page, 'Топ Ростова').click()
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+        release()
+        await Promise.all(api.posts(forCity('Тбилиси')).map(call => call.done))
+        await page.waitForLoadState('networkidle')
+
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+        expect(errors).toEqual([])
+    })
+
+    test('a failed sample request shows an error and recovers on retry, companies keep working', async ({ page }) => {
+        const api = await mockApi(page)
+        const restore = api.override(isMeta, 500)
+        await page.goto('/')
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+        await navButton(page, 'Состав выборки').click()
+
+        await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
+        restore()
+        await page.getByRole('button', { name: 'Повторить' }).click()
+        await expect(page.getByRole('columnheader', { name: 'Язык программирования' })).toBeVisible()
+    })
+
+    test('a network error of the company request recovers on retry', async ({ page }) => {
+        const api = await mockApi(page)
+        const restore = api.override(isCompanies, 'abort')
+        await page.goto('/')
+
+        await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
+        restore()
+        await page.getByRole('button', { name: 'Повторить' }).click()
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+    })
+
+    test('a dictionary error stays in the filter panel', async ({ page }) => {
+        const api = await mockApi(page)
+        const restore = api.override(isFilterOptions, 500)
+        await page.goto('/')
+
+        await expect(page.locator('.rs-sidebar').getByText('Не удалось загрузить данные')).toBeVisible()
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+        restore()
+        await page.locator('.rs-sidebar').getByRole('button', { name: 'Повторить' }).click()
+        await expect(page.locator('.rs-sidebar .rs-picker-toggle', { hasText: 'Ростов-на-Дону' })).toBeVisible()
+    })
+
+    test('a group without respondents shows messages instead of tables', async ({ page }) => {
+        await mockApi(page)
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Нет-такого'] }))
+
+        await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
+        await navButton(page, 'Состав выборки').click()
+        await expect(page.getByText('В выбранной группе нет респондентов')).toBeVisible()
     })
 })

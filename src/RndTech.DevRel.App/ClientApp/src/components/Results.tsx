@@ -1,5 +1,4 @@
-﻿import * as React from 'react'
-import injectSheet from 'react-jss';
+﻿import injectSheet from 'react-jss';
 import { SurveyState } from '../app/surveyState'
 import { UpdateSurveyState } from '../app/useSurveyState'
 import Menu from './Menu'
@@ -7,10 +6,9 @@ import DataMetaPage from './pages/DataMetaPage'
 import KnownAndWantedPage from './pages/KnownAndWantedPage'
 import { Container, Content, Sidebar, Sidenav } from 'rsuite';
 import FiltersSidePage from './filters/FiltersSidePage';
-import { useEffect } from 'react';
-import { getCompanyResults } from '../api/client';
-import { CompanyResult } from '../api/types';
-import { companyNames } from '../features/companies/companyMetrics';
+import { CompanyResult, countOf, FilterOptions, SURVEY_YEARS, SurveyMeta } from '../api/types';
+import { companyNames, selectCompanyRows } from '../features/companies/companyMetrics';
+import { AsyncState, RequestState } from '../shared/AsyncState';
 
 const styles = {
     app: {
@@ -31,45 +29,51 @@ type Props = {
     classes?: any,
     state: SurveyState,
     update: UpdateSurveyState,
-    onDuplicate: () => void
+    onDuplicate: () => void,
+    companies: RequestState<readonly CompanyResult[]>,
+    meta: RequestState<SurveyMeta>,
+    options: RequestState<FilterOptions>
 }
 
 export function App(props: Props) {
     const { state, update } = props
     const filter = state.filter
-    const [filteredData, setFilteredData] = React.useState<readonly CompanyResult[]>();
-    
-    useEffect(() => {
-        const fetchData = async () => {
-            const data = await getCompanyResults(filter)
-            await setFilteredData(data)
-        };
 
-        fetchData();
-    }, [filter])
-    
-    const calculateCompaniesList = (entries: readonly CompanyResult[] | undefined) => {
-        return companyNames(entries ?? []).map(x => ({ value: x, label: x }))
-    }
-    
     let content =
-        state.page === 'sample' ? <DataMetaPage filter={filter}/> :
-            <KnownAndWantedPage
-                selectedCompanies={state.companies}
-                filter={filter}
-                year={state.year}
-                onCompaniesChanged={companies => update({ companies })}
-                useError={state.showLegacyError}
-                onUseErrorChanged={showLegacyError => update({ showLegacyError })}
-                useGood={state.showGood}
-                companyEntries={filteredData}
-                useWanted={state.showWanted}
-                companies={calculateCompaniesList(filteredData)}
-                onUseGoodChanged={showGood => update({ showGood })}
-                onUseWantedChanged={showWanted => update({ showWanted })}
-                sort={state.sort}
-                onSortChanged={sort => update({ sort })}
-            />
+        state.page === 'sample' ? (
+            <AsyncState
+                state={props.meta}
+                isEmpty={meta => SURVEY_YEARS.every(year => countOf(meta.filtered, year) === 0)}
+                empty='В выбранной группе нет респондентов.'
+            >
+                {meta => <DataMetaPage meta={meta}/>}
+            </AsyncState>
+        ) : (
+            <AsyncState
+                state={props.companies}
+                isEmpty={rows => selectCompanyRows(rows, state.year).length === 0}
+                empty={`Нет данных о компаниях за ${state.year} год для выбранной группы.`}
+            >
+                {rows => (
+                    <KnownAndWantedPage
+                        selectedCompanies={state.companies}
+                        filter={filter}
+                        year={state.year}
+                        onCompaniesChanged={companies => update({ companies })}
+                        useError={state.showLegacyError}
+                        onUseErrorChanged={showLegacyError => update({ showLegacyError })}
+                        useGood={state.showGood}
+                        companyEntries={rows}
+                        useWanted={state.showWanted}
+                        companies={companyNames(rows)}
+                        onUseGoodChanged={showGood => update({ showGood })}
+                        onUseWantedChanged={showWanted => update({ showWanted })}
+                        sort={state.sort}
+                        onSortChanged={sort => update({ sort })}
+                    />
+                )}
+            </AsyncState>
+        )
 
     return (
         <Container>
@@ -85,6 +89,7 @@ export function App(props: Props) {
                     <Sidenav.Body>
                         <FiltersSidePage
                             filter={filter}
+                            options={props.options}
                             onSetFilter={filter => update({ filter })}
                             onOpenDuplicate={props.onDuplicate}
                         />
