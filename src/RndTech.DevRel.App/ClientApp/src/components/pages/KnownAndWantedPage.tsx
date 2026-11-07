@@ -11,10 +11,16 @@ import {
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
 import { RespondentFilter } from '../../features/filters/model'
+import {
+    chartY,
+    selectCompanyRows,
+    selectMapRows,
+    toCompanyMetrics,
+    yAxisMax
+} from '../../features/companies/companyMetrics'
 import MultiSelect from '../MultiSelect'
 import injectSheet from 'react-jss';
 import { Checkbox, Loader, Table, Tooltip, Whisper } from 'rsuite';
-import { useEffect } from 'react';
 
 const defaultFillColor = '#AAAAAA'
 const axesColor = '#81E2E7'
@@ -90,8 +96,6 @@ type Props = {
 }
 
 export function KnownAndWantedPage(props: Props) {
-    const [companyEntries, setCompanyEntries] = React.useState<CompanyResult[]>();
-    const [maxWantedLevel, setMaxWantedLevel] = React.useState<number>(0.3);
     const [useError, setUseError] = React.useState<boolean>(props.useError);
     const [useGood, setUseGood] = React.useState<boolean>(props.useGood);
     const [useWanted, setUseWanted] = React.useState<boolean>(props.useWanted);
@@ -100,17 +104,20 @@ export function KnownAndWantedPage(props: Props) {
     const [sortType, setSortType] = React.useState<'desc' | 'asc'>();
 
     const prepareTableData = (row: CompanyResult) => {
+        const metrics = toCompanyMetrics(row)
         return {
-            companyName: row.name,
-            knownLevel: toPercentWithTenths(row.knownLevel) + '%',
-            goodLevel: toPercentWithTenths(row.goodLevel) + '%',
-            wantedLevel: toPercentWithTenths(row.wantedLevel) + '%',
-            goodAndWantedLevel: toPercentWithTenths(row.wantedLevel + row.goodLevel) + '%',
-            brandRatingComplex: toPercentWithTenths((row.wantedVotes + row.goodVotes) / 
-                (row.knownVotes - row.wantedVotes - row.goodVotes)),
-            brandPower: toPercentWithTenths(row.knownLevel + row.goodLevel * 3 + row.wantedLevel * 5),
+            companyName: metrics.name,
+            knownLevel: toPercentWithTenths(metrics.known) + '%',
+            goodLevel: toPercentWithTenths(metrics.good) + '%',
+            wantedLevel: toPercentWithTenths(metrics.wanted) + '%',
+            goodAndWantedLevel: toPercentWithTenths(metrics.goodAndWanted) + '%',
+            brandRatingComplex: toPercentWithTenths(metrics.brandRating),
+            brandPower: toPercentWithTenths(metrics.brandPower),
         };
     }
+
+    const companyEntries = props.companyEntries && selectCompanyRows(props.companyEntries, props.year)
+    const flags = { showGood: useGood, showWanted: useWanted }
 
     const getTableData = () => {
         if (sortColumn && sortType) {
@@ -137,31 +144,6 @@ export function KnownAndWantedPage(props: Props) {
         }
         return companyEntries?.map(prepareTableData);
     }
-
-    const loadData = () => {
-        if (!props.companyEntries) {
-            return
-        }
-        
-        const companyEntries = props.companyEntries.filter(d => d.year === props.year)
-        const maxWantedLevel = Math.max.apply(null,
-            companyEntries.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
-
-        setCompanyEntries(companyEntries)
-        setMaxWantedLevel(maxWantedLevel)
-    }
-    
-    useEffect(() => {
-        loadData()
-    }, [props.companyEntries, props.year])
-
-    useEffect(() => {
-        const entries = props.companyEntries?.filter(d => d.year === props.year)
-        const maxWantedLevel = entries === undefined ? 0 : Math.max.apply(null,
-            entries.map(ce => (useGood ? 1 : 0) * ce.goodLevel + (useWanted ? 1 : 0) * ce.wantedLevel)) + 0.05;
-
-        setMaxWantedLevel(maxWantedLevel)
-    }, [useGood, useWanted])
 
     const { classes, onCompaniesChanged, onUseErrorChanged, onUseGoodChanged, onUseWantedChanged } = props
 
@@ -212,15 +194,9 @@ export function KnownAndWantedPage(props: Props) {
         )
     }
 
-    const entries = selectedCompanies.length > 0
-        ? companyEntries?.filter(x => selectedCompanies.indexOf(x.name) !== -1)
-        : companyEntries
-
-    const data = entries?.map(x => ({
+    const data = selectMapRows(companyEntries, selectedCompanies).map(x => ({
         knownLevel: x.knownLevel,
-        wantedLevel: props.year === 2019 
-            ? (useGood || useWanted ? 1 : 0) * x.wantedLevel 
-            : (useGood ? 1 : 0) * x.goodLevel + (useWanted ? 1 : 0) * x.wantedLevel,
+        wantedLevel: chartY(x, flags),
         name: renderLabel(x.name),
         error: x.error,
         knownVotes: x.knownVotes,
@@ -308,7 +284,7 @@ export function KnownAndWantedPage(props: Props) {
                         }}
                         dataKey='wantedLevel'
                         type='number'
-                        domain={[0, maxWantedLevel]}
+                        domain={[0, yAxisMax(companyEntries, flags)]}
                         tickCount={11}
                         tickFormatter={toPercent}
                         axisLine={false}

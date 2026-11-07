@@ -10,6 +10,7 @@ import FiltersSidePage from './filters/FiltersSidePage';
 import { useEffect } from 'react';
 import { getCompanyResults } from '../api/client';
 import { CompanyResult } from '../api/types';
+import { companyNames } from '../features/companies/companyMetrics';
 
 const styles = {
     app: {
@@ -68,15 +69,7 @@ export function App(props: Props) {
     }, [filter])
     
     const calculateCompaniesList = (entries: readonly CompanyResult[] | undefined) => {
-        return !entries ? [] : entries.reduce((all: string[], current: CompanyResult) => {
-            if (all.indexOf(current.name) === -1) {
-                all.push(current.name)
-            }
-
-            return all
-        }, [])
-            .sort()
-            .map(x => ({ value: x, label: x }))
+        return companyNames(entries ?? []).map(x => ({ value: x, label: x }))
     }
     
     const openDuplicate = () => {

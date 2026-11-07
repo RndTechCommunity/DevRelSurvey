@@ -17,6 +17,7 @@ import { getCities, getCompanyResults, getSurveyMeta } from '../api/client';
 import { CompanyResult, SurveyMeta } from '../api/types';
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { toPercentWithTenths } from '../shared/format';
+import { selectCompanyRows, topCompanies } from '../features/companies/companyMetrics';
 
 
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name}) => {
@@ -110,19 +111,15 @@ export function ResultsMobile(props: Props) {
                 .sort((l1, l2) => l2.level - l1.level)
                 .slice(0,10))
 
-            const lastYearData = data.filter(d => d.year === 2022);
-            const popular = lastYearData
-                .sort((d1, d2) => d2.knownLevel - d1.knownLevel)
-                .slice(0, 10)
+            const top = topCompanies(selectCompanyRows(data, 2022));
+            const popular = top.known
                 .map(d => ({
                     name: d.name.split('(')[0],
                     level: toPercentWithTenths(d.knownLevel)
                 } as BarData))
             await setMostKnown(popular)
 
-            const wanted = lastYearData
-                .sort((d1, d2) => (d2.wantedLevel + d2.goodLevel) - (d1.wantedLevel + d1.goodLevel))
-                .slice(0, 10)
+            const wanted = top.attractive
                 .map(d => ({
 					name: d.name.split('(')[0],
                     level: toPercentWithTenths(d.wantedLevel + d.goodLevel)
