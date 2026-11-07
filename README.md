@@ -28,7 +28,6 @@ DevRelSurvey — это платформа для анализа данных о
 - Entity Framework Core 8.0
 - MariaDB/MySQL (через Pomelo.EntityFrameworkCore.MySql)
 - Redis для кэширования (production)
-- Prometheus для метрик
 
 **Frontend:**
 - React 18
@@ -75,7 +74,6 @@ DevRelSurvey/
 - **Query Handlers**: обработчики запросов для получения данных
 - **Data Provider**: `IntervieweesPreloadedDataProvider` для предзагрузки данных в память
 - **Filters**: маппинг и обработка фильтров от клиента
-- **Metrics**: интеграция с Prometheus для мониторинга
 
 **Frontend компоненты:**
 - **CompaniesPage**: главная страница с картой и таблицей компаний за выбранный год
@@ -234,17 +232,6 @@ Production обновляется двумя независимыми механ
 - Environmental Variables:
   - `DEVRELAPP_CONFIG_DATABASE`
   - `DEVRELAPP_CONFIG_REDIS`
-
-## 📈 Мониторинг
-
-### Prometheus метрики
-
-Метрики доступны по адресу: `/metrics`
-
-Собираемые метрики:
-- HTTP запросы (количество, длительность)
-- Использование памяти
-- Производительность GC
 
 ## 🤝 Участие в разработке
 

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Prometheus;
 using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
 using RndTech.DevRel.App.Implementation.QueryHandlers;
@@ -55,11 +54,6 @@ if (!app.Environment.IsDevelopment())
 {
 	app.UseHsts();
 }
-
-// Capture metrics about all received HTTP requests.
-app.UseHttpMetrics();
-// Enable the /metrics page to export Prometheus metrics.
-app.MapMetrics();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

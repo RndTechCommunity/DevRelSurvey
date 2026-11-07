@@ -33,7 +33,7 @@ DevRelSurvey публикует агрегированные результат�
 
 | Путь | Ответственность |
 | --- | --- |
-| `src/RndTech.DevRel.App/Program.cs` | ASP.NET Core Minimal API, MySQL, Redis/MemoryCache, загрузка данных, HTTP и `/metrics` |
+| `src/RndTech.DevRel.App/Program.cs` | ASP.NET Core Minimal API, MySQL, Redis/MemoryCache, загрузка данных, HTTP |
 | `src/RndTech.DevRel.App/Configuration/` | Маршруты и регистрация обработчиков, срок кэширования |
 | `src/RndTech.DevRel.App/Model/`, `Mapping/` | Контракты API, запросы, преобразование фильтров |
 | `src/RndTech.DevRel.App/Implementation/` | Предзагрузка респондентов и ответов, фильтрация, агрегаты, кэш |
