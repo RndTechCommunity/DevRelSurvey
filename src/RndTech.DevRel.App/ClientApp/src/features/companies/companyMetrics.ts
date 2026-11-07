@@ -36,8 +36,9 @@ export function chartY(row: CompanyResult, flags: ChartFlags): number {
         : (flags.showGood ? 1 : 0) * row.goodLevel + (flags.showWanted ? 1 : 0) * row.wantedLevel
 }
 
+// Для года без строк — конечная шкала вместо −Infinity.
 export function yAxisMax(yearRows: readonly CompanyResult[], flags: ChartFlags): number {
-    return Math.max(...yearRows.map(row =>
+    return Math.max(0, ...yearRows.map(row =>
         (flags.showGood ? 1 : 0) * row.goodLevel + (flags.showWanted ? 1 : 0) * row.wantedLevel)) + 0.05
 }
 

@@ -50,6 +50,10 @@ test('the 2019 axis domain still uses good + wanted', () => {
     expect(yAxisMax(selectCompanyRows(companyResults, 2019), both)).toBeCloseTo(0.2 + 0.24 + 0.05, 10)
 })
 
+test('the axis domain of a year without rows is finite', () => {
+    expect(yAxisMax([], both)).toBe(0.05)
+})
+
 test('rows of a year keep absent companies absent and do not mutate the input', () => {
     expect(selectCompanyRows(companyResults, 2021).map(r => r.name)).toEqual(['IBS Dunice', 'Тинькофф', 'Zero Corp'])
 })

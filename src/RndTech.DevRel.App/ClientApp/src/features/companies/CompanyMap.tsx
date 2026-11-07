@@ -73,13 +73,14 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
             </Tooltip>
         );
 
+        // При нулевой узнаваемости формула даёт Infinity или NaN — круг не рисуется.
         const radius = (showLegacyError ? error : 0) * cx / entry.knownLevel
 
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
                 <g fill={companyFillColorMap[nbspLabel(name)] || defaultFillColor}>
                     <g fillOpacity={0.1}>
-                        <Dot cx={cx} cy={cy} r={radius} />
+                        <Dot cx={cx} cy={cy} r={Number.isFinite(radius) ? radius : 0} />
                     </g>
                     <Dot cx={cx} cy={cy} r={1.5} />
                     <g transform={`translate(${cx},${cy})`}>
