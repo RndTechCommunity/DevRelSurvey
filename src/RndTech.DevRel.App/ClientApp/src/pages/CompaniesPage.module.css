@@ -1,0 +1,22 @@
+.companies {
+    position: absolute;
+    margin: 15px;
+    z-index: 1000;
+}
+
+.chart {
+    font-size: 12px;
+}
+
+.graphicFilter {
+    display: flex;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.graphicFilterCompanies {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    line-height: 1;
+    padding-right: 10px;
+}

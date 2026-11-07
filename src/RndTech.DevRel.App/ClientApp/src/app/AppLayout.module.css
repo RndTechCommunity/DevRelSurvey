@@ -1,0 +1,18 @@
+.menuContainer {
+    display: inline-block;
+}
+
+.menuBar {
+    display: flex;
+    padding: 40px 50px 0;
+}
+
+.menu {
+    flex-grow: 1;
+    margin-top: -4px;
+}
+
+.playground {
+    flex-grow: 1;
+    padding: 50px 50px 25px;
+}

@@ -1,6 +1,6 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-ARG NODE_VERSION=18.x
+ARG NODE_VERSION=24.x
 RUN curl --silent --location https://deb.nodesource.com/setup_$NODE_VERSION | bash - \
     && apt-get update \
     && apt-get install --yes nodejs \
