@@ -33,8 +33,8 @@ DevRelSurvey публикует агрегированные результат�
 
 | Путь | Ответственность |
 | --- | --- |
-| `src/RndTech.DevRel.App/Program.cs` | ASP.NET Core Minimal API, MySQL, Redis/MemoryCache, загрузка данных, HTTP |
-| `src/RndTech.DevRel.App/Configuration/` | Маршруты и регистрация обработчиков, срок кэширования |
+| `src/RndTech.DevRel.App/Program.cs` | ASP.NET Core Minimal API, MySQL, in-memory кэш (`MemoryDistributedCache`), загрузка данных, HTTP |
+| `src/RndTech.DevRel.App/Configuration/` | Маршруты и регистрация обработчиков, срок и лимит размера кэша |
 | `src/RndTech.DevRel.App/Model/`, `Mapping/` | Контракты API, запросы, преобразование фильтров |
 | `src/RndTech.DevRel.App/Implementation/` | Предзагрузка респондентов и ответов, фильтрация, агрегаты, кэш |
 | `src/RndTech.DevRel.Database/Models/` | EF-сущности |
@@ -106,7 +106,7 @@ DevRelSurvey публикует агрегированные результат�
 
 `Program.WarmUp` создаёт singleton `IntervieweesPreloadedDataProvider`. Он загружает респондентов и ответы из БД в память. Обработчики результатов фильтруют эту копию, а справочники читаются через EF и кэшируются. Без доступной БД приложение не завершает запуск. Предзагрузка предполагает, что у каждого респондента есть ответы: используется `groupedAnswers[i.Id]`.
 
-Development использует distributed memory cache; остальные окружения — Redis. Срок — **скользящие 24 часа**, ключи имеют исторический префикс `Data2022_`. Изменение БД не обновляет singleton автоматически; после разрешённого импорта продумайте обновление процесса и адресную инвалидацию кэша. Не очищайте весь Redis: он может быть общим для нескольких приложений.
+Во всех окружениях кэш агрегатов — in-memory (`AddDistributedMemoryCache`) с лимитом `AppSettings.CacheSizeLimitBytes` (32 МиБ; считаются байты JSON записей): при переполнении новая запись не сохраняется, а фоновая компакция освобождает до 5 % лимита — сначала просроченные записи, затем по давности обращения. Срок — **скользящие 24 часа**, ключи имеют исторический префикс `Data2022_`. Изменение БД не обновляет singleton автоматически; после разрешённого импорта перезапустите процесс — рестарт сбрасывает и предзагруженные данные, и кэш.
 
 ### Семантика фильтров
 
@@ -192,7 +192,7 @@ POST принимает JSON; клиент отправляет `application/jso
 
 ## Локальная работа и проверки
 
-Нужны .NET 8 SDK/runtime, совместимый Node/npm и доступная **локальная/тестовая** MariaDB/MySQL с подготовленной схемой и данными. Production credentials нельзя помещать в `.env`, команды из документации, тестовые fixtures или frontend bundle. Переменная БД — `DEVRELAPP_CONFIG_DATABASE`; вне Development также нужна `DEVRELAPP_CONFIG_REDIS`. Серверный `PORT` по умолчанию 29500.
+Нужны .NET 8 SDK/runtime, совместимый Node/npm и доступная **локальная/тестовая** MariaDB/MySQL с подготовленной схемой и данными. Production credentials нельзя помещать в `.env`, команды из документации, тестовые fixtures или frontend bundle. Переменная БД — `DEVRELAPP_CONFIG_DATABASE`. Серверный `PORT` по умолчанию 29500.
 
 Из корня репозитория:
 

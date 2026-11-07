@@ -27,7 +27,7 @@ DevRelSurvey — это платформа для анализа данных о
 - .NET 8 с ASP.NET Core Minimal API
 - Entity Framework Core 8.0
 - MariaDB/MySQL (через Pomelo.EntityFrameworkCore.MySql)
-- Redis для кэширования (production)
+- Кэш результатов в памяти процесса
 
 **Frontend:**
 - React 18
@@ -91,7 +91,6 @@ DevRelSurvey/
 - .NET 8 SDK
 - Node.js 24 (`.nvmrc`)
 - MariaDB или MySQL со схемой и данными; для локальной работы подойдёт синтетический `tests/smoke/seed.sql` (только MariaDB, см. [CONTRIBUTING.md](CONTRIBUTING.md#smoke-стенд-с-mariadb))
-- Redis (для production)
 
 ### Локальная разработка
 
@@ -137,7 +136,6 @@ docker build -t devrel-survey .
 ```bash
 docker run -p 29500:29500 \
   -e DEVRELAPP_CONFIG_DATABASE="connection_string" \
-  -e DEVRELAPP_CONFIG_REDIS="redis_connection" \
   devrel-survey
 ```
 
@@ -148,8 +146,9 @@ docker run -p 29500:29500 \
 | Переменная | Описание | Обязательная |
 |------------|----------|--------------|
 | `DEVRELAPP_CONFIG_DATABASE` | Строка подключения к MySQL | ✅ |
-| `DEVRELAPP_CONFIG_REDIS` | Строка подключения к Redis | ❌ (только production) |
 | `PORT` | Порт для веб-сервера (по умолчанию: 29500) | ❌ |
+
+Кэш результатов хранится в памяти процесса: лимит `AppSettings.CacheSizeLimitBytes` (32 МиБ по байтам JSON записей), срок — скользящие 24 часа; отдельной настройки нет.
 
 ## 🔧 Разработка
 
@@ -231,7 +230,6 @@ Production обновляется двумя независимыми механ
 - Container HTTP Port: `29500`
 - Environmental Variables:
   - `DEVRELAPP_CONFIG_DATABASE`
-  - `DEVRELAPP_CONFIG_REDIS`
 
 ## 🤝 Участие в разработке
 
