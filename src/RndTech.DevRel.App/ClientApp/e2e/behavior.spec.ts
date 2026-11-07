@@ -278,6 +278,24 @@ test.describe('desktop 1440', () => {
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
     })
 
+    test('returning to a group with a failed request shows loading, not the old error', async ({ page }) => {
+        const api = await mockApi(page)
+        const restore = api.override(isCompanies, 500)
+        await page.goto('/')
+        await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
+        restore()
+        let release = () => {}
+        api.override(isCompanies, new Promise<void>(resolve => { release = resolve }))
+
+        await sidebarButton(page, 'Топ Таганрога').click()
+        await sidebarButton(page, 'Топ Ростова').click()
+
+        await expect(page.getByText('Загрузка данных')).toBeVisible()
+        await expect(page.getByText('Не удалось загрузить данные')).toHaveCount(0)
+        release()
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+    })
+
     test('a dictionary error stays in the filter panel', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isFilterOptions, 500)

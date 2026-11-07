@@ -25,7 +25,10 @@ function useRequest<A, T>(request: (arg: A, signal: AbortSignal) => Promise<T>, 
                     setSettled({ key, error })
                 }
             })
-        return () => controller.abort()
+        return () => {
+            controller.abort()
+            setSettled(current => current?.key === key && 'error' in current ? undefined : current)
+        }
     }, [request, argKey, key])
 
     const retry = () => setAttempt(current => current + 1)
