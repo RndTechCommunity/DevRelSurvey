@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import { Divider } from 'rsuite'
+import { Button, Divider } from 'rsuite'
 import { countOf, MetaSourceKey, SurveyMeta, SurveyYear } from '../api/types'
 import SampleTable from '../features/sample/SampleTable'
 import { AsyncState, RequestState } from '../shared/AsyncState'
@@ -28,7 +28,7 @@ const SECTIONS: readonly { readonly source: MetaSourceKey, readonly header: stri
     { source: 'levels', header: 'Грейд' },
     {
         source: 'isCommunity',
-        header: 'Посещает митапы',
+        header: 'Митапы или сообщество',
         note: { section: 'filters', text: '«Да» — посещает митапы или участвует в сообществе.' }
     },
     { source: 'communitySource', header: 'Откуда узнает о митапах', note: MULTIPLE_ANSWERS }
@@ -37,15 +37,19 @@ const SECTIONS: readonly { readonly source: MetaSourceKey, readonly header: stri
 type Props = {
     meta: RequestState<SurveyMeta>,
     year: SurveyYear,
-    onAbout: OpenAbout
+    onAbout: OpenAbout,
+    onAllParticipants: () => void
 }
 
-export default function SamplePage({ meta, year, onAbout }: Props) {
+export default function SamplePage({ meta, year, onAbout, onAllParticipants }: Props) {
     return (
         <AsyncState
             state={meta}
             isEmpty={loaded => countOf(loaded.filtered, year) === 0}
-            empty={`В выбранной группе нет респондентов за ${year} год.`}
+            empty={<>
+                В выбранной группе нет респондентов за {year} год.{' '}
+                <Button appearance='link' onClick={onAllParticipants}>Все участники</Button>
+            </>}
         >
             {loaded => <>
                 <AboutNote section='sample' onAbout={onAbout}>

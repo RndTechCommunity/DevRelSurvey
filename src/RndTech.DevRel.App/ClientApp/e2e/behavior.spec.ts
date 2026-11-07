@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from '@playwright/test'
+import { NO_RESTRICTIONS } from '../src/features/filters/model'
 import { filterOptions } from '../src/test/fixtures'
 import { forCity, INITIAL_FILTER, isCompanies, isFilterOptions, isMeta, mockApi } from './mockApi'
 
@@ -27,8 +28,7 @@ const yearRadio = (page: Page, year: string) =>
 const selectYear = (page: Page, year: string) =>
     page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
 const filterPanel = (page: Page) => page.getByRole('complementary')
-// Кнопки боковой панели вложены в пункты меню с ролью button.
-const sidebarButton = (page: Page, name: string) => page.locator('button', { hasText: name })
+const sidebarButton = (page: Page, name: string) => filterPanel(page).getByRole('button', { name, exact: true })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
 const toggleCheckbox = (page: Page, name: string) => page.getByText(name, { exact: true }).click()
 
@@ -181,7 +181,7 @@ test.describe('desktop 1440', () => {
     test('resizing to mobile and back keeps the research state without new requests', async ({ page }) => {
         const api = await mockApi(page)
         await page.goto('/')
-        await sidebarButton(page, 'Топ Таганрога').click()
+        await sidebarButton(page, 'Таганрог, 20–44 года').click()
         await selectYear(page, '2021')
         await toggleCheckbox(page, 'Отображать доверительный интервал')
         await page.waitForLoadState('networkidle')
@@ -194,7 +194,7 @@ test.describe('desktop 1440', () => {
 
         await page.setViewportSize({ width: 1440, height: 900 })
         await expect(yearRadio(page, '2021')).toBeChecked()
-        await expect(sidebarButton(page, 'Топ Таганрога')).toBeDisabled()
+        await expect(sidebarButton(page, 'Таганрог, 20–44 года')).toBeDisabled()
         await expect(page.getByRole('checkbox', { name: 'Отображать доверительный интервал' })).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
     })
@@ -223,8 +223,88 @@ test.describe('desktop 1440', () => {
         const reordered = { ...TAGANROG, ages: [...TAGANROG.ages].reverse() }
         await page.goto(`/?v=1&filter=${encodeURIComponent(JSON.stringify(reordered))}`)
 
-        await expect(sidebarButton(page, 'Топ Таганрога')).toBeDisabled()
-        await expect(sidebarButton(page, 'Топ Ростова')).toBeEnabled()
+        await expect(sidebarButton(page, 'Таганрог, 20–44 года')).toBeDisabled()
+        await expect(sidebarButton(page, 'Исходная выборка')).toBeEnabled()
+    })
+
+    test('restriction buttons clear one dimension or all, quick groups keep their composition', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(sidebarButton(page, 'Исходная выборка')).toBeDisabled()
+        await page.waitForLoadState('networkidle')
+        let posts = api.posts().length
+        const cityChip = page.getByRole('button', { name: /^Убрать ограничение «Город»/ })
+        await yearRadio(page, '2022').focus()
+        for (let i = 0; i < 30 && !await cityChip.evaluate(el => el === document.activeElement); i++) {
+            await page.keyboard.press('Tab')
+        }
+        await expect(cityChip).toBeFocused()
+        await page.keyboard.press('Enter')
+        await expect(cityChip).toHaveCount(0)
+        await expect.poll(() => api.posts().length).toBe(posts + 2)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual({ ...INITIAL_FILTER, cities: [] })
+        posts = api.posts().length
+        await page.getByRole('button', { name: 'Сбросить ограничения' }).click()
+        await expect.poll(() => api.posts().length).toBe(posts + 2)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(NO_RESTRICTIONS)
+        await expect(page.getByRole('group', { name: 'Активные ограничения' })).toHaveCount(0)
+        await expect(sidebarButton(page, 'Все участники')).toBeDisabled()
+        await expect(page.getByText('2022 · Все участники · Выборка: 100 из 600')).toBeVisible()
+
+        const taganrog = sidebarButton(page, 'Таганрог, 20–44 года')
+        await taganrog.focus()
+        await page.keyboard.press('Tab')
+        const qa = sidebarButton(page, 'QA: все города и возрасты')
+        await expect(qa).toBeFocused()
+        await page.keyboard.press('Enter')
+        await expect(qa).toBeDisabled()
+        await expect.poll(() => api.posts().length).toBe(posts + 4)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual({ ...NO_RESTRICTIONS, professions: ['QA'] })
+        await sidebarButton(page, 'Исходная выборка').click()
+        await expect.poll(() => api.posts().length).toBe(posts + 6)
+        expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(INITIAL_FILTER)
+    })
+
+    test('the first list item selects all with Enter, another Enter clears, Cyrillic search keeps old values', async ({ page }) => {
+        const api = await mockApi(page)
+        const archived = 'Город "А", __all__, -1'
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: [archived] }))
+        const city = filterPanel(page).getByRole('combobox', { name: 'Город', exact: true })
+        await city.focus()
+        await page.keyboard.press('Enter')
+        await expect(page.getByRole('textbox', { name: 'Поиск' })).toBeFocused()
+        await expect(city).toBeInViewport()
+        await expect(page.getByRole('textbox', { name: 'Поиск' })).toBeInViewport()
+        await expect(page.getByRole('option').first()).toHaveText('Выбрать все')
+        await expect(page.getByRole('checkbox', { name: 'Выбрать все' })).not.toBeChecked()
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await expect(page.getByRole('checkbox', { name: 'Выбрать все' })).toBeChecked()
+        await expect.poll(() => api.posts().length).toBe(4)
+        expect(JSON.parse(api.posts().at(-1)!.body!).cities).toEqual([...filterOptions.cities, archived])
+        await page.keyboard.press('Enter')
+        await expect(page.getByRole('checkbox', { name: 'Выбрать все' })).not.toBeChecked()
+        await expect.poll(() => api.posts().length).toBe(6)
+        expect(JSON.parse(api.posts().at(-1)!.body!).cities).toEqual([])
+        await page.keyboard.press('Escape')
+        await expect(city).toBeFocused()
+
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: [archived] }))
+        await city.click()
+        await page.getByRole('textbox', { name: 'Поиск' }).pressSequentially('таг')
+        await page.keyboard.press('Backspace')
+        await expect(page.getByRole('textbox', { name: 'Поиск' })).toHaveValue('та')
+        await expect(page.getByRole('option')).toHaveText(['Выбрать все', 'Таганрог'])
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('Escape')
+        await expect(city).toContainText(archived)
+        await expect(city).toContainText('Таганрог')
+        const cities = JSON.parse(new URL(page.url()).searchParams.get('filter')!).cities
+        expect(cities).toEqual([archived, 'Таганрог'])
+        await city.click()
+        await expect(page.getByRole('textbox', { name: 'Поиск' })).toHaveValue('')
     })
 
     test('«Дублировать» opens the address of the current state', async ({ page }) => {
@@ -279,7 +359,7 @@ test.describe('desktop 1440', () => {
         await expect(yearRadio(page, '2021')).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
 
-        await sidebarButton(page, 'Топ Таганрога').click()
+        await sidebarButton(page, 'Таганрог, 20–44 года').click()
         await expect.poll(() => api.calls.length).toBe(loaded + 2)
         expect(api.calls.slice(loaded).map(call => call.method)).toEqual(['POST', 'POST'])
     })
@@ -292,7 +372,7 @@ test.describe('desktop 1440', () => {
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }))
         await expect(page.getByText('Загрузка данных').first()).toBeVisible()
 
-        await sidebarButton(page, 'Топ Ростова').click()
+        await sidebarButton(page, 'Исходная выборка').click()
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
         release()
         await Promise.all(api.posts(forCity('Тбилиси')).map(call => call.done))
@@ -337,8 +417,8 @@ test.describe('desktop 1440', () => {
         let release = () => {}
         api.override(isCompanies, new Promise<void>(resolve => { release = resolve }))
 
-        await sidebarButton(page, 'Топ Таганрога').click()
-        await sidebarButton(page, 'Топ Ростова').click()
+        await sidebarButton(page, 'Таганрог, 20–44 года').click()
+        await sidebarButton(page, 'Исходная выборка').click()
 
         await expect(page.getByText('Загрузка данных')).toBeVisible()
         await expect(page.getByText('Не удалось загрузить данные')).toHaveCount(0)
@@ -358,13 +438,19 @@ test.describe('desktop 1440', () => {
         await expect(filterPanel(page).locator('.rs-picker-toggle', { hasText: 'Ростов-на-Дону' })).toBeVisible()
     })
 
-    test('a group without respondents shows messages instead of tables', async ({ page }) => {
-        await mockApi(page)
+    test('empty companies and sample offer all participants', async ({ page }) => {
+        const api = await mockApi(page)
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Нет-такого'] }))
 
         await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
         await navButton(page, 'Состав выборки').click()
         await expect(page.getByText('В выбранной группе нет респондентов за 2022 год.')).toBeVisible()
+        for (const section of ['sample', 'companies']) {
+            await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Нет-такого'] }, `&page=${section}`))
+            await page.getByRole('main').getByRole('button', { name: 'Все участники', exact: true }).click()
+            await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+            expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(NO_RESTRICTIONS)
+        }
     })
 
     test('the group size is the number of respondents of the selected year', async ({ page }) => {

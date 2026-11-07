@@ -1,44 +1,64 @@
-import { Checkbox, CheckPicker } from 'rsuite';
-import { usePickerFocusReturn } from './usePickerFocusReturn';
-
-const footerStyles = {
-    padding: '10px 2px',
-    borderTop: '1px solid var(--rs-border-primary)'
-};
+import { useRef, useState } from 'react'
+import { CheckPicker, Input } from 'rsuite'
+import { usePickerFocusReturn } from './usePickerFocusReturn'
+import styles from './MultiSelect.module.css'
 
 type Props = {
     options: readonly string[],
     value: readonly string[],
     placeholder: string,
+    labelledBy?: string,
     onChange: (value: readonly string[]) => void
 }
 
+const ALL = -1
+
 // «Выбрать все» записывает явный список значений; пустой список означает «все».
-export default function MultiSelect({ options, value, placeholder, onChange }: Props) {
-    const selectedCount = options.filter(option => value.includes(option)).length
-    const allSelected = options.length > 0 && selectedCount === options.length
+export default function MultiSelect({ options, value, placeholder, labelledBy, onChange }: Props) {
+    const [query, setQuery] = useState('')
+    const searchRef = useRef<HTMLInputElement>(null)
     const { ref, wrapperProps } = usePickerFocusReturn()
+    const choices = [...new Set([...options, ...value])]
+    const allSelected = choices.length > 0 && choices.every(option => value.includes(option))
+    const items = choices.map((label, index) => ({ value: index + 1, label }))
+    const selected = items.filter(item => value.includes(item.label)).map(item => item.value)
+    const shown = items.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))
 
     return (
         <div {...wrapperProps}>
             <CheckPicker
                 ref={ref}
-                data={options.map(option => ({ value: option, label: option }))}
+                data={[{ value: ALL, label: 'Выбрать все' }, ...shown]}
                 placeholder={placeholder}
+                aria-labelledby={labelledBy}
                 block
-                value={[...value]}
-                onChange={onChange}
-                renderExtraFooter={() => (
-                    <div style={footerStyles}>
-                        <Checkbox
-                            inline
-                            indeterminate={selectedCount > 0 && !allSelected}
-                            checked={allSelected}
-                            onChange={(_, checked) => onChange(checked ? options : [])}
-                        >
-                            Выбрать все
-                        </Checkbox>
-                    </div>
+                searchable={false}
+                value={allSelected ? [ALL, ...selected] : selected}
+                renderValue={() => value.join(', ')}
+                onEntered={() => searchRef.current?.focus({ preventScroll: true })}
+                onClose={() => setQuery('')}
+                onChange={next => {
+                    const nextAll = next.includes(ALL)
+                    onChange(nextAll !== allSelected
+                        ? (nextAll ? choices : [])
+                        : next.filter(index => index !== ALL).map(index => choices[index - 1]))
+                }}
+                renderListbox={listbox => (
+                    <>
+                        <div className={styles.search}>
+                            <Input
+                                ref={searchRef}
+                                aria-label='Поиск'
+                                placeholder='Поиск'
+                                value={query}
+                                onChange={setQuery}
+                                onKeyDown={event => {
+                                    if (event.key === 'Backspace') event.stopPropagation()
+                                }}
+                            />
+                        </div>
+                        {listbox}
+                    </>
                 )}
             />
         </div>

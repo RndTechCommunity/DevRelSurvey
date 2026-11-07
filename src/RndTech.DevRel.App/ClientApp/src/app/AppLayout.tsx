@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Nav, Sidenav } from 'rsuite'
+import { Nav } from 'rsuite'
 import { CompanyResult, FilterOptions, SurveyMeta } from '../api/types'
+import FilterChips from '../features/filters/FilterChips'
+import { NO_RESTRICTIONS } from '../features/filters/model'
 import FilterPanel from '../features/filters/FilterPanel'
 import CompaniesPage from '../pages/CompaniesPage'
 import MethodologyPage, { MethodologySection } from '../pages/MethodologyPage'
@@ -70,20 +72,16 @@ export default function AppLayout({ state, update, onDuplicate, companies, meta,
                     <SurveyBar state={state} update={update} meta={meta} onDuplicate={onDuplicate} />
                     <div className={styles.body}>
                         <aside className={styles.aside}>
-                            {/* Вне Sidenav группы фильтров (Nav.Menu) раскрываются выпадающими меню. */}
-                            <Sidenav expanded={true} defaultOpenKeys={['1', '2']} appearance='subtle'>
-                                <Sidenav.Body>
-                                    <FilterPanel
-                                        filter={state.filter}
-                                        options={options}
-                                        onChange={filter => update({ filter })}
-                                    />
-                                </Sidenav.Body>
-                            </Sidenav>
+                            <FilterPanel
+                                filter={state.filter}
+                                options={options}
+                                onChange={filter => update({ filter })}
+                            />
                         </aside>
                         <main className={styles.main}>
+                            <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
                             {state.page === 'sample'
-                                ? <SamplePage meta={meta} year={state.year} onAbout={openAbout} />
+                                ? <SamplePage meta={meta} year={state.year} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
                                 : <CompaniesPage state={state} update={update} companies={companies} onAbout={openAbout} />}
                         </main>
                     </div>
