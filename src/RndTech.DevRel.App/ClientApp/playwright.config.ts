@@ -8,15 +8,10 @@ export default defineConfig({
         channel: 'chrome'
     },
     webServer: {
-        command: 'npx react-scripts start',
+        command: 'npm run build && npx vite preview --port 4173 --strictPort',
         url: 'http://localhost:4173',
         // Не подхватывать чужой сервер на том же порту: занятый порт — ошибка запуска.
         reuseExistingServer: false,
-        timeout: 180_000,
-        env: {
-            BROWSER: 'none',
-            HTTPS: 'false',
-            PORT: '4173'
-        }
+        timeout: 180_000
     }
 })
