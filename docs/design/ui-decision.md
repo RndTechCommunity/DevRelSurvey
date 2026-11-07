@@ -109,4 +109,4 @@ Slice работает на существующих `useSurveyState`, `useSurve
 Чтобы раскладка не сломалась, сделаны три правки.
 - **`MultiSelect`**: добавлен `block`. Без него поле в RSuite 6 растёт по содержимому, не обрезает текст и наезжает на флажки над картой.
 - **Recharts 3**: custom shape берёт `payload`, `cx`, `cy` из `ScatterPointItem`. Центры точек на тестовых данных совпали с Recharts 2 до пикселя.
-- **`accessibilityLayer={false}`**: иначе Recharts 3 делает `<svg>` остановкой Tab с `role="application"`.
+- **`accessibilityLayer={false}` у всех графиков и `rootTabIndex={-1}` у `Pie`**: иначе Recharts 3 делает `<svg>` остановкой Tab с `role="application"`, а у `Pie` своя остановка Tab.

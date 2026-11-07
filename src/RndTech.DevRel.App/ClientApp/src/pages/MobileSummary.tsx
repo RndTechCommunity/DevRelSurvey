@@ -41,7 +41,7 @@ type BarData = {
 function TopBarChart({ data, fill }: { data: BarData[], fill: string }) {
     return (
         <ResponsiveContainer width='100%' aspect={1}>
-            <BarChart data={data} layout='vertical'>
+            <BarChart data={data} layout='vertical' accessibilityLayer={false}>
                 <XAxis type="number" hide={true} />
                 <YAxis width={100} type="category" dataKey="name" />
                 <Bar dataKey="level"
@@ -199,9 +199,9 @@ export default function MobileSummary({ state, update, companies, meta, options 
                                 <FlexboxGrid justify="center">
                                     <FlexboxGrid.Item colspan={20}>
                                         <ResponsiveContainer width='100%' aspect={1}>
-                                            <PieChart>
-                                                <Pie data={loaded.sources.ages.map(l => ({ name: l.name, level: countOf(l, year) }))} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} />
-                                                <Pie data={toBars(loaded.sources.levels)} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} />
+                                            <PieChart accessibilityLayer={false}>
+                                                <Pie data={loaded.sources.ages.map(l => ({ name: l.name, level: countOf(l, year) }))} dataKey="level" outerRadius='50%' fill="#FF4500" labelLine={false} label={renderCustomizedLabel} rootTabIndex={-1} />
+                                                <Pie data={toBars(loaded.sources.levels)} dataKey="level" innerRadius='60%' outerRadius='70%' fill="#82ca9d" labelLine={false} label={renderCustomizedLabel} rootTabIndex={-1} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </FlexboxGrid.Item>
