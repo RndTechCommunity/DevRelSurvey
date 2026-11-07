@@ -139,6 +139,10 @@ test('screenshots of the initial page', async ({ page }) => {
             // Карта и таблицы занимают ширину контейнера: страница не прокручивается по горизонтали.
             await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
             expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
+            expect(await page.getByRole('complementary').evaluate(aside => {
+                const right = aside.getBoundingClientRect().right
+                return [...aside.querySelectorAll('[role="combobox"]')].some(field => field.getBoundingClientRect().right > right)
+            }), `filter fields ${width}`).toBe(false)
             await page.getByRole('button', { name: 'Состав выборки' }).click()
             await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
             expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)

@@ -1,7 +1,8 @@
-import { Checkbox } from 'rsuite'
+import { Button, Checkbox } from 'rsuite'
 import { CompanyResult } from '../api/types'
 import { SurveyState } from '../app/surveyState'
 import { UpdateSurveyState } from '../app/useSurveyState'
+import { NO_RESTRICTIONS } from '../features/filters/model'
 import CompanyMap from '../features/companies/CompanyMap'
 import CompanyTable from '../features/companies/CompanyTable'
 import { companyNames, selectCompanyRows, selectMapRows, yAxisMax } from '../features/companies/companyMetrics'
@@ -25,18 +26,22 @@ export default function CompaniesPage({ state, update, companies, onAbout }: Pro
         <AsyncState
             state={companies}
             isEmpty={rows => selectCompanyRows(rows, state.year).length === 0}
-            empty={`Нет данных о компаниях за ${state.year} год для выбранной группы.`}
+            empty={<>
+                Нет данных о компаниях за {state.year} год для выбранной группы.{' '}
+                <Button appearance='link' onClick={() => update({ filter: NO_RESTRICTIONS })}>Все участники</Button>
+            </>}
         >
             {rows => {
                 const yearRows = selectCompanyRows(rows, state.year)
                 return (
                     <>
                         <div className={styles.controls}>
-                            <label>Компании</label>
+                            <span id='company-filter-label'>Компании</span>
                             <div className={styles.companyPicker}>
                                 <MultiSelect
                                     options={companyNames(rows)}
                                     placeholder='Компании'
+                                    labelledBy='company-filter-label'
                                     value={state.companies}
                                     onChange={companies => update({ companies })}
                                 />

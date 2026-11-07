@@ -26,12 +26,15 @@ export const DEFAULT_FILTER: RespondentFilter = {
     isCommunity: null
 }
 
+export const NO_RESTRICTIONS: RespondentFilter = {
+    cities: [], educations: [], languages: [], professions: [], experiences: [], ages: [], isCommunity: null
+}
+
 export const FILTER_PRESETS: readonly { readonly label: string, readonly filter: RespondentFilter }[] = [
-    { label: 'Топ Ростова', filter: DEFAULT_FILTER },
-    { label: 'Топ Таганрога', filter: { ...DEFAULT_FILTER, cities: ['Таганрог'] } },
-    { label: 'Какие компании знают QA', filter: { ...DEFAULT_FILTER, cities: [], professions: ['QA'], ages: [] } },
-    { label: 'Куда хотят фронтендеры', filter: { ...DEFAULT_FILTER, cities: [], professions: ['Frontend-разработчик'] } },
-    { label: 'Известные студентам', filter: { ...DEFAULT_FILTER, cities: [], educations: ['Высшее, в процессе получения'], ages: [] } }
+    { label: 'Таганрог, 20–44 года', filter: { ...DEFAULT_FILTER, cities: ['Таганрог'] } },
+    { label: 'QA: все города и возрасты', filter: { ...DEFAULT_FILTER, cities: [], professions: ['QA'], ages: [] } },
+    { label: 'Frontend-разработчики: все города, 20–44 года', filter: { ...DEFAULT_FILTER, cities: [], professions: ['Frontend-разработчик'] } },
+    { label: 'Студенты вузов: все города и возрасты', filter: { ...DEFAULT_FILTER, cities: [], educations: ['Высшее, в процессе получения'], ages: [] } }
 ]
 
 const FILTER_ARRAY_KEYS = ['cities', 'educations', 'languages', 'professions', 'experiences', 'ages'] as const
@@ -65,8 +68,10 @@ function formatAges(ages: readonly string[]) {
 }
 
 // Полный список остаётся в поле фильтра; иначе «Выбрать все» городов дало бы строку из десятков названий.
-const brief = (values: readonly string[]) =>
-    values.length > 2 ? `${values[0]}, ${values[1]} и ещё ${values.length - 2}` : values.join(', ')
+const brief = (values: readonly string[]) => {
+    const names = values.slice(0, 2).map(value => value.includes(',') ? `«${value}»` : value)
+    return `${names.join(', ')}${values.length > 2 ? ` и ещё ${values.length - 2}` : ''}`
+}
 
 const FILTER_FIELDS: readonly { readonly key: typeof FILTER_ARRAY_KEYS[number], readonly label: string }[] = [
     { key: 'cities', label: 'Город' },
@@ -87,8 +92,8 @@ export function describeFilter(filter: RespondentFilter): readonly FilterRestric
     if (filter.isCommunity !== null) {
         restrictions.push({
             key: 'isCommunity',
-            label: 'Митапы',
-            value: filter.isCommunity === 'Да' ? 'посещает митапы' : 'не посещает митапы'
+            label: 'Митапы или сообщество',
+            value: filter.isCommunity === 'Да' ? 'посещает митапы или участвует в сообществе' : 'не посещает митапы и не участвует в сообществе'
         })
     }
     return restrictions
