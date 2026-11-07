@@ -179,7 +179,7 @@ ClientApp/
 2. Реализуйте обработчик в `Implementation/QueryHandlers/Filters/`
 3. Зарегистрируйте обработчик в `Program.cs`
 4. Добавьте endpoint в `IEndpointRouteBuilderExtensions.cs`
-5. На фронтенде добавьте справочник в `FilterOptions` и `getFilterOptions` (`ClientApp/src/api/`), поле — в `features/filters/model.ts` (тип, исходный фильтр, разбор ссылки) и `features/filters/FilterPanel.tsx`
+5. На фронтенде добавьте справочник в `FilterOptions` и `getFilterOptions` (`ClientApp/src/api/`), поле — в `features/filters/model.ts` (тип, исходный фильтр, разбор ссылки, сравнение в `sameFilter`: массивы перечислены в `FILTER_ARRAY_KEYS`) и `features/filters/FilterPanel.tsx`
 
 ### Импорт данных нового года
 
