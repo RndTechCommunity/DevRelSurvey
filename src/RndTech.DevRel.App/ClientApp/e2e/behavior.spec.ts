@@ -146,6 +146,27 @@ test.describe('desktop 1440', () => {
         await expect(yearRadio(page, '2021')).toBeChecked()
     })
 
+    test('«Подробнее» opens its section of «О данных», Back returns, the page opens by its link', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        await selectYear(page, '2021')
+
+        await page.getByText('индексы, а не проценты людей').getByRole('button', { name: 'Подробнее' }).click()
+        await expect(currentSection(page)).toHaveText('О данных')
+        await expect(page.getByRole('heading', { name: 'Индексы бренда' })).toBeFocused()
+        await expect(page.getByRole('heading', { name: 'Индексы бренда' })).toBeInViewport()
+        await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(0)
+        await expect(filterPanel(page)).toHaveCount(0)
+
+        await page.goBack()
+        await expect(currentSection(page)).toHaveText('Компании')
+        await expect(yearRadio(page, '2021')).toBeChecked()
+
+        await page.goto('/?v=1&page=methodology')
+        await expect(page.getByRole('heading', { name: 'О данных', level: 1 })).toBeVisible()
+        await expect(page.getByText('не распознан')).toHaveCount(0)
+    })
+
     test('clicking the active year does not add a history entry', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')

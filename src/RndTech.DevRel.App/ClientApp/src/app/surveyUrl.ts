@@ -86,7 +86,7 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
 
     return {
         page: read('page', DEFAULT_STATE.page, text =>
-            text === 'companies' || text === 'sample' ? text : undefined),
+            text === 'companies' || text === 'sample' || text === 'methodology' ? text : undefined),
         year: read('year', LATEST_YEAR, text => SURVEY_YEARS.find(year => year === Number(text))),
         filter: decodeFilter(params.get('filter'), warnings),
         companies: read('companies', DEFAULT_STATE.companies, text => {

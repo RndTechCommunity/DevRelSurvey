@@ -5,7 +5,7 @@ import { SortDirection } from '../shared/sort'
 
 // Состояние исследования: единственный владелец — useSurveyState, адрес страницы — его копия.
 
-type SurveyPage = 'companies' | 'sample'
+export type SurveyPage = 'companies' | 'sample' | 'methodology'
 
 export type CompanySortKey = keyof CompanyMetrics
 

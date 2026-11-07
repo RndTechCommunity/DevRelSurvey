@@ -1,0 +1,42 @@
+.page {
+    max-width: 760px;
+}
+
+.page h1 {
+    margin: 0 0 var(--space-4);
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+}
+
+.page h2 {
+    margin: var(--space-6) 0 var(--space-2);
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 600;
+}
+
+.page p,
+.page ul {
+    margin: 0 0 var(--space-2);
+}
+
+/* Ссылки оглавления стоят друг под другом: шаг строки 28 px оставляет каждой область нажатия 24 px (WCAG 2.5.8). */
+.toc {
+    line-height: 28px;
+}
+
+.note {
+    margin: var(--space-2) 0;
+    color: var(--rs-text-secondary);
+}
+
+.more {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--rs-text-link);
+    text-decoration: underline;
+    cursor: pointer;
+}
