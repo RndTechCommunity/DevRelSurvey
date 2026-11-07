@@ -40,8 +40,8 @@ const openedUrl = (page: Page) => page.evaluate(() => document.body.dataset.open
 
 const linkTo = (filter: object, extra = '') => `/?v=1&filter=${encodeURIComponent(JSON.stringify(filter))}${extra}`
 
-// Заблокированные счётчики Метрики и VK пишут в консоль свои ошибки — их не учитываем.
-const TRACKER_NOISE = /Failed to load resource|VK is not defined/
+// Заблокированный счётчик Метрики пишет в консоль свою ошибку — её не учитываем.
+const TRACKER_NOISE = /Failed to load resource/
 
 function collectErrors(page: Page) {
     const errors: string[] = []
