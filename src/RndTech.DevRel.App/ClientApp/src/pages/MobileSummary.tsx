@@ -5,7 +5,9 @@ import {
     Bar,
     YAxis,
     PieChart,
-    Pie
+    Pie,
+    PieLabelRenderProps,
+    RenderableText
 } from 'recharts'
 import { SelectPicker, Divider, Container, Table, FlexboxGrid } from 'rsuite';
 import { CompanyResult, countOf, FilterOptions, LATEST_YEAR, MetaRow, SurveyMeta } from '../api/types';
@@ -18,16 +20,7 @@ import { toPercentWithTenths } from '../shared/format';
 import { usePickerFocusReturn } from '../shared/usePickerFocusReturn';
 import styles from './MobileSummary.module.css'
 
-type PieLabelProps = {
-    cx: number,
-    cy: number,
-    midAngle: number,
-    innerRadius: number,
-    outerRadius: number,
-    name: string
-}
-
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name }: PieLabelProps) => {
+const renderCustomizedLabel = ({ cx, cy, midAngle = 0, innerRadius, outerRadius, name }: PieLabelRenderProps) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -56,7 +49,7 @@ function TopBarChart({ data, fill }: { data: BarData[], fill: string }) {
                     label={{
                         position: "center",
                         fill: "black",
-                        formatter: (v: string) => v + ' %',
+                        formatter: (v: RenderableText) => `${v} %`,
                     }}
                     fill={fill} />
             </BarChart>

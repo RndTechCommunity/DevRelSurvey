@@ -46,7 +46,7 @@ DevRelSurvey публикует агрегированные результат�
 | `.github/workflows/verify.yml` | Проверки pull request: фронтенд (`npm ci` … `test:e2e`) и `docker build` с проверкой `/wwwroot/index.html` в образе |
 | `tests/smoke/seed.sql` | Синтетическая схема и данные MariaDB для локального smoke-стенда |
 
-Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, RSuite 6.2.5 (таблицы — rsuite-table 5.19), Recharts 2.1.16, Axios 1.21.0, react-responsive 9.0.2; сборка и проверки — Vite 8.3, TypeScript 5.9, Vitest 5.1, ESLint 10 (flat config, typescript-eslint 8, react-hooks 7), Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Node — 24 (`.nvmrc`, `NODE_VERSION=24.x` в Dockerfile).
+Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, RSuite 6.2.5 (таблицы — rsuite-table 5.19), Recharts 3.10.1, Axios 1.21.0, react-responsive 9.0.2; сборка и проверки — Vite 8.3, TypeScript 5.9, Vitest 5.1, ESLint 10 (flat config, typescript-eslint 8, react-hooks 7), Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Node — 24 (`.nvmrc`, `NODE_VERSION=24.x` в Dockerfile).
 
 ### Устройство фронтенда
 
