@@ -29,7 +29,7 @@ type Override = {
 
 type FilterOptions = { readonly [K in keyof typeof filterOptions]: readonly string[] }
 
-const TRACKERS = /(mc\.yandex\.ru|vk\.com|userapi\.com)/
+const TRACKERS = /mc\.yandex\.ru/
 
 // Исходная группа: Ростов-на-Дону, 20–44 года.
 export const INITIAL_FILTER = {
