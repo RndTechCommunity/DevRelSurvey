@@ -9,20 +9,8 @@ using RndTech.DevRel.Database;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-if (builder.Environment.IsDevelopment())
-{
-	// Add in-memory cache for development
-	builder.Services.AddDistributedMemoryCache();
-}
-else
-{
-	// Add Redis cache on production environment
-	var redisConfiguration = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_REDIS");
-	builder.Services.AddStackExchangeRedisCache(options =>
-	{
-		options.Configuration = redisConfiguration;
-	});
-}
+// Add in-memory cache for query results
+builder.Services.AddDistributedMemoryCache(options => options.SizeLimit = AppSettings.CacheSizeLimitBytes);
 
 // Add database with raw data
 var surveyDbConnectionString = Environment.GetEnvironmentVariable("DEVRELAPP_CONFIG_DATABASE");
