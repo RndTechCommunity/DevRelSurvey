@@ -355,3 +355,16 @@ test('mobile shows the number of respondents of the selected year', async ({ pag
     await expect(page.getByText('Данные 2021 года')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('60')
 })
+
+test('mobile shows the bar values when the sample arrives after the companies', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 })
+    const api = await mockApi(page)
+    let release = () => {}
+    api.override(isMeta, new Promise<void>(resolve => { release = resolve }))
+    await page.goto('/')
+    await expect(page.locator('.recharts-bar-rectangle')).toHaveCount(12)
+
+    release()
+
+    await expect(page.locator('.recharts-label-list')).toHaveCount(2)
+})

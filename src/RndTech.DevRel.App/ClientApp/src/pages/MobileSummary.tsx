@@ -51,6 +51,7 @@ function TopBarChart({ data, fill }: { data: BarData[], fill: string }) {
                 <XAxis type="number" hide={true} />
                 <YAxis width={100} type="category" dataKey="name" />
                 <Bar dataKey="level"
+                    isAnimationActive={false}
                     label={{
                         position: "center",
                         fill: "black",
