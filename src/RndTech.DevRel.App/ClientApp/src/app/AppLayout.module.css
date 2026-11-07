@@ -1,18 +1,26 @@
-.menuContainer {
-    display: inline-block;
-}
-
-.menuBar {
+.header {
     display: flex;
-    padding: 40px 50px 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-6);
+    padding: var(--space-2) var(--space-6);
+    border-bottom: 1px solid var(--rs-border-primary);
 }
 
-.menu {
-    flex-grow: 1;
-    margin-top: -4px;
+.brand {
+    font-weight: 600;
 }
 
-.playground {
-    flex-grow: 1;
-    padding: 50px 50px 25px;
+/* minmax(0, …): широкая таблица прокручивается внутри основной колонки, а не растягивает страницу. */
+.body {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+}
+
+.aside {
+    border-right: 1px solid var(--rs-border-primary);
+}
+
+.main {
+    padding: var(--space-4) var(--space-6) var(--space-6);
 }

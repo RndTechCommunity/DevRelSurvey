@@ -1,61 +1,64 @@
 import { useState } from 'react';
 import { Table } from 'rsuite';
-import { countOf, MetaRow, SURVEY_YEARS } from '../../api/types';
-import { formatShare } from '../../shared/format';
+import { countOf, MetaRow, SurveyYear } from '../../api/types';
+import { formatShare, shareOf } from '../../shared/format';
 import { sortRows, SortDirection } from '../../shared/sort';
+import styles from './SampleTable.module.css';
 
 type Props = {
     data: readonly MetaRow[];
     header: string;
-    filteredTotal: MetaRow
+    year: SurveyYear;
+    filteredTotal: MetaRow;
+    total: MetaRow
 }
 
-function cellValue(row: MetaRow, column: string): string | number {
-    const year = SURVEY_YEARS.find(y => `count${y}` === column)
-    return year ? countOf(row, year) : row.name
-}
-
-export default function SampleTable(props: Props) {
+export default function SampleTable({ data, header, year, filteredTotal, total }: Props) {
     const [sortColumn, setSortColumn] = useState<string>();
     const [sortType, setSortType] = useState<SortDirection>('desc');
-
-    const prepareTableData = (row: MetaRow) => {
-        const cells: { [column: string]: string } = { name: row.name }
-        SURVEY_YEARS.forEach(year => {
-            cells[`count${year}`] = formatShare(countOf(row, year), countOf(props.filteredTotal, year))
-        })
-        return cells
-    }
+    const yearTotal = countOf(filteredTotal, year)
 
     const rows = sortColumn
-        ? sortRows(props.data, row => cellValue(row, sortColumn), sortType)
-        : props.data
+        ? sortRows(data, row => sortColumn === 'count' ? countOf(row, year) : row.name, sortType)
+        : data
 
     const handleSortColumn = (sortColumn: string, sortType: SortDirection | undefined) => {
         setSortColumn(sortColumn);
         setSortType(sortType ?? 'desc');
     };
 
+    const renderShare = (row: MetaRow) => {
+        const count = countOf(row, year)
+        const share = shareOf(count, yearTotal)
+        return (
+            <span className={styles.share}>
+                <span className={styles.value}>{formatShare(count, yearTotal)}</span>
+                {share !== null && (
+                    <span className={styles.track} aria-hidden>
+                        <span className={styles.bar} style={{ width: `${share * 100}%` }} />
+                    </span>
+                )}
+            </span>
+        )
+    }
+
     return (
         <Table
             autoHeight={true}
-            data={rows.map(prepareTableData)}
+            data={rows}
             sortColumn={sortColumn}
             sortType={sortType}
             onSortColumn={handleSortColumn}
             defaultSortType={'desc'}
-            width={1100}
         >
             <Table.Column flexGrow={1} sortable>
-                <Table.HeaderCell>{props.header}</Table.HeaderCell>
+                <Table.HeaderCell>{header}</Table.HeaderCell>
                 <Table.Cell dataKey='name'/>
             </Table.Column>
 
-            {SURVEY_YEARS.map(year => (
-                <Table.Column key={year} sortable>
-                    <Table.HeaderCell>{year}</Table.HeaderCell>
-                    <Table.Cell dataKey={`count${year}`}/>
-                </Table.Column>
-            ))}
+            <Table.Column flexGrow={1} sortable>
+                <Table.HeaderCell>{`${year} · ${yearTotal} из ${countOf(total, year)}`}</Table.HeaderCell>
+                <Table.Cell dataKey='count'>{renderShare}</Table.Cell>
+            </Table.Column>
         </Table>);
 }

@@ -1,0 +1,23 @@
+/* Общие значения оформления: отступы с шагом 4/8 px, радиус, шрифт, фокус, цвет полос.
+   Цвета берутся из переменных темы RSuite (--rs-*). Токен со ссылкой на --rs-* вычисляется там, где объявлен,
+   поэтому он объявлен и для .rs-theme-dark: иначе в тёмной теме остались бы светлые значения :root. */
+:root {
+    --space-2: 8px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --radius: 4px;
+    --rs-font-family-base: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root,
+.rs-theme-dark {
+    /* В RSuite контур фокуса — цвет акцента с прозрачностью 25 %: на тёмном фоне он почти не виден. */
+    --rs-focus-ring-color: var(--rs-primary-500);
+    --bar-color: var(--rs-primary-500);
+}
+
+/* Внутренний контур: у ячеек таблицы и элементов с прокруткой внешний обрезается. */
+:focus-visible {
+    outline: 2px solid var(--rs-focus-ring-color);
+    outline-offset: -2px;
+}

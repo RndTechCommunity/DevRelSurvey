@@ -42,7 +42,6 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
             data={data}
             sortColumn={sort?.key}
             sortType={sort?.direction}
-            style={{marginRight: '50px', marginTop: '30px'}}
             onSortColumn={(dataKey, direction) => {
                 const key = COMPANY_SORT_KEYS.find(k => k === dataKey)
                 if (key && direction) {

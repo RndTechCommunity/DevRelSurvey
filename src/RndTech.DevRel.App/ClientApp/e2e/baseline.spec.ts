@@ -6,11 +6,17 @@ import { INITIAL_FILTER, isCompanies, mockApi } from './mockApi'
 
 const WIDTHS = [390, 768, 1223, 1224, 1225, 1440]
 
-const activeTab = (page: Page) => page.locator('[role="button"][aria-selected="true"]')
+const yearRadio = (page: Page, year: string) =>
+    page.getByRole('radiogroup', { name: 'Год исследования' }).getByRole('radio', { name: year })
+// Поле radio скрыто библиотекой, щёлкаем по подписи года.
+const selectYear = (page: Page, year: string) =>
+    page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
 
 function rowCells(page: Page, name: string) {
     return page.locator('.rs-table-row').filter({ hasText: name }).first().locator('.rs-table-cell')
 }
+
+const horizontalOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
 
 // Координата деления оси графика с подписью label, в единицах SVG.
 async function tickAt(page: Page, axis: 'x' | 'y', label: string) {
@@ -26,9 +32,9 @@ test.describe('desktop 1440', () => {
         const api = await mockApi(page)
         await page.goto('/')
 
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        await expect(page.getByText('2022 · Ростов-на-Дону, 20–44 года · Выборка: 100 из 600')).toBeVisible()
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
-        await expect(activeTab(page)).toHaveText('2022')
+        await expect(yearRadio(page, '2022')).toBeChecked()
         await expect(rowCells(page, 'IBS Dunice')).toHaveText(['IBS Dunice', '40%', '10%', '5%', '15%', '95', '60'])
 
         // График не добавляет остановку Tab между controls и таблицей.
@@ -68,23 +74,30 @@ test.describe('desktop 1440', () => {
     test('switches the year without a new request', async ({ page }) => {
         const api = await mockApi(page)
         await page.goto('/')
-        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         const posts = api.posts().length
 
-        await page.getByRole('button', { name: '2019', exact: true }).click()
+        await selectYear(page, '2019')
 
-        await expect(page.getByText('В выборке 50 человек')).toBeVisible()
+        await expect(page.getByText('Выборка: 50 из 300')).toBeVisible()
         await expect(rowCells(page, 'Контур')).toHaveText(['Контур', '25%', '5%', '2.5%', '7.5%', '52.5', '42.9'])
         expect(api.posts()).toHaveLength(posts)
     })
 
-    test('shows the sample composition', async ({ page }) => {
+    test('shows the sample composition of the selected year', async ({ page }) => {
         await mockApi(page)
         await page.goto('/')
         await page.getByRole('button', { name: 'Состав выборки' }).click()
 
         await expect(page.getByRole('columnheader', { name: 'Язык программирования' })).toBeVisible()
-        await expect(rowCells(page, 'JavaScript')).toHaveText(['JavaScript', '30 (60%)', '50 (62.5%)', '40 (66.7%)', '70 (70%)'])
+        await expect(rowCells(page, 'JavaScript')).toHaveText(['JavaScript', '70 (70%)'])
+        // Полоса скрыта от экранного диктора, её длина — доля от ширины дорожки.
+        const barShare = await rowCells(page, 'JavaScript').locator('[aria-hidden="true"]').evaluate(track =>
+            track.firstElementChild!.getBoundingClientRect().width / track.getBoundingClientRect().width)
+        expect(barShare).toBeCloseTo(0.7, 2)
+        await selectYear(page, '2019')
+        await expect(rowCells(page, 'JavaScript')).toHaveText(['JavaScript', '30 (60%)'])
+        await expect(page.getByRole('columnheader', { name: '2019 · 50 из 300' }).first()).toBeVisible()
     })
 
     test('opens a legacy link of 2020', async ({ page }) => {
@@ -92,8 +105,8 @@ test.describe('desktop 1440', () => {
         await page.goto(`/?tab=${encodeURIComponent('"known-and-wanted-2020"')}`
             + `&filter=${encodeURIComponent(JSON.stringify(INITIAL_FILTER))}`)
 
-        await expect(page.getByText('В выборке 80 человек')).toBeVisible()
-        await expect(activeTab(page)).toHaveText('2020')
+        await expect(page.getByText('Выборка: 80 из 400')).toBeVisible()
+        await expect(yearRadio(page, '2020')).toBeChecked()
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
     })
 })
@@ -105,7 +118,7 @@ test('mobile 390 shows the summary of the initial group', async ({ page }) => {
 
     await expect(page.getByRole('heading', { name: 'Исследование Ростовского ИТ-сообщества' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('100')
-    await expect(page.locator('.rs-sidebar')).toHaveCount(0)
+    await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(0)
     expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
 })
 
@@ -114,10 +127,18 @@ test('screenshots of the initial page', async ({ page }) => {
     for (const width of WIDTHS) {
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/')
-        await expect(page.getByText(/В выборке|Всего участников/).first()).toBeVisible()
+        await expect(page.getByText(/Выборка: 100|Всего участников/).first()).toBeVisible()
         if (width < 1224) {
             await expect(page.locator('.recharts-pie-labels')).toHaveCount(2)
             await expect(page.locator('.recharts-label-list')).toHaveCount(2)
+        } else {
+            // Карта и таблицы занимают ширину контейнера: страница не прокручивается по горизонтали.
+            await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
+            expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
+            await page.getByRole('button', { name: 'Состав выборки' }).click()
+            await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
+            expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
+            await page.getByRole('button', { name: 'Компании', exact: true }).click()
         }
         await test.info().attach(`initial-${width}.png`, {
             body: await page.screenshot({ fullPage: true }),
