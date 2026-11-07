@@ -1,5 +1,5 @@
-import MultiSelect from '../MultiSelect'
-import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter, sameFilter } from '../../features/filters/model'
+import MultiSelect from '../../shared/MultiSelect'
+import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter, sameFilter } from './model'
 import { FilterOptions } from '../../api/types'
 import { AsyncState, RequestState } from '../../shared/AsyncState'
 import { Button, Nav, SelectPicker } from 'rsuite';
@@ -8,14 +8,14 @@ import { Split, Pin, TagFilter } from '@rsuite/icons';
 type Props = {
     filter: RespondentFilter,
     options: RequestState<FilterOptions>,
-    onSetFilter: (filter: RespondentFilter) => void,
-    onOpenDuplicate: () => void,
+    onChange: (filter: RespondentFilter) => void,
+    onDuplicate: () => void,
 }
 
 const isCommunityOptions: { value: 'Да' | 'Нет', label: string }[] = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
 
-export default function FiltersSidePage({ filter, options, onSetFilter, onOpenDuplicate }: Props) {
-    const change = (patch: Partial<RespondentFilter>) => onSetFilter({ ...filter, ...patch })
+export default function FilterPanel({ filter, options, onChange, onDuplicate }: Props) {
+    const change = (patch: Partial<RespondentFilter>) => onChange({ ...filter, ...patch })
 
     return (
         <Nav>
@@ -84,7 +84,7 @@ export default function FiltersSidePage({ filter, options, onSetFilter, onOpenDu
                     />
                 </Nav.Item>
                 <Nav.Item eventKey='1-8' as='span'>
-                    <Button appearance='link' onClick={onOpenDuplicate}>
+                    <Button appearance='link' onClick={onDuplicate}>
                         <Split />&nbsp;
                         Дублировать
                     </Button>
@@ -96,7 +96,7 @@ export default function FiltersSidePage({ filter, options, onSetFilter, onOpenDu
                         <Button
                             appearance='link'
                             disabled={sameFilter(filter, preset.filter)}
-                            onClick={() => onSetFilter(preset.filter)}
+                            onClick={() => onChange(preset.filter)}
                         >
                             {preset.label}
                         </Button>

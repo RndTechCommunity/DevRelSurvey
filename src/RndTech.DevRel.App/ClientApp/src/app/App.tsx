@@ -1,8 +1,8 @@
 import { Container, Content, CustomProvider, Message } from 'rsuite'
 import 'rsuite/dist/rsuite.min.css'
 import { useMediaQuery } from 'react-responsive'
-import Results from '../components/Results'
-import ResultsMobile from '../components/ResultsMobile'
+import MobileSummary from '../pages/MobileSummary'
+import AppLayout from './AppLayout'
 import { useFilterOptions, useSurveyData } from './useSurveyData'
 import { useSurveyState } from './useSurveyState'
 
@@ -15,7 +15,7 @@ export default function App() {
 
     return (
         <CustomProvider theme='dark'>
-            <Container className='App'>
+            <Container>
                 <Content>
                     {warnings.map(warning => (
                         <Message key={warning} type='warning' showIcon closable duration={0} onClose={() => dismissWarning(warning)}>
@@ -23,8 +23,8 @@ export default function App() {
                         </Message>
                     ))}
                     {isDesktop
-                        ? <Results state={state} update={update} onDuplicate={duplicate} {...data} />
-                        : <ResultsMobile state={state} update={update} {...data} />}
+                        ? <AppLayout state={state} update={update} onDuplicate={duplicate} {...data} />
+                        : <MobileSummary state={state} update={update} {...data} />}
                 </Content>
             </Container>
         </CustomProvider>
