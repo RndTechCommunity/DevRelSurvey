@@ -72,6 +72,10 @@ test('screenshots of the initial page', async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/')
         await expect(page.getByText(/В выборке|Всего участников/).first()).toBeVisible()
+        if (width < 1224) {
+            await expect(page.locator('.recharts-pie-labels')).toHaveCount(2)
+            await expect(page.locator('.recharts-label-list')).toHaveCount(2)
+        }
         await test.info().attach(`initial-${width}.png`, {
             body: await page.screenshot({ fullPage: true }),
             contentType: 'image/png'
