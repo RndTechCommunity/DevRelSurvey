@@ -15,7 +15,7 @@ DevRelSurvey публикует агрегированные результат�
 
 Первый этап — рефакторинг с проверяемой совместимостью; второй — отдельный редизайн. Не смешивать перенос файлов с изменением методики, БД, UI-библиотеки и всех зависимостей сразу. Запрос на документацию или планирование не означает разрешения на реализацию либо деплой.
 
-Ниже описано проверенное состояние `master` на 2026-11-06, базовый коммит `e36b3ea`; разделы о фронтенде обновлены по этапу 1 рефакторинга (#19). При изменении поведения обновляйте этот файл в том же PR. Будущая структура из планов в issues не считается уже реализованной.
+Ниже описано проверенное состояние `master` на 2026-11-06, базовый коммит `e36b3ea`; разделы о фронтенде, сборке и проверках обновлены по этапу 1 рефакторинга (#19). При изменении поведения обновляйте этот файл в том же PR. Будущая структура из планов в issues не считается уже реализованной.
 
 ## Источники истины и неточности существующих документов
 
@@ -25,7 +25,7 @@ DevRelSurvey публикует агрегированные результат�
 - Регистрация обработчиков выполняется в `Program.cs`; helper регистрации — `Configuration/ServiceCollectionExtensions.cs`.
 - `.github/workflows/deploy.yml` запускается вручную через `workflow_dispatch`. **Дополнительно** у работающей установки проверен отдельный GitHub push-webhook CapRover, настроенный на `master`. Поэтому push в `master` способен запустить production-сборку даже без запуска GitHub Actions.
 - Импортёр сейчас предназначен для CSV 2022 года; это не универсальная CLI с выбором года и параметрами подключения.
-- Фронтенд: `npm test` — unit-тесты чистых модулей (Jest из CRA), `npm run test:e2e` — браузерные сценарии Playwright в системном Chrome с подменой `/api/**`. К production и БД тесты не обращаются.
+- Фронтенд: `npm test` — unit-тесты чистых модулей (Vitest), `npm run test:e2e` — браузерные сценарии Playwright в системном Chrome с подменой `/api/**`. К production и БД тесты не обращаются. `.github/workflows/verify.yml` запускает проверки фронтенда и сборку Docker-образа на каждом pull request; секретов и деплоя в нём нет.
 - В solution нет backend test project. Завершение `dotnet test` без найденных тестов не доказывает корректность вычислений.
 - `year` в запросе присутствует в DTO, но **не переносится** `FilterMappers.ToQuery` в запрос обработчика. Выбор года сейчас происходит на клиенте.
 
@@ -43,8 +43,10 @@ DevRelSurvey публикует агрегированные результат�
 | `src/RndTech.DevRel.App/ClientApp/` | React-приложение, npm lockfile, dev proxy и сборка |
 | `Dockerfile`, `src/RndTech.DevRel.App/RndTech.DevRel.App.csproj` | Полная сборка: npm → `ClientApp/build` → ASP.NET `wwwroot` |
 | `.github/workflows/deploy.yml` | Ручная сборка образа в GHCR и отправка в CapRover |
+| `.github/workflows/verify.yml` | Проверки pull request: фронтенд (`npm ci` … `test:e2e`) и `docker build` с проверкой `/wwwroot/index.html` в образе |
+| `tests/smoke/seed.sql` | Синтетическая схема и данные MariaDB для локального smoke-стенда |
 
-Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, TypeScript 4.8.4, CRA/react-scripts 5.0.1, RSuite 5.22.1, Recharts 2.1.16, Axios 1.1.3, react-responsive 9.0.2; для проверок — Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Dockerfile задаёт Node `18.x`; его модернизация должна быть отдельным проверяемым шагом.
+Текущий стек: .NET/EF Core 8; Pomelo `8.0.0-beta.2`; React 18.2, RSuite 5.22.1, Recharts 2.1.16, Axios 1.21.0, react-responsive 9.0.2; сборка и проверки — Vite 8.3, TypeScript 5.9, Vitest 5.1, ESLint 10 (flat config, typescript-eslint 8, react-hooks 7), Playwright 1.65. Это версии из lockfile, а не рекомендация устанавливать их заново без проверки поддержки. Node — 24 (`.nvmrc`, `NODE_VERSION=24.x` в Dockerfile).
 
 ### Устройство фронтенда
 
@@ -61,7 +63,7 @@ DevRelSurvey публикует агрегированные результат�
 - Mobile получает год, фильтр и данные из общего состояния и выбирает один город. Если фильтр полной версии нельзя выразить одним городом, показывается «Применены дополнительные фильтры полной версии»; для не последнего года — «Данные {год} года».
 - Стили — CSS Modules рядом с компонентами, `index.css` и тема RSuite.
 - Unit-тесты `*.test.ts` лежат рядом с модулями, синтетические ответы API — в `test/fixtures.ts`; браузерные сценарии — в `ClientApp/e2e/` и `ClientApp/playwright.config.ts`.
-- Остатки шаблона CRA (`setupProxy.js`, service worker, `reportWebVitals.ts`, `ClientApp/aspnetcore-*.js`) пока остаются; их удаление — часть перехода на Vite.
+- Сборка — Vite: `ClientApp/index.html` (точка входа, Метрика и VK), `ClientApp/vite.config.ts` (вывод в `build/`, dev-сервер, Vitest), `ClientApp/eslint.config.js`; файлы `public/` копируются в корень сборки как есть.
 
 ## Сценарии, которые нужно учитывать
 
@@ -96,7 +98,7 @@ DevRelSurvey публикует агрегированные результат�
 
 В `CompanyAnswers` нет уникального ограничения на пару `(IntervieweeId, CompanyId)`. Не предполагайте, что БД сама предотвращает повторный импорт. Агрегация группирует компании по **имени и году**, а API не отдаёт company UUID. Не превращайте подпись с неразрывными пробелами в новый идентификатор; исходное имя должно сохраняться отдельно от форматирования.
 
-В работающей БД также существуют исторические `MotivationFactors` и `IntervieweeMotivationFactors`, которых нет в текущем `SurveyDbContext`. Не удаляйте их и не генерируйте разрушительные миграции из предположения, что EF-модель описывает весь существующий database schema. В репозитории нет набора EF migrations или готового seed для чистой БД.
+В работающей БД также существуют исторические `MotivationFactors` и `IntervieweeMotivationFactors`, которых нет в текущем `SurveyDbContext`. Не удаляйте их и не генерируйте разрушительные миграции из предположения, что EF-модель описывает весь существующий database schema. В репозитории нет набора EF migrations; `tests/smoke/seed.sql` — синтетическая БД только для локального стенда, а не seed production.
 
 На дату проверки доступны 2019–2022 годы. Это наблюдение о данных, не правило на будущее. `MetaModelTableRow` и его обработчик жёстко задают `count2019…count2022`; поддержка нового года требует изменения контракта либо явного адаптера, а не только новой кнопки. На фронтенде каталог лет — `SURVEY_YEARS` в `api/types.ts`, связанный с полями этого DTO.
 
@@ -210,7 +212,7 @@ npm run test:e2e
 npm run build
 ```
 
-После этапа 1 (#19): lint — 0 ошибок и 0 предупреждений, typecheck — exit 0, `@ts-nocheck` и `@ts-ignore` в коде нет. `npm run test:e2e` требует установленного Google Chrome (`channel: 'chrome'`): Playwright сам запускает dev-сервер CRA на порту 4173 и не переиспользует уже занятый порт; `/api/**` подменяется синтетическими ответами, счётчики Метрики и VK блокируются. В dev-сборке StrictMode повторяет эффекты при монтировании, поэтому e2e считает запросы после начальной загрузки. До этапа 1 lint давал 11 предупреждений, а `npm test` не запускался из-за отсутствующего `cross-env`. После изменения инструментов обновите команды и снимите устаревшие замечания.
+После этапа 1 (#19): lint (`--max-warnings=0`) — 0 ошибок и 0 предупреждений, typecheck (`tsc --noEmit`, включая `e2e/` и конфиги) — exit 0, `@ts-nocheck` и `@ts-ignore` в коде нет. `npm run build` сначала выполняет typecheck. `npm run test:e2e` требует установленного Google Chrome (`channel: 'chrome'`): Playwright сам собирает приложение и запускает `vite preview` на порту 4173, уже занятый порт не переиспользует; `/api/**` подменяется синтетическими ответами, счётчики Метрики и VK блокируются. До этапа 1 lint давал 11 предупреждений, а `npm test` не запускался из-за отсутствующего `cross-env`. После изменения инструментов обновите команды и снимите устаревшие замечания.
 
 Для явного запуска двух процессов после настройки тестовой БД:
 
@@ -222,9 +224,11 @@ ASPNETCORE_ENVIRONMENT=Development PORT=29500 dotnet run --no-launch-profile --p
 npm start
 ```
 
-Текущий frontend слушает HTTPS 44422 (`.env.development`), `/api` проксируется по `setupProxy.js`, по умолчанию на HTTP 29500. `prestart` экспортирует dev-сертификат в пользовательскую папку ASP.NET и создаёт `.env.development.local`; на чистой машине могут потребоваться `dotnet dev-certs https` и существующий каталог `~/.aspnet/https`. Не коммитьте ключи. `launchSettings.json` дополнительно задаёт 7010/5020 и SPA proxy; не переносите эти значения в production и не предполагайте, что один `dotnet run` всегда открывает готовый UI на 29500.
+`npm start` запускает dev-сервер Vite на HTTP 44422 (занятый порт — ошибка запуска), `/api` проксируется на `http://localhost:29500` (`vite.config.ts`); сертификаты не нужны. Тот же адрес задан в `SpaProxyServerUrl` csproj. `launchSettings.json` дополнительно задаёт 7010/5020 и SPA proxy; не переносите эти значения в production и не предполагайте, что один `dotnet run` всегда открывает готовый UI на 29500.
 
-`dotnet publish src/RndTech.DevRel.App -c Release` выполняет `npm install` и `npm run build` по MSBuild target и копирует `build/**` в `wwwroot`. Обычный `dotnet build -c Release` **не заменяет** проверку frontend publish. При смене CRA на Vite обязательно проверить этот target, output directory, `public/index.html`, proxy, npm scripts, Dockerfile и deep links через `MapFallbackToFile("index.html")`.
+`dotnet publish src/RndTech.DevRel.App -c Release` выполняет `npm ci` и `npm run build` по MSBuild target и копирует `build/**` в `wwwroot`: `index.html`, `assets/` и файлы `public/`; source maps и service worker не публикуются. Обычный `dotnet build -c Release` **не заменяет** проверку frontend publish. `docker build` повторяет тот же publish с Node 24 внутри образа; рабочий каталог образа — `/`, статика — `/wwwroot`. Deep links обслуживает `MapFallbackToFile("index.html")`.
+
+Локальный smoke-стенд: одноразовая MariaDB (например, `mariadb:10.11` в Docker), к ней `tests/smoke/seed.sql` (только MariaDB: используются таблицы `seq_1_to_N` движка Sequence), затем backend с `ASPNETCORE_ENVIRONMENT=Development` и `DEVRELAPP_CONFIG_DATABASE` этой БД. В seed база исходного фильтра — 100 респондентов 2022 года и 60 респондентов 2021 года; есть компании без ответов в одном из лет, с нулевым и отрицательным знаменателем «Рейтинга бренда», город с одним респондентом и историческое «JavaScript / TypeScript» в 2019 году.
 
 ## Как вносить изменения
 
