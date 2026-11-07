@@ -19,7 +19,7 @@ const WITHOUT_DELAY = { timeout: 300 }
 
 const TAGANROG = { ...INITIAL_FILTER, cities: ['Таганрог'] }
 
-const activeTab = (page: Page) => page.locator('.rs-nav-item-active')
+const activeTab = (page: Page) => page.locator('[role="button"][aria-selected="true"]')
 const navButton = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
 // Кнопки боковой панели вложены в пункты меню с ролью button.
 const sidebarButton = (page: Page, name: string) => page.locator('button', { hasText: name })
@@ -95,7 +95,7 @@ test.describe('desktop 1440', () => {
         await expect(firstColumn(companies)).toHaveText(
             ['Тинькофф', 'Почтатех', 'Контур', 'ИТРУМ (ex Exceed Team)', 'IBS Dunice', 'Gamma%'], WITHOUT_DELAY)
 
-        await expect(companies.locator('.rs-table-cell-header-icon-sort-desc')).toBeVisible()
+        await expect(companies.getByRole('columnheader', { name: 'Компания' })).toHaveAttribute('aria-sort', 'descending')
         await companies.getByRole('columnheader', { name: 'Компания' }).click()
         await expect(firstColumn(companies)).toHaveText(
             ['Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Контур', 'Почтатех', 'Тинькофф'])
@@ -168,6 +168,25 @@ test.describe('desktop 1440', () => {
         await expect(sidebarButton(page, 'Топ Таганрога')).toBeDisabled()
         await expect(page.getByRole('checkbox', { name: 'Отображать доверительный интервал' })).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
+    })
+
+    // RSuite 6 переводит фокус на пункт открытого списка; после Escape или Tab он должен вернуться в поля.
+    test('Escape and Tab from an opened list keep the keyboard focus on the filter fields', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('В выборке 100 человек')).toBeVisible()
+        const [city, ages] = [0, 1].map(i => page.locator('.rs-sidebar').getByRole('combobox').nth(i))
+
+        await city.focus()
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Escape')
+        await expect(city).toBeFocused()
+
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Tab')
+        await expect(ages).toBeFocused()
     })
 
     test('a preset is inactive for a link with the same values in another order', async ({ page }) => {

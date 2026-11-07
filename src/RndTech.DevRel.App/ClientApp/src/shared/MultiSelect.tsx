@@ -1,4 +1,5 @@
 import { Checkbox, CheckPicker } from 'rsuite';
+import { usePickerFocusReturn } from './usePickerFocusReturn';
 
 const footerStyles = {
     padding: '10px 2px',
@@ -16,26 +17,31 @@ type Props = {
 export default function MultiSelect({ options, value, placeholder, onChange }: Props) {
     const selectedCount = options.filter(option => value.includes(option)).length
     const allSelected = options.length > 0 && selectedCount === options.length
+    const { ref, wrapperProps } = usePickerFocusReturn()
 
     return (
-        <CheckPicker
-            data={options.map(option => ({ value: option, label: option }))}
-            placeholder={placeholder}
-            style={{width: 224}}
-            value={[...value]}
-            onChange={onChange}
-            renderExtraFooter={() => (
-                <div style={footerStyles}>
-                    <Checkbox
-                        inline
-                        indeterminate={selectedCount > 0 && !allSelected}
-                        checked={allSelected}
-                        onChange={(_, checked) => onChange(checked ? options : [])}
-                    >
-                        Выбрать все
-                    </Checkbox>
-                </div>
-            )}
-        />
+        <div {...wrapperProps}>
+            <CheckPicker
+                ref={ref}
+                data={options.map(option => ({ value: option, label: option }))}
+                placeholder={placeholder}
+                block
+                style={{width: 224}}
+                value={[...value]}
+                onChange={onChange}
+                renderExtraFooter={() => (
+                    <div style={footerStyles}>
+                        <Checkbox
+                            inline
+                            indeterminate={selectedCount > 0 && !allSelected}
+                            checked={allSelected}
+                            onChange={(_, checked) => onChange(checked ? options : [])}
+                        >
+                            Выбрать все
+                        </Checkbox>
+                    </div>
+                )}
+            />
+        </div>
     )
 }

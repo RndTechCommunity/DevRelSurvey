@@ -5,6 +5,8 @@ import { INITIAL_FILTER, isCompanies, mockApi } from './mockApi'
 
 const WIDTHS = [390, 768, 1223, 1224, 1225, 1440]
 
+const activeTab = (page: Page) => page.locator('[role="button"][aria-selected="true"]')
+
 function rowCells(page: Page, name: string) {
     return page.locator('.rs-table-row').filter({ hasText: name }).first().locator('.rs-table-cell')
 }
@@ -18,7 +20,7 @@ test.describe('desktop 1440', () => {
 
         await expect(page.getByText('В выборке 100 человек')).toBeVisible()
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
-        await expect(page.locator('.rs-nav-item-active')).toHaveText('2022')
+        await expect(activeTab(page)).toHaveText('2022')
         await expect(rowCells(page, 'IBS Dunice')).toHaveText(['IBS Dunice', '40%', '10%', '5%', '15%', '95', '60'])
     })
 
@@ -50,7 +52,7 @@ test.describe('desktop 1440', () => {
             + `&filter=${encodeURIComponent(JSON.stringify(INITIAL_FILTER))}`)
 
         await expect(page.getByText('В выборке 80 человек')).toBeVisible()
-        await expect(page.locator('.rs-nav-item-active')).toHaveText('2020')
+        await expect(activeTab(page)).toHaveText('2020')
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
     })
 })

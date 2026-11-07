@@ -15,6 +15,7 @@ import { chartY, selectCompanyRows, topCompanies } from '../features/companies/c
 import { DEFAULT_FILTER, sameFilter } from '../features/filters/model'
 import { AsyncState, RequestState } from '../shared/AsyncState';
 import { toPercentWithTenths } from '../shared/format';
+import { usePickerFocusReturn } from '../shared/usePickerFocusReturn';
 import styles from './MobileSummary.module.css'
 
 type PieLabelProps = {
@@ -95,6 +96,7 @@ const TOP_SIZE = 10
 export default function MobileSummary({ state, update, companies, meta, options }: Props) {
     const { filter, year } = state
     const cities = options.data?.cities ?? []
+    const { ref, wrapperProps } = usePickerFocusReturn()
 
     // Мобильный вид выбирает только один город; остальные ограничения задаются в полной версии.
     const city = filter.cities.length === 1 ? filter.cities[0] : null
@@ -141,11 +143,14 @@ export default function MobileSummary({ state, update, companies, meta, options 
                         <FlexboxGrid.Item colspan={20}>
                             <AsyncState state={options}>
                                 {loaded => (
-                                    <SelectPicker
-                                        data={loaded.cities.map(item => ({ label: item, value: item }))}
-                                        value={city}
-                                        onChange={value => update({ filter: { ...filter, cities: value ? [value] : [] } })}
-                                        block />
+                                    <div {...wrapperProps}>
+                                        <SelectPicker
+                                            ref={ref}
+                                            data={loaded.cities.map(item => ({ label: item, value: item }))}
+                                            value={city}
+                                            onChange={value => update({ filter: { ...filter, cities: value ? [value] : [] } })}
+                                            block />
+                                    </div>
                                 )}
                             </AsyncState>
                             {hasOtherFilters && (

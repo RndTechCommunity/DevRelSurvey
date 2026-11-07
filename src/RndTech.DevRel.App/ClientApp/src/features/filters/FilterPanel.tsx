@@ -2,6 +2,7 @@ import MultiSelect from '../../shared/MultiSelect'
 import { AGE_OPTIONS, FILTER_PRESETS, RespondentFilter, sameFilter } from './model'
 import { FilterOptions } from '../../api/types'
 import { AsyncState, RequestState } from '../../shared/AsyncState'
+import { usePickerFocusReturn } from '../../shared/usePickerFocusReturn'
 import { Button, Nav, SelectPicker } from 'rsuite';
 import { Split, Pin, TagFilter } from '@rsuite/icons';
 
@@ -16,6 +17,7 @@ const isCommunityOptions: { value: 'Да' | 'Нет', label: string }[] = [{ val
 
 export default function FilterPanel({ filter, options, onChange, onDuplicate }: Props) {
     const change = (patch: Partial<RespondentFilter>) => onChange({ ...filter, ...patch })
+    const { ref, wrapperProps } = usePickerFocusReturn()
 
     return (
         <Nav>
@@ -75,13 +77,16 @@ export default function FilterPanel({ filter, options, onChange, onDuplicate }: 
                     )}
                 </AsyncState>
                 <Nav.Item eventKey='1-7' as='span'>
-                    <SelectPicker
-                        block
-                        data={isCommunityOptions}
-                        placeholder='Посещает митапы'
-                        value={filter.isCommunity}
-                        onChange={isCommunity => change({ isCommunity })}
-                    />
+                    <div {...wrapperProps}>
+                        <SelectPicker
+                            ref={ref}
+                            block
+                            data={isCommunityOptions}
+                            placeholder='Посещает митапы'
+                            value={filter.isCommunity}
+                            onChange={isCommunity => change({ isCommunity })}
+                        />
+                    </div>
                 </Nav.Item>
                 <Nav.Item eventKey='1-8' as='span'>
                     <Button appearance='link' onClick={onDuplicate}>
