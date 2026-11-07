@@ -67,7 +67,7 @@ git remote add upstream https://github.com/RndTechCommunity/DevRelSurvey.git
 # Установка зависимостей
 dotnet restore
 cd src/RndTech.DevRel.App/ClientApp
-npm install
+npm ci
 ```
 
 ### Создание feature branch
@@ -115,50 +115,74 @@ public async ValueTask<CompanyModel[]> Handle(
 - Типизируйте props и state
 - Следуйте конфигурации ESLint проекта
 - Используйте семантические имена компонентов
+- Типы и расчёты держите в модулях без React, RSuite и Recharts; правила архитектуры фронтенда — в [AGENTS.md](AGENTS.md)
 
 Пример:
 ```typescript
-interface FiltersPanelProps {
-  filters: UserFilter;
-  onFilterChange: (filters: UserFilter) => void;
+type Props = {
+    filter: RespondentFilter,
+    onChange: (filter: RespondentFilter) => void,
 }
 
-export const FiltersPanel: React.FC<FiltersPanelProps> = ({
-  filters,
-  onFilterChange
-}) => {
-  // Реализация компонента
-};
+export default function FilterPanel({ filter, onChange }: Props) {
+    // Значение приходит из props, компонент не хранит его копию
+}
 ```
 
 ### Стилизация
 
 - Используйте RSuite компоненты где возможно
-- Для кастомных стилей используйте react-jss
+- Для собственных стилей используйте CSS Modules (`*.module.css` рядом с компонентом)
 - Следуйте принципам mobile-first
 
 ## Тестирование
 
-### Backend тесты
+Проверки фронтенда и `docker build` автоматически запускает `.github/workflows/verify.yml` на каждом pull request; этот workflow ничего не деплоит. Перед созданием PR выполните их локально.
+
+### Backend
 
 ```bash
-dotnet test
+dotnet build RndTech.DevRel.sln -c Release
 ```
 
-### Frontend тесты
+Тестового проекта в solution нет: `dotnet test` завершается без найденных тестов и корректность вычислений не проверяет. Изменения API проверяйте на smoke-стенде (ниже).
+
+### Frontend
 
 ```bash
 cd src/RndTech.DevRel.App/ClientApp
-npm test
+npm ci
+npm run typecheck   # tsc --noEmit, включая e2e/ и конфиги
+npm run lint        # ESLint, предупреждения тоже считаются ошибкой
+npm test            # unit-тесты Vitest (*.test.ts рядом с модулями)
+npm run build       # typecheck и сборка Vite в build/
+npm run test:e2e    # браузерные сценарии Playwright
 ```
 
-### Линтинг
+`npm run test:e2e` требует установленного Google Chrome. Playwright сам собирает приложение, запускает `vite preview` на свободном порту 4173 и подменяет `/api/**` синтетическими ответами: БД и production не нужны.
+
+Упаковку проверяет `dotnet publish src/RndTech.DevRel.App -c Release`: он выполняет `npm ci` и `npm run build` и копирует сборку в `wwwroot`. `dotnet build` её не проверяет.
+
+### Smoke-стенд с MariaDB
+
+`tests/smoke/seed.sql` создаёт схему и синтетические данные только для локальной одноразовой MariaDB. Не применяйте его к production.
 
 ```bash
-# Frontend
-cd src/RndTech.DevRel.App/ClientApp
-npm run lint
+# БД (если порт 3306 занят, замените его в -p и в строке подключения)
+docker run -d --name devrel-smoke-db -p 3306:3306 \
+  -e MARIADB_ROOT_PASSWORD=smoke -e MARIADB_DATABASE=devrel mariadb:10.11
+until docker exec devrel-smoke-db healthcheck.sh --connect --innodb_initialized; do sleep 2; done
+docker exec -i devrel-smoke-db mariadb -uroot -psmoke devrel < tests/smoke/seed.sql
+
+# Backend, корень репозитория
+DEVRELAPP_CONFIG_DATABASE="Server=localhost;Port=3306;Database=devrel;User Id=root;Password=smoke" \
+  ASPNETCORE_ENVIRONMENT=Development \
+  dotnet run --no-launch-profile --project src/RndTech.DevRel.App
 ```
+
+Ожидаемый результат: `curl http://localhost:29500/api/filters/cities` возвращает `["Ростов-на-Дону","Таганрог"]`. После `npm start` в `ClientApp` интерфейс `http://localhost:44422` с исходным фильтром показывает «В выборке 100 человек» за 2022 год и 60 — за 2021.
+
+Удаление стенда: `docker rm -f devrel-smoke-db`.
 
 ## Коммиты
 
@@ -230,6 +254,8 @@ docs(readme): обновлена инструкция по развёртыва�
 1. PR будет проверен мейнтейнерами
 2. Может потребоваться внести изменения
 3. После одобрения PR будет смержен в `master`
+
+Merge в `master` — это релиз: push-webhook CapRover запускает production-сборку при любом push в `master` основного репозитория. Поэтому не пушьте в `master` напрямую, изменения попадают туда только через pull request. Механизмы деплоя описаны в README, раздел «Развёртывание».
 
 ## 🤝 Вопросы?
 
