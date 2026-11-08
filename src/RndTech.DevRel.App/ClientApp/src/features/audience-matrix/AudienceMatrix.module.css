@@ -76,7 +76,7 @@
     overflow: auto;
     max-width: 100%;
     max-height: min(70vh, 720px);
-    scroll-padding: 110px 4px 4px calc(var(--matrix-name-width) + 6px);
+    scroll-padding: 0 4px 4px calc(var(--matrix-name-width) + 6px);
     border: 1px solid var(--rs-border-primary);
     border-radius: 4px;
 }
@@ -100,7 +100,7 @@
 }
 
 .table thead th {
-    position: sticky;
+    position: var(--matrix-header-position, sticky);
     top: 0;
     z-index: 2;
     width: 150px;
@@ -115,6 +115,7 @@
 }
 
 .table thead tr > th:first-child {
+    position: var(--matrix-header-position, sticky);
     z-index: 3;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { AudienceMatrixResponse, MatrixValue } from '../../api/types'
 import { MatrixMetric, MatrixSort } from '../../app/surveyState'
 import { MATRIX_METRICS, MatrixRow, matrixColor, matrixMaximum, matrixPercent, matrixRows } from './audienceMatrix'
@@ -14,6 +14,32 @@ type Props = {
 
 export default function AudienceMatrixTable({ data, companies, metric, sort, theme }: Props) {
     const [selection, setSelection] = useState<{ company: string, value: MatrixValue } | null>(null)
+    const headerRef = useRef<HTMLTableSectionElement>(null)
+    const scrollRef = useRef<HTMLDivElement>(null)
+    useLayoutEffect(() => {
+        const header = headerRef.current
+        const scroll = scrollRef.current
+        if (!header || !scroll) return
+        const update = () => {
+            const active = document.activeElement
+            const cell = active instanceof HTMLButtonElement && scroll.contains(active) ? active : null
+            const cellHeight = (cell ?? scroll.querySelector('tbody button'))?.getBoundingClientRect().height ?? 0
+            const headerHeight = header.getBoundingClientRect().height
+            const sticky = headerHeight + cellHeight <= scroll.clientHeight
+            scroll.style.setProperty('--matrix-header-position', sticky ? 'sticky' : 'static')
+            scroll.style.scrollPaddingTop = `${sticky ? headerHeight : 0}px`
+            cell?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+        }
+        const observer = new ResizeObserver(update)
+        observer.observe(header)
+        observer.observe(scroll)
+        scroll.addEventListener('focusin', update)
+        update()
+        return () => {
+            observer.disconnect()
+            scroll.removeEventListener('focusin', update)
+        }
+    }, [data.columns.length])
     const rows = matrixRows(data, companies, metric, sort)
     const max = matrixMaximum(rows)
     const selectedRow = rows.find(row => row.name === selection?.company)
@@ -39,10 +65,10 @@ export default function AudienceMatrixTable({ data, companies, metric, sort, the
                         <span>Одна шкала для всех показанных ячеек. Насыщенность не означает статистическую значимость.</span>
                     </div>
                     <p>В ячейке: доля и число отметок / ответов о компании. N в заголовке — число людей колонки.</p>
-                    <div className={styles.scroll} role='region' aria-label='Матрица аудиторий, прокручиваемая таблица' tabIndex={0}>
+                    <div ref={scrollRef} className={styles.scroll} role='region' aria-label='Матрица аудиторий, прокручиваемая таблица' tabIndex={0}>
                         <table className={styles.table} style={{ width: `calc(var(--matrix-name-width) + ${150 * data.columns.length}px)` }}>
                             <caption>{data.year} · {MATRIX_METRICS[metric]}</caption>
-                            <thead><tr><th scope='col'>Компания</th>{data.columns.map(column => (
+                            <thead ref={headerRef}><tr><th scope='col'>Компания</th>{data.columns.map(column => (
                                 <th scope='col' key={JSON.stringify(column.value)}>{column.label}<span>N = {column.respondentCount}</span></th>
                             ))}</tr></thead>
                             <tbody>{rows.map(row => <tr key={row.name}>
@@ -52,10 +78,7 @@ export default function AudienceMatrixTable({ data, companies, metric, sort, the
                                         style={cell ? matrixColor(cell.share, max ?? 0, theme) : undefined}
                                         aria-label={detailText(row, index)}
                                         onMouseEnter={() => setSelection({ company: row.name, value: data.columns[index].value })}
-                                        onFocus={event => {
-                                            setSelection({ company: row.name, value: data.columns[index].value })
-                                            event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-                                        }}
+                                        onFocus={() => setSelection({ company: row.name, value: data.columns[index].value })}
                                         onClick={() => setSelection({ company: row.name, value: data.columns[index].value })}>
                                         <strong>{cell ? matrixPercent(cell.share) : '—'}</strong>
                                         <span>{cell ? `${cell.votes} / ${cell.companyN} ответа` : 'Нет данных'}</span>

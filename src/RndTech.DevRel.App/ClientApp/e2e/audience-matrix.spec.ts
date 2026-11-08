@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test, Page } from '@playwright/test'
+import { expect, test, Page, Locator } from '@playwright/test'
 import { AudienceGroupBy } from '../src/api/types'
 import { DEFAULT_STATE, LEGACY_COMPANIES, SurveyState } from '../src/app/surveyState'
 import { encodeSurveyUrl } from '../src/app/surveyUrl'
@@ -12,6 +12,28 @@ const url = (patch: Partial<SurveyState> = {}) => '/' + encodeSurveyUrl({ ...ini
 const table = (page: Page) => page.getByRole('table')
 const cell = (page: Page) => table(page).getByRole('button', { name: new RegExp(`${MATRIX_COMPANY}; Backend;`) })
 const matrixState = (page: Page) => new URL(page.url()).searchParams.get('matrix')
+async function expectCellVisible(active: Locator) {
+    const visibility = await active.evaluate(button => {
+        const rect = button.getBoundingClientRect()
+        const table = button.closest('table')!
+        const header = table.querySelector('thead th')!.getBoundingClientRect()
+        const row = button.closest('tr')!.querySelector('th')!.getBoundingClientRect()
+        const region = table.parentElement!.getBoundingClientRect()
+        return {
+            top: rect.top - Math.max(header.bottom, region.top, 0),
+            left: rect.left - row.right,
+            bottom: Math.min(region.bottom, innerHeight) - rect.bottom,
+            right: Math.min(region.right, innerWidth) - rect.right,
+            center: button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+        }
+    })
+    expect(visibility.top).toBeGreaterThanOrEqual(0)
+    expect(visibility.left).toBeGreaterThanOrEqual(0)
+    expect(visibility.bottom).toBeGreaterThanOrEqual(0)
+    expect(visibility.right).toBeGreaterThanOrEqual(0)
+    expect(visibility.center).toBe(true)
+}
+
 async function closePicker(page: Page) {
     await page.getByRole('textbox', { name: 'Поиск', exact: true }).press('Escape')
     await expect(page.getByRole('listbox')).toHaveCount(0)
@@ -170,7 +192,10 @@ for (const theme of ['light', 'dark'] as const) {
             await page.setViewportSize({ width, height: 900 })
             await page.emulateMedia({ colorScheme: theme })
             await mockApi(page)
-            await page.goto(url({ companies: [MATRIX_COMPANY, 'AB', MATRIX_LONG_COMPANY, 'Missing'], matrix: { ...initial.matrix, groupValues: ['Backend', 'Frontend', 'Unknown'] } }))
+            await page.goto(url({
+                companies: [MATRIX_COMPANY, 'AB', MATRIX_LONG_COMPANY, 'Missing', ...Array.from({ length: 17 }, (_, i) => `Missing ${i}`)],
+                matrix: { ...initial.matrix, groupValues: ['Backend', 'Frontend', 'Анонсы в телеграм-каналах и чатах профильных сообществ региона'] }
+            }))
             await expect(table(page)).toBeVisible()
             await cell(page).focus()
             await page.keyboard.press('Enter')
@@ -185,6 +210,11 @@ for (const theme of ['light', 'dark'] as const) {
             const focused = await cell(page).boundingBox()
             expect(focused!.x).toBeGreaterThanOrEqual(rowLabel!.x + rowLabel!.width)
             expect(focused!.x + focused!.width).toBeLessThanOrEqual(width - 16)
+            await table(page).locator('tbody button').nth(45).focus()
+            for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+Tab')
+            const active = table(page).locator('tbody button').nth(35)
+            await expect(active).toBeFocused()
+            await expectCellVisible(active)
             expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
             const violations = (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations
             expect(violations).toEqual([])
@@ -192,6 +222,20 @@ for (const theme of ['light', 'dark'] as const) {
         })
     }
 }
+
+test('a header taller than the scroll area leaves the focused cell fully visible', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 900 })
+    await mockApi(page)
+    await page.goto(url({
+        companies: Array.from({ length: 21 }, (_, i) => `Missing ${i}`),
+        matrix: { ...initial.matrix, groupValues: ['Backend', 'Frontend', 'Very long audience label with words and spaces '.repeat(11)] }
+    }))
+    await table(page).locator('tbody button').nth(45).focus()
+    for (let step = 0; step < 10; step++) await page.keyboard.press('Shift+Tab')
+    const active = table(page).locator('tbody button').nth(35)
+    await expect(active).toBeFocused()
+    await expectCellVisible(active)
+})
 
 test('touch cell and horizontal gesture retain full labels and a bounded page', async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 390, height: 900 }, hasTouch: true })

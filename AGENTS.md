@@ -102,6 +102,9 @@ DevRelSurvey публикует агрегированные результат�
 - `pages/AudienceMatrixPage.tsx` компонует три поля «Компании → Группировать по → Колонки», показатель и сортировку.
   `features/audience-matrix/audienceMatrix.ts` — типизированные значения, доли votes/selectionCount, raw sort и палитра;
   `AudienceMatrixTable.tsx` — native table, единая шкала, точные детали с ключом company/value, внутренний scroll и sticky headers.
+  Отступ прокрутки фокуса учитывает фактическую высоту заголовка; при изменении размеров активная ячейка остаётся видимой.
+  Если заголовок и активная ячейка вместе не помещаются, заголовок прокручивается вместе с таблицей, сохраняя полный текст.
+  Браузерные регрессии проверяют всю кнопку после обратного Tab с многострочной подписью, в том числе выше области прокрутки.
 - Восемь измерений: professions/languages/ages/cities/educations/experiences/isCommunity/communitySources. Каталог и companyNames
   из batch охватывают все годы. Unknown ручного выбора сохраняются с пометкой; null grade и пустая строка различаются.
 - `SurveyState.matrix` — groupBy, groupValues, metric, sort. Defaults: professions, null (до 6 самых многочисленных), wanted, base desc.
