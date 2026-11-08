@@ -92,7 +92,7 @@ function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip,
     const selected = name === focused
     const compared = target.year !== year
     const pointKey = `${target.year}:${name}`
-    const label = selected && (!compared || !points.some(row => row.name === name && row.year === year))
+    const label = !compared || !points.some(row => row.name === name && row.year === year)
     const color = companyFillColorMap[name] || 'var(--chart-point)'
     const nearby = plot && Number.isFinite(plot.width) && Number.isFinite(plot.height) && plot.width > 0 && plot.height > 0
         ? nearbyCompanies(points, target, { x: HIT_RADIUS / plot.width, y: HIT_RADIUS / plot.height * yMax }) : []
@@ -141,7 +141,7 @@ export default function CompanyMap({ rows, year, compareYear, metric, scale, foc
     }, [])
 
     const points: MapPoint[] = rows.map(row => ({ ...row, metricValue: metricValue(row, metric) }))
-        .sort((a, b) => Number(a.name === focused) - Number(b.name === focused))
+    const years = compareYear === null ? [year] : [compareYear, year]
 
     return (
         <ResponsiveContainer width='100%' height='100%'>
@@ -180,13 +180,14 @@ export default function CompanyMap({ rows, year, compareYear, metric, scale, foc
                     axisLine={false}
                     orientation='right'
                 />
-                {(compareYear === null ? [year] : [compareYear, year]).map(shownYear => <Scatter key={shownYear}
-                    data={points.filter(point => point.year === shownYear)}
+                {/* Выбранная компания поверх обоих лет, даже если она есть только в году сравнения. */}
+                {[false, true].flatMap(selected => years.map(shownYear => <Scatter key={`${selected}:${shownYear}`}
+                    data={points.filter(point => point.year === shownYear && (point.name === focused) === selected)}
                     shape={point => <CompanyPoint point={point} points={points} focused={focused} onFocus={onFocus}
                         year={year} comparison={compareYear !== null}
                         tooltipName={tooltipName} onTooltip={setTooltipName} yMax={scale.max} />}
                     isAnimationActive={false}
-                />)}
+                />))}
             </ScatterChart>
         </ResponsiveContainer>
     )

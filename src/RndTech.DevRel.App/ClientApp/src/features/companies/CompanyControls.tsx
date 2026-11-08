@@ -1,4 +1,4 @@
-import { Button, SegmentedControl, SelectPicker } from 'rsuite'
+import { SegmentedControl, SelectPicker } from 'rsuite'
 import { LEGACY_COMPANIES, SurveyState } from '../../app/surveyState'
 import { UpdateSurveyState } from '../../app/useSurveyState'
 import { usePickerFocusReturn } from '../../shared/usePickerFocusReturn'
@@ -23,20 +23,13 @@ export default function CompanyControls({ state, update, companyNames, shownName
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn(picker =>
         picker.overlay?.querySelector<HTMLInputElement>('[role="searchbox"]')?.focus({ preventScroll: true }))
     const years = state.compareYear === null ? [state.year] : [state.year, state.compareYear]
-    const isLegacy = state.companies.length === LEGACY_COMPANIES.length
-        && LEGACY_COMPANIES.every(name => state.companies.includes(name))
     return (
         <div className={styles.controls}>
             <div className={styles.companyPicker}>
                 <span id='company-filter-label'>Компании</span>
                 <MultiSelect options={companyNames} placeholder='Компании' labelledBy='company-filter-label'
+                    preset={{ label: 'Популярные', values: LEGACY_COMPANIES }}
                     value={state.companies} onChange={companies => update({ companies })} />
-                <Button disabled={isLegacy} onClick={() => update({ companies: LEGACY_COMPANIES })}>
-                    Прежний набор: 29 компаний
-                </Button>
-                <Button disabled={state.companies.length === 0} onClick={() => update({ companies: [] })}>
-                    Показать все компании
-                </Button>
             </div>
             <div className={styles.companyPicker}>
                 <span id='company-search-label'>Найти компанию</span>

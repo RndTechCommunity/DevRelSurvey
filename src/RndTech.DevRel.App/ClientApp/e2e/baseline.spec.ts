@@ -78,7 +78,7 @@ test.describe('desktop 1440', () => {
             expect(Math.abs(cy - (y0 + (row.goodLevel + row.wantedLevel) * (y120 - y0) / 1.2)), name).toBeLessThanOrEqual(1)
         }
 
-        await page.locator('[data-company="IBS Dunice"]').hover()
+        await page.locator('[data-company="IBS Dunice"] circle').last().hover()
         await expect(page.getByRole('tooltip')).toHaveText(
             'IBS DuniceЗнают: 40 человек, 40%Рекомендуют: 10 человек, 10%Хотят работать: 5 человек, 5%')
     })
@@ -328,7 +328,7 @@ test('final design screenshots use synthetic dense data', async ({ page }) => {
     await expect(page.locator('[data-company]')).toHaveCount(60)
     await page.getByRole('combobox', { name: 'Найти компанию', exact: true }).click()
     await page.getByRole('option', { name: 'Тинькофф', exact: true }).click()
-    await expect(page.locator('[data-company] text')).toHaveCount(1)
+    await expect(page.locator('[data-company] text')).toHaveCount(40)
     await capture('comparison-1440')
     for (const width of [390, 768]) {
         await page.setViewportSize({ width, height: 900 })

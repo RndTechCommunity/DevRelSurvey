@@ -14,9 +14,10 @@ type Props = {
 }
 
 const COMMUNITY_OPTIONS: { value: 'Да' | 'Нет', label: string }[] = [{ value: 'Да', label: 'Да' }, { value: 'Нет', label: 'Нет' }]
-const QUICK_FILTERS = [
-    { label: 'Исходная выборка', filter: DEFAULT_FILTER },
-    { label: 'Все участники', filter: NO_RESTRICTIONS }
+const GROUPS = [
+    { label: 'Ростов-на-Дону, 20-44 года', filter: DEFAULT_FILTER },
+    { label: 'Все участники', filter: NO_RESTRICTIONS },
+    ...FILTER_PRESETS
 ]
 
 export default function FilterPanel({ filter, options, onChange }: Props) {
@@ -64,14 +65,8 @@ export default function FilterPanel({ filter, options, onChange }: Props) {
                     />
                 </div>
             </div>
-            <h2>Быстрый выбор</h2>
-            {QUICK_FILTERS.map(preset => (
-                <Button key={preset.label} block disabled={sameFilter(filter, preset.filter)} onClick={() => onChange(preset.filter)}>
-                    {preset.label}
-                </Button>
-            ))}
             <h2>Готовые группы</h2>
-            {FILTER_PRESETS.map(preset => (
+            {GROUPS.map(preset => (
                 <Button key={preset.label} block disabled={sameFilter(filter, preset.filter)} onClick={() => onChange(preset.filter)}>
                     {preset.label}
                 </Button>

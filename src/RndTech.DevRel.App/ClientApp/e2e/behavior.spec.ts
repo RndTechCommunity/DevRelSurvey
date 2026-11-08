@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from '@playwright/test'
+import { LEGACY_COMPANIES } from '../src/app/surveyState'
 import { NO_RESTRICTIONS } from '../src/features/filters/model'
 import { companyResults, filterOptions } from '../src/test/fixtures'
 import { forCity, INITIAL_FILTER, isCompanies, isFilterOptions, isMeta, mockApi } from './mockApi'
@@ -33,6 +34,15 @@ const filterPanel = (page: Page) => page.getByRole('complementary', { name: '', 
 const sidebarButton = (page: Page, name: string) => filterPanel(page).getByRole('button', { name, exact: true })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
 const toggleCheckbox = (page: Page, name: string) => page.getByText(name, { exact: true }).click()
+
+async function selectPopularCompanies(page: Page) {
+    await page.getByRole('combobox', { name: 'Компании', exact: true }).click()
+    await page.getByRole('option', { name: 'Популярные', exact: true }).click()
+    await page.keyboard.press('Escape')
+}
+
+const clearCompanyFilter = (page: Page) =>
+    page.getByRole('combobox', { name: 'Компании', exact: true }).locator('..').getByRole('button', { name: 'Очистить' }).click()
 
 // Вместо новой вкладки запоминаем адрес, переданный в window.open.
 async function spyOnWindowOpen(page: Page) {
@@ -227,13 +237,13 @@ test.describe('desktop 1440', () => {
         await page.goto(`/?v=1&filter=${encodeURIComponent(JSON.stringify(reordered))}`)
 
         await expect(sidebarButton(page, 'Таганрог, 20–44 года')).toBeDisabled()
-        await expect(sidebarButton(page, 'Исходная выборка')).toBeEnabled()
+        await expect(sidebarButton(page, 'Ростов-на-Дону, 20-44 года')).toBeEnabled()
     })
 
     test('restriction buttons clear one dimension or all, quick groups keep their composition', async ({ page }) => {
         const api = await mockApi(page)
         await page.goto('/')
-        await expect(sidebarButton(page, 'Исходная выборка')).toBeDisabled()
+        await expect(sidebarButton(page, 'Ростов-на-Дону, 20-44 года')).toBeDisabled()
         await page.waitForLoadState('networkidle')
         let posts = api.posts().length
         const cityChip = page.getByRole('button', { name: /^Убрать ограничение «Город»/ })
@@ -263,7 +273,7 @@ test.describe('desktop 1440', () => {
         await expect(qa).toBeDisabled()
         await expect.poll(() => api.posts().length).toBe(posts + 4)
         expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual({ ...NO_RESTRICTIONS, professions: ['QA'] })
-        await sidebarButton(page, 'Исходная выборка').click()
+        await sidebarButton(page, 'Ростов-на-Дону, 20-44 года').click()
         await expect.poll(() => api.posts().length).toBe(posts + 6)
         expect(JSON.parse(api.posts().at(-1)!.body!)).toEqual(INITIAL_FILTER)
     })
@@ -471,7 +481,7 @@ test.describe('desktop 1440', () => {
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&view=table&companies=[]'))
         await expect(page.getByText('Загрузка данных').first()).toBeVisible()
 
-        await sidebarButton(page, 'Исходная выборка').click()
+        await sidebarButton(page, 'Ростов-на-Дону, 20-44 года').click()
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
         release()
         await Promise.all(api.posts(forCity('Тбилиси')).map(call => call.done))
@@ -517,7 +527,7 @@ test.describe('desktop 1440', () => {
         api.override(isCompanies, new Promise<void>(resolve => { release = resolve }))
 
         await sidebarButton(page, 'Таганрог, 20–44 года').click()
-        await sidebarButton(page, 'Исходная выборка').click()
+        await sidebarButton(page, 'Ростов-на-Дону, 20-44 года').click()
 
         await expect(page.getByText('Загрузка данных')).toBeVisible()
         await expect(page.getByText('Не удалось загрузить данные')).toHaveCount(0)
@@ -693,7 +703,7 @@ test.describe('filter draft', () => {
         const drawer = page.getByRole('dialog', { name: 'Фильтры', exact: true })
         await drawer.getByRole('button', { name: 'Все участники', exact: true }).click()
         await page.goBack()
-        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await expect(drawer.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
         await drawer.getByRole('button', { name: 'Отмена' }).click()
         await expect(drawer).toHaveCount(0)
         expect(api.posts()).toHaveLength(2)
@@ -706,16 +716,16 @@ test.describe('filter draft', () => {
         await trigger.click()
         await drawer.getByRole('button', { name: 'Все участники', exact: true }).click()
         await page.goBack()
-        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await expect(drawer.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
         await drawer.getByRole('button', { name: 'Таганрог, 20–44 года' }).click()
         await page.setViewportSize({ width: 1440, height: 900 })
         await expect(drawer).toHaveCount(0)
         await expect(yearRadio(page, '2022')).toBeChecked()
-        await expect(sidebarButton(page, 'Исходная выборка')).toBeDisabled()
+        await expect(sidebarButton(page, 'Ростов-на-Дону, 20-44 года')).toBeDisabled()
         const posts = api.posts().length
         await page.setViewportSize({ width: 390, height: 900 })
         await trigger.click()
-        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await expect(drawer.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
         await drawer.getByRole('button', { name: 'Показать результаты' }).click()
         await expect(drawer).toHaveCount(0)
         expect(api.posts()).toHaveLength(posts)
@@ -763,7 +773,7 @@ for (const width of [390, 768, 1223]) {
         await page.keyboard.press('Escape')
         // Повторное открытие до завершения closing animation.
         await trigger.evaluate(button => (button as HTMLButtonElement).click())
-        await expect(drawer.getByRole('button', { name: 'Исходная выборка', exact: true })).toBeDisabled()
+        await expect(drawer.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
         const cancel = drawer.getByRole('button', { name: 'Отмена' })
         await cancel.focus()
         await page.keyboard.press('Tab')
@@ -882,17 +892,18 @@ test('clean links show all companies; old sets and empty intersections stay expl
         ['/?v=1&companies=invalid', 5], ['/?v=1&companies=[]', 6]] as const) {
         await page.goto(url)
         await expect(points).toHaveCount(count)
-        await expect(points.locator('text')).toHaveCount(0)
+        await expect(points.locator('text')).toHaveCount(count)
         if (url.includes('invalid')) await expect(page.getByText('Параметр ссылки «companies»')).toBeVisible()
         await selectView(page, 'Таблица')
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(count)
-        expect(await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).isDisabled()).toBe(count === 5)
-        expect(await page.getByRole('button', { name: 'Показать все компании', exact: true }).isDisabled()).toBe(count === 6)
+        await page.getByRole('combobox', { name: 'Компании', exact: true }).click()
+        expect(await page.getByRole('checkbox', { name: 'Популярные', exact: true }).isChecked()).toBe(count === 5)
+        await page.keyboard.press('Escape')
     }
     const posts = api.posts().length
-    await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+    await selectPopularCompanies(page)
     await expect(firstColumn(table(page, 'Компания'))).toHaveCount(5)
-    await page.getByRole('button', { name: 'Показать все компании', exact: true }).click()
+    await clearCompanyFilter(page)
     await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
     expect(new URL(page.url()).searchParams.get('companies')).toBe('[]')
     expect(api.posts()).toHaveLength(posts)
@@ -917,7 +928,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
         const points = page.locator('[data-company]')
         await expect(points).toHaveCount(40)
-        await expect(points.locator('text')).toHaveCount(0)
+        await expect(points.locator('text')).toHaveCount(40)
         const url = page.url()
         const posts = api.posts().length
         const search = page.getByRole('combobox', { name: 'Найти компанию', exact: true })
@@ -935,7 +946,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await expect(search).toBeFocused()
         await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Ответили на вопрос о компании: 100')
         await expect(points).toHaveCount(40)
-        const label = points.locator('text')
+        const label = points.filter({ has: page.locator('circle[r="7"]') }).locator('text')
         await expect(label).toHaveCount(1)
         await expect(label).toHaveText('Тинькофф')
         await expect(label).toHaveCSS('fill', 'rgb(255, 221, 45)')
@@ -973,14 +984,14 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('Enter')
         await expect(label).toHaveText('Пример')
-        await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+        await selectPopularCompanies(page)
         await expect(points).toHaveCount(2)
         await expect(label).toHaveCount(0)
         await expect(search).toHaveText('Найти компанию')
         await search.click()
         await expect(page.getByRole('option')).toHaveCount(2)
         await page.keyboard.press('Escape')
-        await page.getByRole('button', { name: 'Показать все компании', exact: true }).click()
+        await clearCompanyFilter(page)
         await expect(label).toHaveText('Пример')
         for (const name of ['Длинное название компании 38', 'Длинное название компании 39']) {
             await search.click()
@@ -1037,6 +1048,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(geometry).toMatchObject({ insidePlot: true, overlaps: [] })
         await page.getByRole('combobox', { name: 'Компании', exact: true }).click()
         await page.getByRole('textbox', { name: 'Поиск', exact: true }).fill(name)
+        await page.keyboard.press('ArrowDown')
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('Enter')
@@ -1147,7 +1159,7 @@ for (const touch of [false, true]) {
             await expect(card).toBeInViewport()
             await page.setViewportSize({ width: 1440, height: 900 })
             await selectView(page, 'Карта')
-            await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+            await selectPopularCompanies(page)
             await expect(points).toHaveCount(2)
             await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Выберите компанию')
             await selectYear(page, '2021')
@@ -1273,9 +1285,15 @@ test('comparison map keeps a shared scale, one brand label including fallback, b
     const search = page.getByRole('combobox', { name: 'Найти компанию', exact: true })
     await search.click()
     await page.getByRole('option', { name: 'Контур', exact: true }).click()
-    const label = page.locator('[data-company] text')
+    const labels = page.locator('[data-company] text')
+    const names = await page.locator('[data-company]').evaluateAll(points => points.map(point => point.getAttribute('data-company')))
+    expect((await labels.allTextContents()).sort()).toEqual([...new Set(names)].sort())
+    const label = page.locator('[data-company]').filter({ has: page.locator('circle[r="7"]') }).locator('text')
     await expect(label).toHaveText('Контур')
     await expect(label.locator('..')).toHaveAttribute('data-year', '2022')
+    // Контур 2022 и Тинькофф 2021 совпадают по координатам; выбранная подпись выше обоих лет.
+    await expect(page.locator('[data-company]').last()).toHaveAttribute('data-company', 'Контур')
+    await expect(page.locator('[data-company] text').last()).toHaveText('Контур')
     await expect(label).toHaveCSS('fill', 'rgb(215, 12, 23)')
     await expect(label).toHaveCSS('stroke-width', '1.5px')
     await expect(label).toHaveCSS('paint-order', 'stroke')
@@ -1294,11 +1312,15 @@ test('comparison map keeps a shared scale, one brand label including fallback, b
     await expect(card).toContainText('Ответили на вопрос о компании: 30')
     await expect(card).toContainText('Ответили на вопрос о компании: 100')
     await expect(label.locator('..')).toHaveAttribute('data-year', '2021')
-    // Comparison rings must be painted before main dots, without changing their coordinates.
-    expect(await page.locator('[data-company]').evaluateAll(points => points.map(point => point.getAttribute('data-year'))))
-        .toEqual([...Array(6).fill('2022'), ...Array(3).fill('2021')])
+    // Обычные кольца перед основными точками; выбранная компания выше обоих слоёв.
+    expect(await page.locator('[data-company]:not([data-company="IBS Dunice"])')
+        .evaluateAll(points => points.map(point => point.getAttribute('data-year'))))
+        .toEqual([...Array(5).fill('2022'), ...Array(2).fill('2021')])
+    expect(await page.locator('[data-company]').evaluateAll(points => points.slice(-2).map(point =>
+        [point.getAttribute('data-company'), point.getAttribute('data-year')])))
+        .toEqual([['IBS Dunice', '2022'], ['IBS Dunice', '2021']])
     const scaleBefore = await ticks.allTextContents()
-    await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+    await selectPopularCompanies(page)
     expect(await ticks.allTextContents()).toEqual(scaleBefore)
     expect(api.posts()).toHaveLength(posts)
     expect(errors).toEqual([])
@@ -1388,5 +1410,63 @@ for (const hasTouch of [false, true]) {
             }
             expect(api.posts()).toHaveLength(posts)
         })
+    })
+}
+
+for (const width of [390, 1440]) {
+    test(`company presets stay inside the picker and keep the exact set at ${width}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 })
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(page.locator('[data-company] text')).toHaveCount(6)
+        const posts = api.posts().length
+        const picker = page.getByRole('combobox', { name: 'Компании', exact: true })
+        await expect(page.getByRole('button', { name: 'Прежний набор: 29 компаний' })).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Показать все компании' })).toHaveCount(0)
+        await picker.focus()
+        await page.keyboard.press('Enter')
+        const search = page.getByRole('textbox', { name: 'Поиск', exact: true })
+        await expect(search).toBeFocused()
+        await search.fill('Контур')
+        await expect(page.getByRole('option')).toHaveText(['Выбрать все', 'Популярные', 'Контур'])
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await expect(page.getByRole('checkbox', { name: 'Популярные', exact: true })).toBeChecked()
+        expect(JSON.parse(new URL(page.url()).searchParams.get('companies')!)).toEqual(LEGACY_COMPANIES)
+        await page.keyboard.press('Escape')
+        await expect(picker).toBeFocused()
+        await expect(picker).toContainText('Популярные')
+        await expect(page.locator('[data-company] text')).toHaveCount(5)
+        await selectYear(page, '2021')
+        expect(JSON.parse(new URL(page.url()).searchParams.get('companies')!)).toEqual(LEGACY_COMPANIES)
+        await selectYear(page, '2022')
+        await picker.click()
+        await search.fill('Тинькофф')
+        await page.getByRole('option', { name: 'Тинькофф', exact: true }).click()
+        await expect(page.getByRole('checkbox', { name: 'Популярные', exact: true })).not.toBeChecked()
+        expect(JSON.parse(new URL(page.url()).searchParams.get('companies')!).sort())
+            .toEqual(LEGACY_COMPANIES.filter(name => name !== 'Тинькофф').sort())
+        await page.getByRole('option', { name: 'Выбрать все', exact: true }).click()
+        await expect(page.getByRole('checkbox', { name: 'Выбрать все', exact: true })).toBeChecked()
+        await expect(page.locator('[data-company] text')).toHaveCount(6)
+        await page.getByRole('option', { name: 'Популярные', exact: true }).click()
+        await expect(page.getByRole('checkbox', { name: 'Популярные', exact: true })).toBeChecked()
+        await expect(page.getByRole('checkbox', { name: 'Выбрать все', exact: true })).not.toBeChecked()
+        await page.keyboard.press('Escape')
+        await clearCompanyFilter(page)
+        expect(new URL(page.url()).searchParams.get('companies')).toBe('[]')
+        await expect(page.locator('[data-company] text')).toHaveCount(6)
+        expect(api.posts()).toHaveLength(posts)
+
+        if (width < 1224) await page.getByRole('button', { name: 'Фильтры · 2' }).click()
+        const panel = width < 1224 ? page.getByRole('dialog') : filterPanel(page)
+        await expect(panel.getByRole('heading', { name: 'Быстрый выбор', exact: true })).toHaveCount(0)
+        await expect(panel.getByRole('heading', { name: 'Готовые группы', exact: true })).toHaveCount(1)
+        await expect(panel.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
+        await panel.getByRole('button', { name: 'Все участники', exact: true }).press('Enter')
+        await expect(panel.getByRole('button', { name: 'Все участники', exact: true })).toBeDisabled()
+        await panel.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true }).press('Enter')
+        await expect(panel.getByRole('button', { name: 'Ростов-на-Дону, 20-44 года', exact: true })).toBeDisabled()
     })
 }

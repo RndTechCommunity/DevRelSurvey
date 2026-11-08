@@ -8,18 +8,22 @@ type Props = {
     value: readonly string[],
     placeholder: string,
     labelledBy?: string,
+    preset?: { label: string, values: readonly string[] },
     onChange: (value: readonly string[]) => void
 }
 
 const ALL = -1
+const PRESET = -2
 
 // «Выбрать все» записывает явный список значений; пустой список означает «все».
-export default function MultiSelect({ options, value, placeholder, labelledBy, onChange }: Props) {
+export default function MultiSelect({ options, value, placeholder, labelledBy, preset, onChange }: Props) {
     const [query, setQuery] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn(() => searchRef.current?.focus({ preventScroll: true }))
     const choices = [...new Set([...options, ...value])]
     const allSelected = choices.length > 0 && choices.every(option => value.includes(option))
+    const presetSelected = !!preset && value.length === preset.values.length
+        && preset.values.every(option => value.includes(option))
     const items = choices.map((label, index) => ({ value: index + 1, label }))
     const selected = items.filter(item => value.includes(item.label)).map(item => item.value)
     const shown = items.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))
@@ -29,22 +33,24 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, o
             <CheckPicker
                 ref={ref}
                 {...pickerProps}
-                data={[{ value: ALL, label: 'Выбрать все' }, ...shown]}
+                data={[{ value: ALL, label: 'Выбрать все' },
+                    ...(preset ? [{ value: PRESET, label: preset.label }] : []), ...shown]}
                 placeholder={placeholder}
                 aria-labelledby={labelledBy}
                 block
                 searchable={false}
-                value={allSelected ? [ALL, ...selected] : selected}
-                renderValue={() => value.join(', ')}
+                value={[...(allSelected ? [ALL] : []), ...(presetSelected ? [PRESET] : []), ...selected]}
+                renderValue={() => presetSelected ? preset?.label : value.join(', ')}
                 onClose={() => {
                     pickerProps.onClose()
                     setQuery('')
                 }}
                 onChange={next => {
                     const nextAll = next.includes(ALL)
-                    onChange(nextAll !== allSelected
-                        ? (nextAll ? choices : [])
-                        : next.filter(index => index !== ALL).map(index => choices[index - 1]))
+                    const nextPreset = next.includes(PRESET)
+                    if (nextAll !== allSelected) onChange(nextAll ? choices : [])
+                    else if (preset && nextPreset !== presetSelected) onChange(nextPreset ? preset.values : [])
+                    else onChange(next.filter(index => index > 0).map(index => choices[index - 1]))
                 }}
                 renderListbox={listbox => (
                     <>
