@@ -6,6 +6,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RndTech.DevRel.Database", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RndTech.DevRel.Importer", "src\RndTech.DevRel.Importer\RndTech.DevRel.Importer.csproj", "{0635446B-D72C-4E40-B40D-AADCF32D267D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{F9C0F6E6-DDBC-4341-8612-BF290FDEF0E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RndTech.DevRel.App.Tests", "tests\RndTech.DevRel.App.Tests\RndTech.DevRel.App.Tests.csproj", "{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +28,12 @@ Global
 		{0635446B-D72C-4E40-B40D-AADCF32D267D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0635446B-D72C-4E40-B40D-AADCF32D267D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0635446B-D72C-4E40-B40D-AADCF32D267D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{975440C3-0B0D-4766-AF6F-F5A9DD0ABE87} = {F9C0F6E6-DDBC-4341-8612-BF290FDEF0E3}
 	EndGlobalSection
 EndGlobal

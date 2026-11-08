@@ -1,5 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using RndTech.DevRel.App.Implementation.QueryHandlers;
 using RndTech.DevRel.App.Mapping;
 using RndTech.DevRel.App.Model;
@@ -19,12 +23,58 @@ public static class IEndpointRouteBuilderExtensions
 			.WithDescription(
 				"Получение информации об узнаваемости и привлекательности компаний среди респондентов, соответствующих фильтру.");
 
+		endpoints.MapPost("api/results/audience-matrix", HandleAudienceMatrix)
+			.WithDescription("Матрица компаний: общий фильтр AND значение каждой колонки за один год.");
+
 		endpoints.MapPost("api/results/meta",
 				async ([FromBody] UserFilter filter,
 						[FromServices] IQueryHandler<GetMetaQuery, MetaModel> queryHandler,
 						CancellationToken ct)
 					=> await queryHandler.Handle(filter.ToQuery<GetMetaQuery>(), ct))
 			.WithDescription("Получение информации о составе выборки, соответствующей фильтру.");
+	}
+
+	private static async Task<IResult> HandleAudienceMatrix(HttpContext context,
+		IQueryHandler<AudienceMatrixRequest, AudienceMatrixResponse> queryHandler, CancellationToken ct)
+	{
+		var request = context.Request;
+		if (request.ContentLength > AudienceMatrixRequest.MaxBodyBytes)
+			return Results.Problem(statusCode: StatusCodes.Status413PayloadTooLarge);
+		var bodyLimit = context.Features.Get<IHttpMaxRequestBodySizeFeature>();
+		if (bodyLimit is { IsReadOnly: false })
+			bodyLimit.MaxRequestBodySize = AudienceMatrixRequest.MaxBodyBytes;
+		if (!request.HasJsonContentType())
+			return Results.Problem(statusCode: StatusCodes.Status415UnsupportedMediaType);
+		var contentType = MediaTypeHeaderValue.Parse(request.ContentType);
+		if (contentType.Charset.HasValue)
+		{
+			try
+			{
+				contentType.Encoding = Encoding.GetEncoding(
+					HeaderUtilities.UnescapeAsQuotedString(contentType.Charset).Value!);
+			}
+			catch (Exception error) when (error is ArgumentException or NotSupportedException)
+			{
+				return Results.Problem(statusCode: StatusCodes.Status415UnsupportedMediaType);
+			}
+			request.ContentType = contentType.ToString();
+		}
+		try
+		{
+			var matrix = await request.ReadFromJsonAsync<AudienceMatrixRequest>(ct);
+			if (matrix is null)
+				return Results.ValidationProblem(new Dictionary<string, string[]> { ["body"] = ["Ожидается JSON-объект."] });
+			var errors = GetAudienceMatrixQueryHandler.Validate(matrix);
+			return errors.Count == 0 ? Results.Ok(await queryHandler.Handle(matrix, ct)) : Results.ValidationProblem(errors);
+		}
+		catch (JsonException)
+		{
+			return Results.ValidationProblem(new Dictionary<string, string[]> { ["body"] = ["Неверный JSON или тип поля."] });
+		}
+		catch (BadHttpRequestException error) when (error.StatusCode is 400 or 413)
+		{
+			return Results.Problem(statusCode: error.StatusCode);
+		}
 	}
 
 	public static void MapFilterRoutes(this IEndpointRouteBuilder endpoints)
