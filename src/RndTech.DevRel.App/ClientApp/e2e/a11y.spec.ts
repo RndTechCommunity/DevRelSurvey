@@ -39,6 +39,9 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         if (width < 1224) {
             await page.getByRole('button', { name: 'Фильтры · 2' }).click()
             await expect(page.getByRole('dialog')).toBeVisible()
+            await page.getByRole('dialog').evaluate(async element => {
+                await Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished))
+            })
             await scan()
         }
         await page.getByRole('combobox', { name: 'Город', exact: true }).click()
