@@ -1,8 +1,9 @@
-import { LATEST_YEAR, SURVEY_YEARS, SurveyYear } from '../api/types'
+import { AudienceGroupBy, LATEST_YEAR, SURVEY_YEARS, SurveyYear } from '../api/types'
 import { DEFAULT_FILTER, parseRespondentFilter, RespondentFilter } from '../features/filters/model'
-import { COMPANY_SORT_KEYS, DEFAULT_STATE, LEGACY_COMPANIES, SurveyState } from './surveyState'
+import { GROUP_LABELS, MAX_MATRIX_COLUMNS, validMatrixValue } from '../features/audience-matrix/audienceMatrix'
+import { AudienceMatrixState, COMPANY_SORT_KEYS, DEFAULT_MATRIX, DEFAULT_STATE, LEGACY_COMPANIES, SurveyState } from './surveyState'
 
-// v1: ?v=1&page&year[&compareYear]&filter&companies&good&wanted&view[&sort&direction].
+// v2 добавляет matrix; decoder v1 сохраняет прежние defaults.
 // Старые ссылки: ?tab=<JSON-строка>&filter=<JSON-объект>.
 
 // Лимит строки запроса Kestrel и nginx — 8 KB: более длинный адрес не откроется после перезагрузки.
@@ -58,7 +59,7 @@ function decodeLegacy(params: URLSearchParams, warnings: string[]): SurveyState 
     return state
 }
 
-function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
+function decodeVersion(params: URLSearchParams, warnings: string[], version: 1 | 2): SurveyState {
     function read<T>(name: string, fallback: T, parse: (text: string) => T | undefined): T {
         const text = params.get(name)
         if (text === null) {
@@ -88,15 +89,15 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
 
     const year = read('year', LATEST_YEAR, text => SURVEY_YEARS.find(year => year === Number(text)))
     const compareYear = read<SurveyYear | null>('compareYear', null, text =>
-        SURVEY_YEARS.find(candidate => candidate === Number(text) && candidate !== year))
+        SURVEY_YEARS.find(candidate => candidate === Number(text) && (version === 2 || candidate !== year)))
 
     return {
         page: read('page', DEFAULT_STATE.page, text =>
-            text === 'companies' || text === 'sample' || text === 'methodology' ? text : undefined),
+            text === 'companies' || text === 'sample' || text === 'methodology' || version === 2 && text === 'audience-matrix' ? text : undefined),
         year,
         compareYear,
         filter: decodeFilter(params.get('filter'), warnings),
-        companies: read('companies', LINK_DEFAULTS.companies, text => {
+        companies: read('companies', version === 1 ? LINK_DEFAULTS.companies : DEFAULT_STATE.companies, text => {
             const companies = parseJson(text)
             return Array.isArray(companies) && companies.every(name => typeof name === 'string')
                 ? companies
@@ -105,30 +106,72 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
         showGood: read('good', DEFAULT_STATE.showGood, flag),
         showWanted: read('wanted', DEFAULT_STATE.showWanted, flag),
         view: read('view', DEFAULT_STATE.view, text => text === 'map' || text === 'table' ? text : undefined),
-        sort
+        sort,
+        matrix: version === 2 ? decodeMatrix(params.get('matrix'), warnings) : DEFAULT_MATRIX
     }
+}
+
+function decodeMatrix(text: string | null, warnings: string[]): AudienceMatrixState {
+    if (text === null) return DEFAULT_MATRIX
+    const raw = parseJson(text)
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        warnings.push(invalidParameter('matrix'))
+        return DEFAULT_MATRIX
+    }
+    const input = raw as Record<string, unknown>
+    const validGroup = typeof input.groupBy === 'string' && Object.hasOwn(GROUP_LABELS, input.groupBy)
+    if (!validGroup) warnings.push(invalidParameter('matrix.groupBy'))
+    const groupBy = validGroup ? input.groupBy as AudienceGroupBy : DEFAULT_MATRIX.groupBy
+    const values = input.groupValues
+    const validValues = values === null || Array.isArray(values) && values.length <= MAX_MATRIX_COLUMNS
+        && values.every(value => validMatrixValue(groupBy, value))
+    if (!validValues) warnings.push(invalidParameter('matrix.groupValues'))
+    const groupValues = validValues && Array.isArray(values) ? [...new Set(values)] : null
+    const validMetric = input.metric === 'wanted' || input.metric === 'known' || input.metric === 'good'
+    if (!validMetric) warnings.push(invalidParameter('matrix.metric'))
+    const metric = validMetric ? input.metric as AudienceMatrixState['metric'] : DEFAULT_MATRIX.metric
+    let sort = DEFAULT_MATRIX.sort
+    const rawSort = input.sort
+    if (rawSort && typeof rawSort === 'object' && !Array.isArray(rawSort)) {
+        const candidate = rawSort as Record<string, unknown>
+        const direction = candidate.direction
+        if (direction === 'asc' || direction === 'desc') {
+            if (candidate.by === 'name' || candidate.by === 'base') sort = { by: candidate.by, direction }
+            else if (candidate.by === 'column' && validMatrixValue(groupBy, candidate.value)) {
+                sort = groupValues === null || groupValues.includes(candidate.value)
+                    ? { by: 'column', value: candidate.value, direction } : { by: 'name', direction: 'asc' }
+                if (sort.by === 'name') warnings.push(invalidParameter('matrix.sort'))
+            }
+        }
+    }
+    if (sort === DEFAULT_MATRIX.sort) warnings.push(invalidParameter('matrix.sort'))
+    return { groupBy, groupValues, metric, sort }
 }
 
 export function decodeSurveyUrl(search: string): { state: SurveyState, warnings: string[] } {
     const params = new URLSearchParams(search)
     const warnings: string[] = []
-    const state = params.has('v') ? decodeV1(params, warnings)
-        : params.has('tab') || params.has('filter') ? decodeLegacy(params, warnings)
-            : DEFAULT_STATE
+    let state = DEFAULT_STATE
+    const version = params.get('v')
+    if (version === '1') state = decodeVersion(params, warnings, 1)
+    else if (version === '2') state = decodeVersion(params, warnings, 2)
+    else if (version !== null) warnings.push(invalidParameter('v'))
+    else if (params.has('tab') || params.has('filter')) state = decodeLegacy(params, warnings)
     return { state, warnings }
 }
 
 export function encodeSurveyUrl(state: SurveyState): string {
     const flag = (value: boolean) => value ? '1' : '0'
     const params = new URLSearchParams({
-        v: '1',
+        v: '2',
         page: state.page,
         year: String(state.year),
         filter: JSON.stringify(state.filter),
         companies: JSON.stringify(state.companies),
         good: flag(state.showGood),
         wanted: flag(state.showWanted),
-        view: state.view
+        view: state.view,
+        matrix: JSON.stringify(state.matrix)
     })
     if (state.compareYear !== null) params.set('compareYear', String(state.compareYear))
     if (state.sort) {

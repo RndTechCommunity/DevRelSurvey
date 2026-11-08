@@ -5,6 +5,7 @@ import FilterDrawer from '../features/filters/FilterDrawer'
 import FilterChips from '../features/filters/FilterChips'
 import { NO_RESTRICTIONS } from '../features/filters/model'
 import FilterPanel from '../features/filters/FilterPanel'
+import AudienceMatrixPage from '../pages/AudienceMatrixPage'
 import CompaniesPage from '../pages/CompaniesPage'
 import MethodologyPage, { MethodologySection } from '../pages/MethodologyPage'
 import SamplePage from '../pages/SamplePage'
@@ -28,6 +29,7 @@ type Props = {
 
 const SECTIONS = [
     { page: 'companies', label: 'Компании' },
+    { page: 'audience-matrix', label: 'Матрица аудиторий' },
     { page: 'sample', label: 'Состав выборки' },
     { page: 'methodology', label: 'О данных' }
 ] as const
@@ -40,6 +42,7 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
         setAboutSection(section)
         update({ page }, 'push')
     }
+    const effectiveCompareYear = state.compareYear === state.year ? null : state.compareYear
     const openAbout = (section: MethodologySection) => openPage('methodology', section)
 
     return (
@@ -48,6 +51,7 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
                 <span className={styles.brand}>RndTech · Исследование ИТ-сообщества</span>
                 <Nav
                     as='nav'
+                    className={styles.navigation}
                     aria-label='Разделы'
                     appearance='subtle'
                     activeKey={state.page}
@@ -88,9 +92,11 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
                         </div>
                         <main className={styles.main}>
                             <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
-                            {state.page === 'sample'
-                                ? <SamplePage meta={meta} year={state.year} compareYear={state.compareYear} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
-                                : <CompaniesPage state={state} update={update} companies={companies} onAbout={openAbout} />}
+                            {state.page === 'audience-matrix'
+                                ? <AudienceMatrixPage state={state} update={update} theme={theme} />
+                                : state.page === 'sample'
+                                    ? <SamplePage meta={meta} year={state.year} compareYear={effectiveCompareYear} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
+                                    : <CompaniesPage state={{ ...state, compareYear: effectiveCompareYear }} update={update} companies={companies} onAbout={openAbout} />}
                         </main>
                     </div>
                 </>}

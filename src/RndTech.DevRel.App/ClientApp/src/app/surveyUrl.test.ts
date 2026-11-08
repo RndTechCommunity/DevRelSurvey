@@ -89,6 +89,7 @@ describe('invalid parameters fall back to defaults with a warning', () => {
 describe('v1 links', () => {
     test('a non-default state survives a round trip', () => {
         const state: SurveyState = {
+            matrix: DEFAULT_STATE.matrix,
             page: 'sample',
             year: 2020,
             compareYear: 2021,
@@ -124,5 +125,41 @@ describe('v1 links', () => {
         expect(new URLSearchParams(encodeSurveyUrl(DEFAULT_STATE)).get('companies')).toBe('[]')
         expect(new URLSearchParams(encodeSurveyUrl(DEFAULT_STATE)).has('compareYear')).toBe(false)
         expect(decodeSurveyUrl('')).toEqual({ state: DEFAULT_STATE, warnings: [] })
+    })
+})
+
+describe('v2 matrix links', () => {
+    test.each([null, [], [null, '', 'null', 'Новый грейд', '100% + "A"']])('round trip preserves selection %j and latent comparison', groupValues => {
+        const state: SurveyState = { ...DEFAULT_STATE, page: 'audience-matrix', compareYear: 2022,
+            matrix: { groupBy: 'experiences', groupValues, metric: 'good', sort: { by: 'name', direction: 'desc' } } }
+        expect(decodeSurveyUrl(encodeSurveyUrl(state))).toEqual({ state, warnings: [] })
+        expect(new URLSearchParams(encodeSurveyUrl(state)).get('v')).toBe('2')
+    })
+    test('auto column sort is retained, explicit removed column falls back to name', () => {
+        const state: SurveyState = { ...DEFAULT_STATE, matrix: { ...DEFAULT_STATE.matrix, sort: { by: 'column', value: 'Unknown', direction: 'desc' } } }
+        expect(decodeSurveyUrl(encodeSurveyUrl(state)).state.matrix).toEqual(state.matrix)
+        const decoded = decodeSurveyUrl(encodeSurveyUrl({ ...state, matrix: { ...state.matrix, groupValues: [] } }))
+        expect(decoded.state.matrix.sort).toEqual({ by: 'name', direction: 'asc' })
+        expect(decoded.warnings[0]).toContain('matrix.sort')
+    })
+    test.each([
+        [{ groupBy: 'unknown' }, 'matrix.groupBy'], [{ groupValues: [null] }, 'matrix.groupValues'],
+        [{ groupBy: 'ages', groupValues: ['20–24 года'] }, 'matrix.groupValues'],
+        [{ groupBy: 'isCommunity', groupValues: ['Да'] }, 'matrix.groupValues'],
+        [{ groupValues: Array(257).fill('A') }, 'matrix.groupValues'],
+        [{ metric: 'sum' }, 'matrix.metric'], [{ sort: { by: 'name', direction: 'sideways' } }, 'matrix.sort']
+    ])('invalid matrix input warns about its field', (patch, field) => {
+        const url = new URLSearchParams({ v: '2', matrix: JSON.stringify({ ...DEFAULT_STATE.matrix, ...patch }) })
+        expect(decodeSurveyUrl(`?${url}`).warnings).toContainEqual(expect.stringContaining(field))
+    })
+    test('unknown version defaults explicitly; values deduplicate without trimming; long links are not truncated', () => {
+        expect(decodeSurveyUrl('?v=99&page=sample').state).toEqual(DEFAULT_STATE)
+        expect(decodeSurveyUrl('?v=99').warnings[0]).toContain('«v»')
+        const state = { ...DEFAULT_STATE, matrix: { ...DEFAULT_STATE.matrix, groupValues: [' A ', 'A', ' A '] } }
+        expect(decodeSurveyUrl(encodeSurveyUrl(state)).state.matrix.groupValues).toEqual([' A ', 'A'])
+        const long = { ...DEFAULT_STATE, companies: ['д'.repeat(1500)] }
+        expect(encodeSurveyUrl(long).length).toBeGreaterThan(8000)
+        expect(decodeSurveyUrl(encodeSurveyUrl(long)).state).toEqual(long)
+        expect(decodeSurveyUrl('?v=2').state).toEqual(DEFAULT_STATE)
     })
 })

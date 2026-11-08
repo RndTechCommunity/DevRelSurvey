@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { RespondentFilter } from '../features/filters/model'
-import { CompanyResult, FilterOptions, SurveyMeta } from './types'
+import { AudienceMatrixRequest, AudienceMatrixResponse, CompanyResult, FilterOptions, SurveyMeta } from './types'
 
 const api = axios.create({
     baseURL: '/api'
@@ -32,5 +32,10 @@ export function getCompanyResults(filter: RespondentFilter, signal?: AbortSignal
 export function getSurveyMeta(filter: RespondentFilter, signal?: AbortSignal): Promise<SurveyMeta> {
     return api
         .post<SurveyMeta>('results/meta', filter, { signal })
+        .then(response => response.data)
+}
+
+export function getAudienceMatrix(request: AudienceMatrixRequest, signal: AbortSignal): Promise<AudienceMatrixResponse> {
+    return api.post<AudienceMatrixResponse>('results/audience-matrix', request, { signal })
         .then(response => response.data)
 }

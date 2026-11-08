@@ -1,4 +1,4 @@
-import type { CompanyResult, MetaRow, SurveyMeta } from '../api/types'
+import type { AudienceGroupBy, AudienceMatrixRequest, AudienceMatrixResponse, CompanyResult, MatrixValue, MetaRow, SurveyMeta } from '../api/types'
 
 // Синтетические ответы API для unit- и e2e-тестов. Не содержат данных production.
 
@@ -146,3 +146,42 @@ export const emptyMeta: SurveyMeta = deepFreeze({
         communitySource: []
     }
 })
+
+export const MATRIX_COMPANY = 'Компания "А", 100%'
+export const MATRIX_LONG_COMPANY = 'Компания с полным длинным названием для проверки переноса текста в строке матрицы'
+const matrixCatalog: Record<AudienceGroupBy, readonly MatrixValue[]> = {
+    professions: ['Backend', 'Frontend', 'QA', 'Только 2021'],
+    languages: ['JavaScript', 'TypeScript', 'Python', 'C#'],
+    ages: ['20', '25', '60'], cities: ['A B', 'AB', 'Редкий город'],
+    educations: ['Высшее', 'Среднее'], experiences: [null, '', 'null', 'Middle'],
+    isCommunity: ['false', 'true'],
+    communitySources: ['Telegram', 'Митапы', 'Анонсы в телеграм-каналах и чатах профильных сообществ региона']
+}
+export function audienceMatrixFixture(request: AudienceMatrixRequest): AudienceMatrixResponse {
+    const { year, groupBy, filter } = request
+    const baseN = filter.cities.includes('Нет-такого') ? 0 : year === 2021 ? 1 : 3
+    const label = (value: MatrixValue) => value === null ? 'Не указан' : value === '' ? 'Пустое значение'
+        : groupBy === 'isCommunity' ? value === 'true' ? 'Да' : 'Нет'
+            : groupBy === 'ages' ? `${value}–${Number(value) + 4} года` : value
+    const availableValues = matrixCatalog[groupBy].map(value => ({
+        value, label: label(value), respondentCount: !baseN || value === 'Только 2021' && year !== 2021
+            || year === 2021 && value !== 'Только 2021' ? 0 : value === 'Backend' ? 2 : 1
+    }))
+    const selected = request.groupValues ?? availableValues.filter(option => option.respondentCount > 0)
+        .sort((a, b) => b.respondentCount - a.respondentCount).slice(0, 6).map(option => option.value)
+    const names = [MATRIX_COMPANY, 'AB', 'Только 2021', MATRIX_LONG_COMPANY,
+        ...Array.from({ length: 14 }, (_, i) => `Компания ${i + 1}`)]
+    const baseCompanies = baseN ? [company(MATRIX_COMPANY, year, 3, 3, 1, 1), company('AB', year, 2, 1, 0, 0),
+        company(MATRIX_LONG_COMPANY, year, 2, 1, 1, 0)] : []
+    return {
+        year, groupBy, baseRespondentCount: baseN, companyNames: names, baseCompanies, availableValues,
+        columns: selected.map(value => {
+            const option = availableValues.find(option => option.value === value)
+            const conflict = groupBy === 'professions' && filter.professions.length > 0 && !filter.professions.includes(value ?? '')
+            const respondentCount = conflict ? 0 : option?.respondentCount ?? 0
+            return { value, label: label(value), respondentCount,
+                companies: respondentCount ? [company(MATRIX_COMPANY, year, 2, 2, 0, 1), company('AB', year, 1, 0, 0, 0),
+                    company(MATRIX_LONG_COMPANY, year, 1, 1, 1, 0)] : [] }
+        })
+    }
+}

@@ -34,7 +34,7 @@ export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
     const selectYear = (value: string | number | null) => {
         const year = SURVEY_YEARS.find(y => y === value)
         if (year) {
-            update({ year, compareYear: year === state.compareYear ? null : state.compareYear }, 'push')
+            update({ year, compareYear: state.page !== 'audience-matrix' && year === state.compareYear ? null : state.compareYear }, 'push')
         }
     }
 
@@ -49,16 +49,19 @@ export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
                     value={state.year}
                     onChange={selectYear}
                 />
-                <span id='compare-year-label' className={styles.label}>Сравнить с</span>
-                <div {...wrapperProps}>
-                    <SelectPicker ref={ref} {...pickerProps} className={styles.compare}
-                        aria-labelledby='compare-year-label' placeholder='нет' cleanable searchable={false}
-                        data={YEAR_OPTIONS.filter(option => option.value !== state.year)}
-                        value={state.compareYear} onChange={compareYear => update({ compareYear })} />
-                </div>
+                {state.page === 'audience-matrix' ? <span>Матрица показывает один год. Сохранённое сравнение работает на других страницах.</span> : <>
+                    <span id='compare-year-label' className={styles.label}>Сравнить с</span>
+                    <div {...wrapperProps}>
+                        <SelectPicker ref={ref} {...pickerProps} className={styles.compare}
+                            aria-labelledby='compare-year-label' placeholder='нет' cleanable searchable={false}
+                            data={YEAR_OPTIONS.filter(option => option.value !== state.year)}
+                            value={state.compareYear === state.year ? null : state.compareYear} onChange={compareYear => update({ compareYear })} />
+                    </div>
+                    {state.compareYear === state.year && <span>Сравнение с {state.compareYear} сохранено. Выберите другой основной год, чтобы включить его.</span>}
+                </>}
             </div>
             <div className={styles.summary}>
-                <p role='status'>{state.year} · {group} · Выборка: {sampleSize(meta, state.year)}</p>
+                <p role='status'>{state.year} · {group}{state.page !== 'audience-matrix' && <> · Выборка: {sampleSize(meta, state.year)}</>}</p>
                 <Button appearance='link' onClick={onDuplicate}>
                     <Split />&nbsp;
                     Дублировать
