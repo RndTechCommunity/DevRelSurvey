@@ -139,11 +139,17 @@ test('screenshots of the initial page', async ({ page }) => {
                 return Math.max(...(['x', 'y', 'width', 'height'] as const).map(key => Math.abs(active[key] - indicator[key])))
             }), `selected metric ${width}`).toBeLessThanOrEqual(2)
         }
+        const card = page.getByRole('complementary', { name: 'Карточка компании' })
+        if (width < 1224) await expect(card).toBeHidden()
+        await page.locator('[data-company="IBS Dunice"] circle').last().click()
+        await expect(card).toContainText('Ответили на вопрос о компании: 100')
+        await expect(card).toBeInViewport()
+        expect(await horizontalOverflow(page), `card ${width}`).toBe(0)
         await selectTable(page)
         await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
         expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
         if (width >= 1224) {
-            expect(await page.getByRole('complementary').evaluate(aside => {
+            expect(await page.getByRole('complementary', { name: '', exact: true }).evaluate(aside => {
                 const right = aside.getBoundingClientRect().right
                 return [...aside.querySelectorAll('[role="combobox"]')].some(field => field.getBoundingClientRect().right > right)
             }), `filter fields ${width}`).toBe(false)

@@ -1,3 +1,15 @@
+.results {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas: 'view card';
+    gap: var(--space-4);
+}
+
+.view {
+    grid-area: view;
+    min-width: 0;
+}
+
 /* Карта занимает ширину контейнера (width задан явно: иначе max-height через aspect-ratio ограничил бы и ширину);
    высота ограничена, чтобы карта помещалась на экране. */
 .chart {
@@ -10,6 +22,11 @@
 }
 
 @media (max-width: 1223px) {
+    .results {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: 'card' 'view';
+    }
+
     .chart {
         aspect-ratio: 1;
         max-height: none;

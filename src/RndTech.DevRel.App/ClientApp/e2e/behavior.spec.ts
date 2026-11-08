@@ -29,7 +29,7 @@ const selectMetric = (page: Page, name: string) =>
     page.getByRole('radiogroup', { name: 'Показатель' }).getByText(name, { exact: true }).click()
 const selectView = (page: Page, name: string) =>
     page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText(name, { exact: true }).click()
-const filterPanel = (page: Page) => page.getByRole('complementary')
+const filterPanel = (page: Page) => page.getByRole('complementary', { name: '', exact: true })
 const sidebarButton = (page: Page, name: string) => filterPanel(page).getByRole('button', { name, exact: true })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
 const toggleCheckbox = (page: Page, name: string) => page.getByText(name, { exact: true }).click()
@@ -371,7 +371,7 @@ test.describe('desktop 1440', () => {
             await expect(ticks.last()).toHaveText(maximum)
             const zeroY = Number(await tickLines.first().getAttribute('y1'))
             const topY = Number(await tickLines.last().getAttribute('y1'))
-            const pointY = Number(await page.locator('[data-company="IBS Dunice"] circle').getAttribute('cy'))
+            const pointY = Number(await page.locator('[data-company="IBS Dunice"] circle').last().getAttribute('cy'))
             expect(pointY).toBeCloseTo(zeroY + (topY - zeroY) * share / (parseInt(maximum) / 100), 6)
             await expect(chart).toHaveAttribute('aria-label', new RegExp(label.replace('+', '\\+')))
         }
@@ -412,7 +412,7 @@ test.describe('desktop 1440', () => {
         const metric = page.getByRole('radiogroup', { name: 'Показатель' })
         await metric.getByRole('radio', { name: 'Рекомендуют', exact: true }).focus()
         await page.keyboard.press('Space')
-        await expect(page.locator('[data-company] circle')).toHaveCount(5)
+        await expect(page.locator('[data-company] circle[r="4"]')).toHaveCount(5)
         await expect(page.getByText('Показатель не выбран.')).toHaveCount(0)
         expect(new URL(page.url()).searchParams.has('error')).toBe(false)
         await selectYear(page, '2021')
@@ -769,8 +769,12 @@ test('resize keeps company selection and both sorts, without remounting main or 
     const companyTable = table(page, 'Компания')
     await companyTable.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
     await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
+    await companyTable.getByRole('button', { name: 'Тинькофф', exact: true }).press('Enter')
+    const card = page.getByRole('complementary', { name: 'Карточка компании' })
+    await expect(card).toContainText('Ответили на вопрос о компании: 20')
     const posts = api.posts().length
     await page.setViewportSize({ width: 1440, height: 900 })
+    await expect(card).toContainText('Ответили на вопрос о компании: 20')
     expect(await main!.evaluate(element => element.isConnected)).toBe(true)
     await expect(page.getByRole('combobox', { name: 'Компании', exact: true })).toHaveText('IBS Dunice, Тинькофф')
     await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
@@ -909,6 +913,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('Enter')
         await expect(search).toBeFocused()
+        await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Ответили на вопрос о компании: 100')
         await expect(points).toHaveCount(40)
         const label = points.locator('text')
         await expect(label).toHaveCount(1)
@@ -921,7 +926,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await expect(label).toHaveCSS('font-size', '12px')
         await expect(points.last()).toHaveAttribute('data-company', 'Тинькофф')
         await expect(points.last().locator('circle').last()).toHaveAttribute('r', '7')
-        await expect(points.first().locator('circle')).toHaveAttribute('r', '4')
+        await expect(points.first().locator('circle').last()).toHaveAttribute('r', '4')
         expect(page.url()).toBe(url)
         expect(api.posts()).toHaveLength(posts)
         await search.press('Enter')
@@ -1007,3 +1012,177 @@ for (const colorScheme of ['light', 'dark'] as const) {
         expect(geometry).toMatchObject({ insidePlot: true, overlaps: [] })
     })
 }
+
+test('company card uses each company denominator, follows the year and opens from any table cell or name', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const errors = collectErrors(page)
+    const api = await mockApi(page)
+    await page.goto('/')
+    const card = page.getByRole('complementary', { name: 'Карточка компании' })
+    await expect(page.locator('[data-company]')).toHaveCount(6)
+    const posts = api.posts().length
+    const url = page.url()
+    await page.locator('[data-company="IBS Dunice"] circle').last().click()
+    await expect(card).toContainText('Ответили на вопрос о компании: 100')
+    await expect(card.locator('dd')).toHaveText(['40 (40%)', '10 (10%)', '5 (5%)'])
+    expect(page.url()).toBe(url)
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
+    await expect(card).toContainText('Ответили на вопрос о компании: 100')
+    await selectView(page, 'Таблица')
+    const companies = table(page, 'Компания')
+    await companies.getByRole('row').filter({ hasText: 'Контур' }).getByRole('cell').nth(1).click()
+    await expect(card.getByRole('heading', { name: 'Контур', exact: true })).toBeVisible()
+    await expect(card).toContainText('Ответили на вопрос о компании: 90')
+    await expect(card.locator('dd')).toHaveText(['45 (50%)', '9 (10%)', '9 (10%)'])
+    await companies.getByRole('button', { name: 'Тинькофф', exact: true }).click()
+    await expect(card).toContainText('Ответили на вопрос о компании: 6')
+    await companies.getByRole('button', { name: 'Контур', exact: true }).press('Enter')
+    await selectYear(page, '2021')
+    await expect(card).toContainText('Нет данных за 2021 год.')
+    await expect(card.locator('dd')).toHaveCount(0)
+    await expect(companies.getByRole('columnheader')).toHaveCount(7)
+    await selectYear(page, '2019')
+    await expect(card.locator('dd')).toHaveText(['10 (25%)', '2 (5%)', '1 (2.5%)'])
+    await card.getByRole('button', { name: 'Закрыть карточку компании' }).click()
+    await expect(card).toContainText('Выберите компанию на карте, в таблице или через поиск.')
+    expect(new URL(page.url()).searchParams.has('focused')).toBe(false)
+    expect(api.posts()).toHaveLength(posts)
+    expect(errors).toEqual([])
+})
+
+for (const touch of [false, true]) {
+    test.describe(touch ? 'tap nearby companies' : 'hover nearby companies', () => {
+        test.use({ hasTouch: touch, viewport: { width: 390, height: 900 } })
+        test('the tooltip keeps the current nearby list after focus, resize, metric and restriction changes', async ({ page }) => {
+            const errors = collectErrors(page)
+            const api = await mockApi(page)
+            await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
+            const points = page.locator('[data-company]')
+            await expect(points).toHaveCount(40)
+            const posts = api.posts().length
+            const target = points.filter({ has: page.locator('circle[cx]') }).nth(37)
+            const dot = target.locator('circle').last()
+            await dot.scrollIntoViewIfNeeded()
+            const center = await dot.boundingBox()
+            if (touch) await page.touchscreen.tap(center!.x + center!.width / 2, center!.y + center!.height / 2)
+            else await page.mouse.move(center!.x + center!.width / 2, center!.y + center!.height / 2)
+            const tooltip = page.getByRole('tooltip')
+            await expect(tooltip).toContainText('Рядом на карте:')
+            const actualName = (await tooltip.locator('div').first().textContent())!
+            expect(actualName).toBeTruthy()
+            if (touch) {
+                await expect(points.last()).toHaveAttribute('data-company', actualName)
+                await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toBeInViewport()
+            }
+            const checkNeighbors = async () => {
+                await expect.poll(async () => {
+                    const expected = await points.evaluateAll((groups, name) => {
+                        const target = groups.find(group => group.getAttribute('data-company') === name)!.querySelector('circle')!
+                        const box = target.getBoundingClientRect()
+                        const x = box.x + box.width / 2, y = box.y + box.height / 2
+                        return groups.map(group => {
+                            const dot = group.querySelector('circle')!.getBoundingClientRect()
+                            return { name: group.getAttribute('data-company'),
+                                distance: (dot.x + dot.width / 2 - x) ** 2 + (dot.y + dot.height / 2 - y) ** 2 }
+                        }).filter(point => point.distance <= 144 + 1e-8)
+                    }, (await tooltip.locator('div').first().textContent())!)
+                    const names = await tooltip.locator('li').allTextContents()
+                    const distances = names.map(name => expected.find(point => point.name === name)?.distance ?? Infinity)
+                    return JSON.stringify([...names].sort()) === JSON.stringify(expected.map(point => point.name).sort())
+                        && distances.every((distance, i) => i === 0 || distance >= distances[i - 1] - 1e-8)
+                }).toBe(true)
+            }
+            await checkNeighbors()
+            await page.setViewportSize({ width: 1440, height: 900 })
+            // Касание сохраняет открытую подсказку даже после перемонтирования shape.
+            if (!touch) await page.locator(`[data-company="${actualName}"] circle`).last().hover({ force: true })
+            await checkNeighbors()
+            await selectMetric(page, 'Хотят работать')
+            await expect(tooltip).toHaveCount(0)
+            await selectView(page, 'Таблица')
+            await page.setViewportSize({ width: 390, height: 900 })
+            const nameButton = table(page, 'Компания').getByRole('button', { name: actualName, exact: true })
+            await nameButton.press('Enter')
+            const card = page.getByRole('complementary', { name: 'Карточка компании' })
+            await expect(card).toBeInViewport()
+            await nameButton.scrollIntoViewIfNeeded()
+            await expect(card).not.toBeInViewport()
+            await nameButton.press('Enter')
+            await expect(card).toBeInViewport()
+            await page.setViewportSize({ width: 1440, height: 900 })
+            await selectView(page, 'Карта')
+            await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+            await expect(points).toHaveCount(2)
+            await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Выберите компанию')
+            await selectYear(page, '2021')
+            await expect(tooltip).toHaveCount(0)
+            expect(api.posts()).toHaveLength(posts)
+            expect(errors).toEqual([])
+        })
+    })
+}
+
+test.describe('touch nearby list dismissal', () => {
+    test.use({ hasTouch: true, viewport: { width: 720, height: 450 }, deviceScaleFactor: 2 })
+    test('swipes inside and outside keep the clipped list; taps outside close only the tooltip', async ({ page }) => {
+        const errors = collectErrors(page)
+        const api = await mockApi(page)
+        for (const inside of [true, false]) {
+            await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
+            const points = page.locator('[data-company]')
+            await expect(points).toHaveCount(40)
+            await points.nth(37).locator('circle').last().tap({ force: true })
+            const tooltip = page.getByRole('tooltip')
+            await expect(tooltip).toHaveCSS('opacity', '1')
+            const card = page.getByRole('complementary', { name: 'Карточка компании' })
+            const cardText = await card.textContent()
+            const posts = api.posts().length
+            await expect.poll(() => tooltip.locator('li').last().evaluate(el => el.getBoundingClientRect().bottom)).toBeGreaterThan(450)
+            if (!inside) {
+                await page.evaluate(() => new Promise<void>(resolve => {
+                    document.addEventListener('scrollend', () => resolve(), { once: true })
+                    scrollBy(0, -160)
+                }))
+                await expect.poll(() => tooltip.evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThan(450)
+            }
+            const box = await tooltip.boundingBox()
+            const start = inside ? { x: box!.x + box!.width / 2, y: box!.y + 40 } : { x: 680, y: 400 }
+            expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[role="tooltip"]'), start)).toBe(inside)
+            expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[data-company], button, input, a'), start)).toBe(false)
+            await page.evaluate(() => {
+                document.body.removeAttribute('data-scroll-ended')
+                document.addEventListener('scrollend', () => { document.body.dataset.scrollEnded = 'true' }, { once: true })
+                document.addEventListener('pointerdown', event => {
+                    document.body.dataset.trustedTouch = String(event.isTrusted && event.pointerType === 'touch')
+                }, { once: true, passive: true })
+            })
+            const cdp = await page.context().newCDPSession(page)
+            await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 1 }] })
+            for (let step = 1; step <= (inside ? 10 : 24); step++) {
+                await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x, y: start.y - step * 12, id: 1 }] })
+                await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+            }
+            await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+            await expect(page.locator('body')).toHaveAttribute('data-scroll-ended', 'true')
+            await expect(page.locator('body')).toHaveAttribute('data-trusted-touch', 'true')
+            await expect(tooltip).toBeVisible()
+            const last = await tooltip.locator('li').last().boundingBox()
+            expect(last!.y).toBeGreaterThanOrEqual(0)
+            expect(last!.y + last!.height).toBeLessThanOrEqual(450)
+            await tooltip.locator('li').last().tap()
+            await expect(tooltip).toBeVisible()
+            await page.touchscreen.tap(680, 400)
+            await expect(tooltip).toHaveCount(0)
+            await expect(card).toHaveText(cardText!)
+            expect(api.posts()).toHaveLength(posts)
+            await test.info().attach(`swipe-${inside ? 'inside' : 'outside'}.json`, {
+                body: JSON.stringify({ before: box, start, lastAfterSwipe: last, cardPreserved: await card.textContent() === cardText,
+                    postDelta: api.posts().length - posts, browser: page.context().browser()?.version() }), contentType: 'application/json'
+            })
+            await cdp.detach()
+        }
+        expect(errors).toEqual([])
+    })
+})

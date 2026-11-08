@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
     CartesianGrid,
     Dot,
@@ -14,7 +15,7 @@ import { Tooltip, Whisper } from 'rsuite'
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
 import styles from './CompanyMap.module.css'
-import { ChartMetric, METRIC_LABELS, metricValue, yAxisScale } from './companyMetrics'
+import { ChartMetric, METRIC_LABELS, metricValue, nearbyCompanies, yAxisScale } from './companyMetrics'
 
 const companyFillColorMap: { readonly [name: string]: string } = {
     'OSSHelp': '#E34422',
@@ -52,6 +53,7 @@ type MapPoint = CompanyResult & { readonly metricValue: number }
 type Props = {
     rows: readonly CompanyResult[],
     focused: string | null,
+    onFocus: (name: string) => void,
     year: number,
     metric: ChartMetric,
     scale: ReturnType<typeof yAxisScale>
@@ -68,33 +70,65 @@ function CompanyLabel({ name, cx, cy }: { name: string, cx: number, cy: number }
         breakAll style={{ fontSize: 12, fontWeight: 600 }} fill='inherit' className={styles.label}>{name}</Text>
 }
 
-export default function CompanyMap({ rows, year, metric, scale, focused }: Props) {
-    const renderCompanyEntry = ({ payload, cx, cy }: ScatterPointItem) => {
-        const { name, knownVotes, goodVotes, wantedVotes, selectionCount }: MapPoint = payload
-        if (cx === undefined || cy === undefined) {
-            return null
+const HIT_RADIUS = 12
+
+function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip, yMax }: {
+    point: ScatterPointItem,
+    points: readonly MapPoint[],
+    focused: string | null,
+    onFocus: (name: string) => void,
+    tooltipName: string | null,
+    onTooltip: (name: string | null) => void,
+    yMax: number
+}) {
+    const plot = usePlotArea()
+    const { payload, cx, cy } = point
+    const target: MapPoint = payload
+    const { name, knownVotes, goodVotes, wantedVotes, selectionCount } = target
+    if (cx === undefined || cy === undefined) return null
+    const selected = name === focused
+    const nearby = plot && Number.isFinite(plot.width) && Number.isFinite(plot.height) && plot.width > 0 && plot.height > 0
+        ? nearbyCompanies(points, target, { x: HIT_RADIUS / plot.width, y: HIT_RADIUS / plot.height * yMax }) : []
+    const tooltip = (
+        <Tooltip className={styles.tooltip}>
+            <div>{name}</div>
+            <div className={styles.number}>Знают: {knownVotes} человек, {toPercentWithTenths(knownVotes / selectionCount)}%</div>
+            <div className={styles.number}>Рекомендуют: {goodVotes} человек, {toPercentWithTenths(goodVotes / selectionCount)}%</div>
+            <div className={styles.number}>Хотят работать: {wantedVotes} человек, {toPercentWithTenths(wantedVotes / selectionCount)}%</div>
+            {nearby.length > 1 && <><div>Рядом на карте:</div><ul>{nearby.map(row => <li key={row.name}>{row.name}</li>)}</ul></>}
+        </Tooltip>
+    )
+    return (
+        <Whisper placement='auto' trigger='none' open={tooltipName === name} speaker={tooltip}>
+            <g fill={companyFillColorMap[name] || 'var(--chart-point)'} data-company={name}
+                onPointerEnter={event => { if (event.pointerType === 'mouse') onTooltip(name) }}
+                onPointerLeave={event => { if (event.pointerType === 'mouse') onTooltip(null) }}
+                onClick={() => { onTooltip(name); onFocus(name) }}>
+                <circle cx={cx} cy={cy} r={HIT_RADIUS} fill='transparent' />
+                {selected && <Dot cx={cx} cy={cy} r={10} fill='none' stroke='var(--rs-text-primary)' strokeWidth={1.5} />}
+                <Dot cx={cx} cy={cy} r={selected ? 7 : 4} stroke='var(--rs-text-primary)' />
+                {selected && <CompanyLabel name={name} cx={cx} cy={cy} />}
+            </g>
+        </Whisper>
+    )
+}
+
+export default function CompanyMap({ rows, year, metric, scale, focused, onFocus }: Props) {
+    const [tooltipName, setTooltipName] = useState<string | null>(null)
+    useEffect(() => {
+        const close = (event: MouseEvent) => {
+            if (!(event.target instanceof Element) || !event.target.closest(`[data-company], .${styles.tooltip}`)) setTooltipName(null)
         }
-
-        const selected = name === focused
-        const tooltip = (
-            <Tooltip className={styles.tooltip}>
-                <div>{name}</div>
-                <div className={styles.number}>Знают: {knownVotes} человек, {toPercentWithTenths(knownVotes / selectionCount)}%</div>
-                <div className={styles.number}>Рекомендуют: {goodVotes} человек, {toPercentWithTenths(goodVotes / selectionCount)}%</div>
-                <div className={styles.number}>Хотят работать: {wantedVotes} человек, {toPercentWithTenths(wantedVotes / selectionCount)}%</div>
-            </Tooltip>
-        )
-
-        return (
-            <Whisper placement='auto' trigger='hover' speaker={tooltip}>
-                <g fill={companyFillColorMap[name] || 'var(--chart-point)'} data-company={name}>
-                    {selected && <Dot cx={cx} cy={cy} r={10} fill='none' stroke='var(--rs-text-primary)' strokeWidth={1.5} />}
-                    <Dot cx={cx} cy={cy} r={selected ? 7 : 4} stroke='var(--rs-text-primary)' />
-                    {selected && <CompanyLabel name={name} cx={cx} cy={cy} />}
-                </g>
-            </Whisper>
-        )
-    }
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setTooltipName(null)
+        }
+        document.addEventListener('click', close)
+        document.addEventListener('keyup', closeOnEscape)
+        return () => {
+            document.removeEventListener('click', close)
+            document.removeEventListener('keyup', closeOnEscape)
+        }
+    }, [])
 
     const points: MapPoint[] = rows.map(row => ({ ...row, metricValue: metricValue(row, metric) }))
         .sort((a, b) => Number(a.name === focused) - Number(b.name === focused))
@@ -138,7 +172,8 @@ export default function CompanyMap({ rows, year, metric, scale, focused }: Props
                 />
                 <Scatter
                     data={points}
-                    shape={renderCompanyEntry}
+                    shape={point => <CompanyPoint point={point} points={points} focused={focused} onFocus={onFocus}
+                        tooltipName={tooltipName} onTooltip={setTooltipName} yMax={scale.max} />}
                     isAnimationActive={false}
                 />
             </ScatterChart>

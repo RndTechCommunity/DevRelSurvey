@@ -12,3 +12,8 @@
 .number {
     white-space: nowrap;
 }
+
+.tooltip ul {
+    margin: 0;
+    padding-left: 20px;
+}

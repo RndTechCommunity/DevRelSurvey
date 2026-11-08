@@ -78,3 +78,12 @@ export function companyNames(rows: readonly CompanyResult[]): string[] {
         .filter((name, index, names) => names.indexOf(name) === index)
         .sort()
 }
+
+export function nearbyCompanies<T extends { knownLevel: number, metricValue: number }>(
+    points: readonly T[], target: T, tolerance: { x: number, y: number }
+): T[] {
+    const distance = (point: T) => ((point.knownLevel - target.knownLevel) / tolerance.x) ** 2
+        + ((point.metricValue - target.metricValue) / tolerance.y) ** 2
+    return points.filter(point => distance(point) <= 1)
+        .sort((a, b) => distance(a) - distance(b))
+}
