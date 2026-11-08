@@ -1,6 +1,8 @@
 import { DEFAULT_FILTER, RespondentFilter } from '../features/filters/model'
-import { DEFAULT_COMPANIES, DEFAULT_STATE, SurveyState } from './surveyState'
+import { LEGACY_COMPANIES, DEFAULT_STATE, SurveyState } from './surveyState'
 import { decodeSurveyUrl, encodeSurveyUrl } from './surveyUrl'
+
+const LINK_DEFAULTS = { ...DEFAULT_STATE, companies: LEGACY_COMPANIES }
 
 const TAGANROG: RespondentFilter = { ...DEFAULT_FILTER, cities: ['Таганрог'] }
 
@@ -26,13 +28,13 @@ describe('legacy links', () => {
     ])('tab %s opens %s of %d with the linked filter', (tab, page, year) => {
         const { state, warnings } = decodeSurveyUrl(legacyUrl(tab, JSON.stringify(TAGANROG)))
 
-        expect(state).toEqual({ ...DEFAULT_STATE, page, year, filter: TAGANROG })
+        expect(state).toEqual({ ...LINK_DEFAULTS, page, year, filter: TAGANROG })
         expect(warnings).toEqual([])
     })
 
     test('a link with only a filter opens companies of 2022 without a warning', () => {
         expect(decodeSurveyUrl(legacyUrl(null, JSON.stringify(TAGANROG))))
-            .toEqual({ state: { ...DEFAULT_STATE, filter: TAGANROG }, warnings: [] })
+            .toEqual({ state: { ...LINK_DEFAULTS, filter: TAGANROG }, warnings: [] })
     })
 
     test('values with %, «+» and Unicode are decoded once', () => {
@@ -49,9 +51,9 @@ describe('legacy links', () => {
         const withoutIsCommunity = { cities: ['Таганрог'], educations: [], languages: [], professions: [], experiences: [], ages: TAGANROG.ages }
 
         expect(decodeSurveyUrl(legacyUrl('"known-and-wanted-2020"', JSON.stringify({ ...TAGANROG, isCommunity: 'Неважно' }))))
-            .toEqual({ state: { ...DEFAULT_STATE, year: 2020, filter: TAGANROG }, warnings: [] })
+            .toEqual({ state: { ...LINK_DEFAULTS, year: 2020, filter: TAGANROG }, warnings: [] })
         expect(decodeSurveyUrl(legacyUrl(null, JSON.stringify(withoutIsCommunity))))
-            .toEqual({ state: { ...DEFAULT_STATE, filter: TAGANROG }, warnings: [] })
+            .toEqual({ state: { ...LINK_DEFAULTS, filter: TAGANROG }, warnings: [] })
     })
 })
 
@@ -76,7 +78,7 @@ describe('invalid parameters fall back to defaults with a warning', () => {
     ])('%s', (_, search, parameter) => {
         const { state, warnings } = decodeSurveyUrl(search)
 
-        expect(state).toEqual(DEFAULT_STATE)
+        expect(state).toEqual(LINK_DEFAULTS)
         expect(warnings).toHaveLength(1)
         expect(warnings[0]).toContain(`«${parameter}»`)
     })
@@ -100,7 +102,7 @@ describe('v1 links', () => {
 
     test('legacy interval links explain its removal and both disabled flags remain disabled', () => {
         const { state, warnings } = decodeSurveyUrl('?v=1&error=1&good=0&wanted=0')
-        expect(state).toEqual({ ...DEFAULT_STATE, showGood: false, showWanted: false })
+        expect(state).toEqual({ ...LINK_DEFAULTS, showGood: false, showWanted: false })
         expect(warnings).toEqual(['Отображение «доверительного интервала» убрано: это была одна константа для всех компаний, а не рассчитанный интервал. Подробнее — в разделе «О данных»'])
         const params = new URLSearchParams(encodeSurveyUrl(state))
         expect(params.has('error')).toBe(false)
@@ -108,12 +110,14 @@ describe('v1 links', () => {
         expect(decodeSurveyUrl('?v=1&error=0').warnings).toEqual([])
     })
 
-    test('missing companies mean the default set, an empty list means all companies', () => {
-        expect(decodeSurveyUrl('?v=1').state.companies).toEqual(DEFAULT_COMPANIES)
+    test('missing companies mean the legacy set, an empty list means all companies', () => {
+        expect(decodeSurveyUrl('?v=1').state.companies).toEqual(LEGACY_COMPANIES)
         expect(decodeSurveyUrl('?v=1&companies=%5B%5D').state.companies).toEqual([])
     })
 
-    test('an address without parameters opens the default state', () => {
+    test('an address without parameters opens all companies and the encoder makes this explicit', () => {
+        expect(decodeSurveyUrl('').state.companies).toEqual([])
+        expect(new URLSearchParams(encodeSurveyUrl(DEFAULT_STATE)).get('companies')).toBe('[]')
         expect(decodeSurveyUrl('')).toEqual({ state: DEFAULT_STATE, warnings: [] })
     })
 })

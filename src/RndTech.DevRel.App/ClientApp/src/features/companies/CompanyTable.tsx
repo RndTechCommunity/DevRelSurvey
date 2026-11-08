@@ -9,6 +9,7 @@ import { CompanyMetrics, toCompanyMetrics } from './companyMetrics'
 
 type Props = {
     rows: readonly CompanyResult[],
+    focused: string | null,
     sort: SurveyState['sort'],
     onSort: (sort: NonNullable<SurveyState['sort']>) => void
 }
@@ -31,7 +32,7 @@ const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, re
     { key: 'brandRating', header: 'Рейтинг бренда', width: 140, render: row => index(row.brandRating) }
 ]
 
-export default function CompanyTable({ rows, sort, onSort }: Props) {
+export default function CompanyTable({ rows, sort, onSort, focused }: Props) {
     const tableRef = useRef<HTMLTableElement>(null)
     useLayoutEffect(() => {
         const table = tableRef.current!
@@ -71,7 +72,8 @@ export default function CompanyTable({ rows, sort, onSort }: Props) {
                     </th>
                 ))}</tr></thead>
                 <tbody>{sorted.map(row => (
-                    <tr key={row.name}>{COLUMNS.map(column => <td key={column.key}>{column.render(row)}</td>)}</tr>
+                    <tr key={row.name} className={row.name === focused ? styles.focused : undefined}
+                        aria-current={row.name === focused ? true : undefined}>{COLUMNS.map(column => <td key={column.key}>{column.render(row)}</td>)}</tr>
                 ))}</tbody>
             </table>
         </div>

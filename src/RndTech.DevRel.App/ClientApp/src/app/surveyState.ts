@@ -26,8 +26,8 @@ export type SurveyState = {
     readonly sort: { readonly key: CompanySortKey, readonly direction: SortDirection } | null
 }
 
-// Компании, показанные на карте по умолчанию.
-export const DEFAULT_COMPANIES: readonly string[] = [
+// Прежний набор компаний для совместимости ссылок.
+export const LEGACY_COMPANIES: readonly string[] = [
     'OSSHelp',
     'Почтатех',
     'Mobyte',
@@ -63,7 +63,7 @@ export const DEFAULT_STATE: SurveyState = {
     page: 'companies',
     year: LATEST_YEAR,
     filter: DEFAULT_FILTER,
-    companies: DEFAULT_COMPANIES,
+    companies: [],
     showGood: true,
     showWanted: true,
     view: 'map',

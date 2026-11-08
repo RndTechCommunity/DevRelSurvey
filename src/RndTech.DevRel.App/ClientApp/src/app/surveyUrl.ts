@@ -1,12 +1,14 @@
 import { LATEST_YEAR, SURVEY_YEARS, SurveyYear } from '../api/types'
 import { DEFAULT_FILTER, parseRespondentFilter, RespondentFilter } from '../features/filters/model'
-import { COMPANY_SORT_KEYS, DEFAULT_STATE, SurveyState } from './surveyState'
+import { COMPANY_SORT_KEYS, DEFAULT_STATE, LEGACY_COMPANIES, SurveyState } from './surveyState'
 
 // v1: ?v=1&page&year&filter&companies&good&wanted&view[&sort&direction].
 // Старые ссылки: ?tab=<JSON-строка>&filter=<JSON-объект>.
 
 // Лимит строки запроса Kestrel и nginx — 8 KB: более длинный адрес не откроется после перезагрузки.
 export const MAX_URL_SEARCH_LENGTH = 8000
+
+const LINK_DEFAULTS = { ...DEFAULT_STATE, companies: LEGACY_COMPANIES }
 
 const LEGACY_YEAR_TABS = new Map<unknown, SurveyYear>([
     ['known-and-wanted', 2019],
@@ -39,7 +41,7 @@ function decodeFilter(text: string | null, warnings: string[]): RespondentFilter
 }
 
 function decodeLegacy(params: URLSearchParams, warnings: string[]): SurveyState {
-    const state = { ...DEFAULT_STATE, filter: decodeFilter(params.get('filter'), warnings) }
+    const state = { ...LINK_DEFAULTS, filter: decodeFilter(params.get('filter'), warnings) }
     const tabText = params.get('tab')
     if (tabText === null) {
         return state
@@ -94,7 +96,7 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
             text === 'companies' || text === 'sample' || text === 'methodology' ? text : undefined),
         year: read('year', LATEST_YEAR, text => SURVEY_YEARS.find(year => year === Number(text))),
         filter: decodeFilter(params.get('filter'), warnings),
-        companies: read('companies', DEFAULT_STATE.companies, text => {
+        companies: read('companies', LINK_DEFAULTS.companies, text => {
             const companies = parseJson(text)
             return Array.isArray(companies) && companies.every(name => typeof name === 'string')
                 ? companies

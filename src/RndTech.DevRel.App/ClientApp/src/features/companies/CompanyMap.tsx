@@ -5,94 +5,103 @@ import {
     Scatter,
     ScatterChart,
     ScatterPointItem,
+    Text,
+    usePlotArea,
     XAxis,
     YAxis
 } from 'recharts'
 import { Tooltip, Whisper } from 'rsuite'
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
+import styles from './CompanyMap.module.css'
 import { ChartMetric, METRIC_LABELS, metricValue, yAxisScale } from './companyMetrics'
 
-// Ключи — подписи с неразрывными пробелами; исходное имя компании остаётся идентификатором.
-const companyFillColorMap: { readonly [label: string]: string } = {
+const companyFillColorMap: { readonly [name: string]: string } = {
     'OSSHelp': '#E34422',
     'Почтатех': '#0018A8',
     'Mobyte': '#8F68AC',
     'INOSTUDIO': '#E4003B',
     'A2SEVEN': '#F6B300',
     'IntSpirit': '#179BD7',
-    'Justice\u00A0IT': '#6BA7C3',
+    'Justice IT': '#6BA7C3',
     'Afterlogic': '#1CBEE5',
-    'IBS\u00A0Dunice': '#009C4F',
-    'ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)': '#26397E',
+    'IBS Dunice': '#009C4F',
+    'ИТРУМ (ex Exceed Team)': '#26397E',
     'Аркадия': '#00ABDB',
     'Контур': '#D70C17',
-    'Axenix\u00A0(ex\u00A0Accenture)': '#A100FF',
+    'Axenix (ex Accenture)': '#A100FF',
     'Oggetto': '#FFDD00',
     'Distillery': '#d8a462',
     'Devexperts': '#f4511e',
     'РНДСОФТ': '#ff8833',
     'Usetech': '#92B700',
-    'НИИ\u00A0"Спецвузавтоматика"': '#237BE7',
+    'НИИ "Спецвузавтоматика"': '#237BE7',
     'uKit': '#338FFF',
     'MentalStack': '#ffe13c',
     'Reksoft': '#E22227',
     'WebAnt': '#C21B75',
-    'Intellectika\u00A0(Интеллектика)': '#03723A',
+    'Intellectika (Интеллектика)': '#03723A',
     'Вебпрактик': '#FFBE01',
     'Auriga': '#007BE0',
     'Центр-инвест': 'rgb(57, 163, 28)',
     'Тинькофф': '#FFDD2D'
 }
 
-const nbspLabel = (text: string) => text.split(' ').join('\u00A0')
-
 type MapPoint = CompanyResult & { readonly metricValue: number }
 
 type Props = {
     rows: readonly CompanyResult[],
+    focused: string | null,
     year: number,
     metric: ChartMetric,
     scale: ReturnType<typeof yAxisScale>
 }
 
-export default function CompanyMap({ rows, year, metric, scale }: Props) {
+function CompanyLabel({ name, cx, cy }: { name: string, cx: number, cy: number }) {
+    const plot = usePlotArea()
+    if (!plot) return null
+    const left = cx > plot.x + plot.width / 2
+    const below = cy < plot.y + plot.height / 2
+    const width = left ? cx - plot.x - 12 : plot.x + plot.width - cx - 12
+    return <Text x={cx + (left ? -12 : 12)} y={cy + (below ? 12 : -12)}
+        width={width} textAnchor={left ? 'end' : 'start'} verticalAnchor={below ? 'start' : 'end'}
+        fill='inherit' className={styles.label}>{name}</Text>
+}
+
+export default function CompanyMap({ rows, year, metric, scale, focused }: Props) {
     const renderCompanyEntry = ({ payload, cx, cy }: ScatterPointItem) => {
         const { name, knownVotes, goodVotes, wantedVotes, selectionCount }: MapPoint = payload
         if (cx === undefined || cy === undefined) {
             return null
         }
 
+        const selected = name === focused
         const tooltip = (
-            <Tooltip>
-                {nbspLabel(`Знают: ${knownVotes} человек,`
-                    + ` ${toPercentWithTenths(knownVotes / selectionCount)}%`)}<br />
-                {nbspLabel(`Рекомендуют: ${goodVotes} человек,`
-                    + ` ${toPercentWithTenths(goodVotes / selectionCount)}%`)}<br />
-                {nbspLabel(`Хотят работать: ${wantedVotes} человек,`
-                    + ` ${toPercentWithTenths(wantedVotes / selectionCount)}%`)}<br />
+            <Tooltip className={styles.tooltip}>
+                <div>{name}</div>
+                <div className={styles.number}>Знают: {knownVotes} человек, {toPercentWithTenths(knownVotes / selectionCount)}%</div>
+                <div className={styles.number}>Рекомендуют: {goodVotes} человек, {toPercentWithTenths(goodVotes / selectionCount)}%</div>
+                <div className={styles.number}>Хотят работать: {wantedVotes} человек, {toPercentWithTenths(wantedVotes / selectionCount)}%</div>
             </Tooltip>
-        );
+        )
 
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
-                <g fill={companyFillColorMap[nbspLabel(name)] || 'var(--chart-point)'} data-company={name}>
-                    <Dot cx={cx} cy={cy} r={1.5} />
-                    <g transform={`translate(${cx},${cy})`}>
-                        <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
-                            {nbspLabel(name)}
-                        </text>
-                    </g>
+                <g fill={companyFillColorMap[name] || 'var(--chart-point)'} data-company={name}>
+                    {selected && <Dot cx={cx} cy={cy} r={10} fill='none' stroke='var(--rs-text-primary)' strokeWidth={1.5} />}
+                    <Dot cx={cx} cy={cy} r={selected ? 7 : 4} stroke='var(--rs-text-primary)' />
+                    {selected && <CompanyLabel name={name} cx={cx} cy={cy} />}
                 </g>
             </Whisper>
         )
     }
 
     const points: MapPoint[] = rows.map(row => ({ ...row, metricValue: metricValue(row, metric) }))
+        .sort((a, b) => Number(a.name === focused) - Number(b.name === focused))
 
     return (
         <ResponsiveContainer width='100%' height='100%'>
-            <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false} role='img'
+            <ScatterChart margin={{ top: 12, left: 12, bottom: 10, right: 10 }} accessibilityLayer={false} role='img'
                 aria-label={`Карта компаний, ${year} год. ${METRIC_LABELS[metric]}. Компаний: ${rows.length}. Числа доступны в виде «Таблица».`}>
                 <CartesianGrid stroke='var(--chart-grid)' strokeDasharray='1 1' />
                 <XAxis

@@ -59,6 +59,14 @@ export const companyResults = deepFreeze([
     company('Контур', 2019, 40, 10, 2, 1)
 ])
 
+// Плотная карта: 40 компаний, длинные имена и две точки с одинаковыми координатами.
+export const denseCompanyResults = deepFreeze(Array.from({ length: 40 }, (_, i) => {
+    const name = ['Тинькофф', 'Почтатех', 'Пример'][i] ?? `Длинное название компании ${i}`
+    const offset = i === 2 ? 0 : i
+    return company(name, 2022, 100, i === 38 ? 0 : i === 39 ? 100 : 35 + offset % 7,
+        i === 38 ? 0 : 10 + offset % 3, i === 38 ? 0 : 5 + offset % 4)
+}))
+
 // Языки допускают несколько ответов: сумма долей за 2022 больше 100 %.
 export const surveyMeta: SurveyMeta = deepFreeze({
     total: metaRow('Всего', 300, 400, 500, 600),

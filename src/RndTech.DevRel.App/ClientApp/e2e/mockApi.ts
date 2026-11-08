@@ -1,6 +1,7 @@
 import type { Page, Request, Route } from '@playwright/test'
 import {
     companyResults,
+    denseCompanyResults,
     emptyCompanyResults,
     emptyMeta,
     filterOptions,
@@ -53,6 +54,9 @@ function responseFor(call: ApiCall, options: FilterOptions): unknown {
     }
     if (forCity('Нет-такого')(call)) {
         return isMeta(call) ? emptyMeta : emptyCompanyResults
+    }
+    if (forCity('Плотный')(call)) {
+        return isMeta(call) ? surveyMeta : denseCompanyResults
     }
     if (forCity('Тбилиси')(call)) {
         return isMeta(call) ? singleYearMeta : singleYearCompanyResults

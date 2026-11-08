@@ -6,7 +6,7 @@ import {
     hasWantedOnlyYear,
     metricValue,
     selectCompanyRows,
-    selectMapRows,
+    restrictCompanies,
     toCompanyMetrics,
     yAxisScale
 } from './companyMetrics'
@@ -73,11 +73,11 @@ test('rows of a year keep absent companies absent and do not mutate the input', 
     expect(selectCompanyRows(companyResults, 2021).map(r => r.name)).toEqual(['IBS Dunice', 'Тинькофф', 'Zero Corp'])
 })
 
-test('map rows: an empty selection means all companies, names are the original identifiers', () => {
+test('company restriction: an empty selection means all companies, names are the original identifiers', () => {
     const rows2022 = selectCompanyRows(companyResults, 2022)
 
-    expect(selectMapRows(rows2022, [])).toEqual(rows2022)
-    expect(selectMapRows(rows2022, ['ИТРУМ (ex Exceed Team)', 'Контур', 'Zero Corp']).map(r => r.name))
+    expect(restrictCompanies(rows2022, [])).toEqual(rows2022)
+    expect(restrictCompanies(rows2022, ['ИТРУМ (ex Exceed Team)', 'Контур', 'Zero Corp']).map(r => r.name))
         .toEqual(['Контур', 'ИТРУМ (ex Exceed Team)'])
-    expect(selectMapRows(rows2022, ['ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)'])).toEqual([])
+    expect(restrictCompanies(rows2022, ['ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)'])).toEqual([])
 })

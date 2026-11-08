@@ -12,3 +12,13 @@
     z-index: 1;
     background: var(--rs-bg-card);
 }
+
+.table .focused {
+    background: var(--rs-listbox-option-hover-bg);
+    outline: 2px solid var(--rs-text-primary);
+    outline-offset: -2px;
+}
+
+.focused td:first-child {
+    font-weight: 600;
+}

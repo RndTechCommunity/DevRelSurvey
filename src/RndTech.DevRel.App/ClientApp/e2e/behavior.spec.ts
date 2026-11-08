@@ -96,7 +96,7 @@ test.describe('desktop 1440', () => {
 
     test('sorts company names descending, then ascending', async ({ page }) => {
         await mockApi(page)
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
         const companies = table(page, 'Компания')
 
         await companies.getByRole('button', { name: 'Компания' }).click()
@@ -450,7 +450,7 @@ test.describe('desktop 1440', () => {
         await selectMetric(page, 'Рекомендуют')
         await selectView(page, 'Таблица')
         await table(page, 'Компания').getByRole('button', { name: 'Знают' }).click()
-        await page.locator('.rs-picker-toggle', { hasText: 'IBS Dunice' }).click()
+        await page.getByRole('combobox', { name: 'Компании', exact: true }).click()
         await toggleCheckbox(page, 'Выбрать все')
         await page.keyboard.press('Escape')
         await navButton(page, 'Состав выборки').click()
@@ -469,7 +469,7 @@ test.describe('desktop 1440', () => {
         const api = await mockApi(page)
         let release = () => {}
         api.override(forCity('Тбилиси'), new Promise<void>(resolve => { release = resolve }))
-        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&view=table'))
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&view=table&companies=[]'))
         await expect(page.getByText('Загрузка данных').first()).toBeVisible()
 
         await sidebarButton(page, 'Исходная выборка').click()
@@ -485,7 +485,7 @@ test.describe('desktop 1440', () => {
     test('a failed sample request shows an error and recovers on retry, companies keep working', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isMeta, 500)
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
         await expect(page.getByText('Выборка: не удалось загрузить')).toBeVisible()
         await navButton(page, 'Состав выборки').click()
@@ -500,7 +500,7 @@ test.describe('desktop 1440', () => {
     test('a network error of the company request recovers on retry', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isCompanies, 'abort')
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
 
         await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
         restore()
@@ -511,7 +511,7 @@ test.describe('desktop 1440', () => {
     test('returning to a group with a failed request shows loading, not the old error', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isCompanies, 500)
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
         await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
         restore()
         let release = () => {}
@@ -529,7 +529,7 @@ test.describe('desktop 1440', () => {
     test('a dictionary error stays in the filter panel', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isFilterOptions, 500)
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
 
         await expect(filterPanel(page).getByText('Не удалось загрузить данные')).toBeVisible()
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
@@ -563,7 +563,7 @@ test.describe('desktop 1440', () => {
 
     test('an undefined brand rating is shown as a dash and sorted last', async ({ page }) => {
         await mockApi(page)
-        await page.goto('/?v=1&view=table')
+        await page.goto('/?v=1&companies=[]&view=table')
         const companies = table(page, 'Компания')
 
         await companies.getByRole('button', { name: 'Рейтинг бренда' }).click()
@@ -592,7 +592,7 @@ test('mobile keeps the selected year and renders a late sample independently of 
     const api = await mockApi(page)
     let release = () => {}
     api.override(isMeta, new Promise<void>(resolve => { release = resolve }))
-    await page.goto('/?v=1&year=2021&view=table')
+    await page.goto('/?v=1&companies=[]&year=2021&view=table')
     await expect(yearRadio(page, '2021')).toBeChecked()
     await expect(firstColumn(table(page, 'Компания'))).toHaveCount(3)
     await expect(page.getByText('Выборка: …')).toBeVisible()
@@ -764,16 +764,16 @@ for (const width of [390, 768, 1223]) {
 test('resize keeps company selection and both sorts, without remounting main or requesting data', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 })
     const api = await mockApi(page)
-    await page.goto('/?v=1&view=table&year=2021&companies=%5B%22IBS%20Dunice%22%5D')
+    await page.goto('/?v=1&view=table&year=2021&companies=%5B%22IBS%20Dunice%22,%22Тинькофф%22%5D')
     const main = await page.getByRole('main').elementHandle()
     const companyTable = table(page, 'Компания')
     await companyTable.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
-    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'Zero Corp', 'IBS Dunice'])
+    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
     const posts = api.posts().length
     await page.setViewportSize({ width: 1440, height: 900 })
     expect(await main!.evaluate(element => element.isConnected)).toBe(true)
-    await expect(page.getByRole('combobox', { name: 'Компании', exact: true })).toHaveText('IBS Dunice')
-    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'Zero Corp', 'IBS Dunice'])
+    await expect(page.getByRole('combobox', { name: 'Компании', exact: true })).toHaveText('IBS Dunice, Тинькофф')
+    await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
     await navButton(page, 'Состав выборки').click()
     const languages = table(page, 'Язык программирования')
     await languages.getByRole('button', { name: 'Язык программирования' }).press('Space')
@@ -847,5 +847,128 @@ for (const failure of ['read', 'write'] as const) {
         await page.waitForLoadState('networkidle')
         expect(api.posts()).toHaveLength(posts)
         expect(errors).toEqual([])
+    })
+}
+
+test('clean links show all companies; old sets and empty intersections stay explicit in both views', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const api = await mockApi(page)
+    const points = page.locator('[data-company]')
+    for (const [url, count] of [['/', 6], ['/?v=1', 5], ['/?tab=%22known-and-wanted-2022%22', 5],
+        ['/?v=1&companies=invalid', 5], ['/?v=1&companies=[]', 6]] as const) {
+        await page.goto(url)
+        await expect(points).toHaveCount(count)
+        await expect(points.locator('text')).toHaveCount(0)
+        if (url.includes('invalid')) await expect(page.getByText('Параметр ссылки «companies»')).toBeVisible()
+        await selectView(page, 'Таблица')
+        await expect(firstColumn(table(page, 'Компания'))).toHaveCount(count)
+        expect(await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).isDisabled()).toBe(count === 5)
+        expect(await page.getByRole('button', { name: 'Показать все компании', exact: true }).isDisabled()).toBe(count === 6)
+    }
+    const posts = api.posts().length
+    await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+    await expect(firstColumn(table(page, 'Компания'))).toHaveCount(5)
+    await page.getByRole('button', { name: 'Показать все компании', exact: true }).click()
+    await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
+    expect(new URL(page.url()).searchParams.get('companies')).toBe('[]')
+    expect(api.posts()).toHaveLength(posts)
+
+    await page.goto('/?v=1&companies=%5B%22Контур%22%5D&year=2021')
+    for (const view of ['Таблица', 'Карта']) {
+        await selectView(page, view)
+        await expect(page.getByText('Для выбранных компаний нет данных за 2021 год.')).toBeVisible()
+        await expect(page.getByRole('table')).toHaveCount(0)
+        await expect(points).toHaveCount(0)
+        await expect(page.getByText('Выборка: 60 из 500')).toBeVisible()
+    }
+    await page.getByRole('alert').getByRole('button', { name: 'Показать все компании' }).click()
+    await expect(points).toHaveCount(3)
+})
+
+for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light'], [1440, 'dark']] as const) {
+    test(`company search highlights without filtering at ${width} in ${colorScheme}`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 })
+        await page.emulateMedia({ colorScheme })
+        const api = await mockApi(page)
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
+        const points = page.locator('[data-company]')
+        await expect(points).toHaveCount(40)
+        await expect(points.locator('text')).toHaveCount(0)
+        const url = page.url()
+        const posts = api.posts().length
+        const search = page.getByRole('combobox', { name: 'Найти компанию', exact: true })
+        await search.focus()
+        await page.keyboard.press('Enter')
+        await page.keyboard.press('Escape')
+        await expect(search).toBeFocused()
+        await page.keyboard.press('Enter')
+        const input = page.getByRole('searchbox')
+        await expect(input).toBeFocused()
+        await input.fill('тинь')
+        await expect(page.getByRole('option')).toHaveCount(1)
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await expect(search).toBeFocused()
+        await expect(points).toHaveCount(40)
+        const label = points.locator('text')
+        await expect(label).toHaveCount(1)
+        await expect(label).toHaveText('Тинькофф')
+        await expect(label).toHaveCSS('fill', 'rgb(255, 221, 45)')
+        await expect(label).toHaveCSS('stroke', await page.locator('body').evaluate(body => getComputedStyle(body).color))
+        await expect(label).toHaveCSS('stroke-width', '1.5px')
+        await expect(label).toHaveCSS('paint-order', 'stroke')
+        await expect(label).toHaveCSS('font-weight', '600')
+        await expect(label).toHaveCSS('font-size', '12px')
+        await expect(points.last()).toHaveAttribute('data-company', 'Тинькофф')
+        await expect(points.last().locator('circle').last()).toHaveAttribute('r', '7')
+        await expect(points.first().locator('circle')).toHaveAttribute('r', '4')
+        expect(page.url()).toBe(url)
+        expect(api.posts()).toHaveLength(posts)
+        await search.press('Enter')
+        await input.fill('почт')
+        await page.keyboard.press('Escape')
+        await expect(search).toBeFocused()
+        await expect(label).toHaveText('Тинькофф')
+        await search.press('Enter')
+        await page.keyboard.press('Tab')
+        await expect(page.getByRole('listbox')).toHaveCount(0)
+        await expect(page.getByRole('radiogroup', { name: 'Показатель' }).getByRole('radio', { checked: true })).toBeFocused()
+        await selectView(page, 'Таблица')
+        const companies = table(page, 'Компания')
+        await expect(firstColumn(companies)).toHaveCount(40)
+        await expect(companies.locator('tr[aria-current="true"] td:first-child')).toHaveText('Тинькофф')
+        await page.setViewportSize({ width: width === 390 ? 1440 : 390, height: 900 })
+        await expect(companies.locator('tr[aria-current="true"] td:first-child')).toHaveText('Тинькофф')
+        await selectView(page, 'Карта')
+        await expect(label).toHaveText('Тинькофф')
+        await search.press('Backspace')
+        await expect(label).toHaveCount(0)
+        await search.press('Enter')
+        await input.fill('пример')
+        await page.keyboard.press('ArrowDown')
+        await page.keyboard.press('Enter')
+        await expect(label).toHaveText('Пример')
+        await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+        await expect(points).toHaveCount(2)
+        await expect(label).toHaveCount(0)
+        await expect(search).toHaveText('Найти компанию')
+        await search.click()
+        await expect(page.getByRole('option')).toHaveCount(2)
+        await page.keyboard.press('Escape')
+        await page.getByRole('button', { name: 'Показать все компании', exact: true }).click()
+        await expect(label).toHaveText('Пример')
+        for (const name of ['Длинное название компании 38', 'Длинное название компании 39']) {
+            await search.click()
+            await input.fill(name)
+            await page.keyboard.press('ArrowDown')
+            await page.keyboard.press('Enter')
+            await expect(points.last()).toHaveAttribute('data-company', name)
+            expect(await label.evaluate(element => {
+                const box = element.getBoundingClientRect()
+                const svg = element.closest('svg')!.getBoundingClientRect()
+                return box.left >= svg.left && box.right <= svg.right && box.top >= svg.top && box.bottom <= svg.bottom
+            })).toBe(true)
+        }
+        expect(api.posts()).toHaveLength(posts)
     })
 }

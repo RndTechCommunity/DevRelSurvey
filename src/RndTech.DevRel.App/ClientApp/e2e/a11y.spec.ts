@@ -35,6 +35,12 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
             await page.getByRole('navigation', { name: 'Разделы' }).getByRole('button', { name: section, exact: true }).click()
             await scan()
             if (section === 'Компании') {
+                await page.getByRole('combobox', { name: 'Найти компанию', exact: true }).click()
+                await expect(page.getByRole('searchbox')).toBeFocused()
+                await scan()
+                await page.getByRole('option', { name: 'Тинькофф', exact: true }).click()
+                await expect(page.locator('[data-company] text')).toHaveText('Тинькофф')
+                await scan()
                 await page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText('Таблица').click()
                 await scan()
             }

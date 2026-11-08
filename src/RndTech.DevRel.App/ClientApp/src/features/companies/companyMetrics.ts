@@ -23,7 +23,7 @@ export function selectCompanyRows(rows: readonly CompanyResult[], year: number):
 }
 
 // Пустой список компаний означает «все компании».
-export function selectMapRows(yearRows: readonly CompanyResult[], companies: readonly string[]): readonly CompanyResult[] {
+export function restrictCompanies(yearRows: readonly CompanyResult[], companies: readonly string[]): readonly CompanyResult[] {
     return companies.length > 0
         ? yearRows.filter(row => companies.includes(row.name))
         : yearRows
