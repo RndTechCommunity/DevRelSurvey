@@ -1,4 +1,5 @@
 .label {
+    pointer-events: none;
     stroke: var(--rs-text-primary);
     stroke-width: 1.5px;
     paint-order: stroke;
