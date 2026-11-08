@@ -561,17 +561,38 @@ test.describe('desktop 1440', () => {
         await expect(page.getByText('2021 · Ростов-на-Дону, 20–44 года · Выборка: 60 из 500')).toBeVisible()
     })
 
-    test('an undefined brand rating is shown as a dash and sorted last', async ({ page }) => {
+    test('company sorting uses raw ratings, then names, with undefined values last', async ({ page }) => {
         await mockApi(page)
+        await page.route('**/api/results/known-and-wanted', route => route.fulfill({ json: [
+            ...companyResults,
+            { ...companyResults[1], name: 'Z rounded', selectionCount: 1000,
+                knownVotes: 837, goodVotes: 168, wantedVotes: 167,
+                knownLevel: 0.837, goodLevel: 0.168, wantedLevel: 0.167 }
+        ] }))
         await page.goto('/?v=1&companies=[]&view=table')
         const companies = table(page, 'Компания')
+        await expect(firstColumn(companies)).toHaveText([
+            'IBS Dunice', 'Контур', 'Тинькофф', 'ИТРУМ (ex Exceed Team)', 'Почтатех', 'Gamma%', 'Z rounded'
+        ])
 
-        await companies.getByRole('button', { name: 'Рейтинг бренда' }).click()
-
-        await expect(firstColumn(companies)).toHaveText(
-            ['Контур', 'Gamma%', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', 'Тинькофф', 'Почтатех'])
-        await expect(companies.locator('tbody td:last-child'))
-            .toHaveText(['66.7', '66.7', '60', '33.3', '—', '—'])
+        for (const compare of [false, true]) {
+            if (compare) {
+                await page.getByRole('combobox', { name: 'Сравнить с' }).click()
+                await page.getByRole('option', { name: '2021', exact: true }).click()
+            }
+            const missing = [...(compare ? ['Zero Corp'] : []), 'Почтатех', 'Тинькофф']
+            for (const direction of ['descending', 'ascending']) {
+                await companies.getByRole('button', { name: 'Рейтинг бренда' }).press('Enter')
+                await expect(companies.getByRole('columnheader', { name: 'Рейтинг бренда' }))
+                    .toHaveAttribute('aria-sort', direction)
+                await expect(firstColumn(companies)).toHaveText(direction === 'descending'
+                    ? ['Z rounded', 'Gamma%', 'Контур', 'IBS Dunice', 'ИТРУМ (ex Exceed Team)', ...missing]
+                    : ['ИТРУМ (ex Exceed Team)', 'IBS Dunice', 'Gamma%', 'Контур', 'Z rounded', ...missing])
+                if (!compare) await expect(companies.locator('tbody td:last-child')).toHaveText(direction === 'descending'
+                    ? ['66.7', '66.7', '66.7', '60', '33.3', '—', '—']
+                    : ['33.3', '60', '66.7', '66.7', '66.7', '—', '—'])
+            }
+        }
     })
 
     test('the sample composition of a year without respondents is a message, not zero shares', async ({ page }) => {

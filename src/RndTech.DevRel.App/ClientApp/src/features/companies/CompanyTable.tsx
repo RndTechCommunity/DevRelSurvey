@@ -57,7 +57,11 @@ export default function CompanyTable({ rows, year, compareYear, sort, onSort, fo
         }
     }, [rows])
     const metrics = rows.map(row => ({ ...row, metrics: row.main ? toCompanyMetrics(row.main) : null }))
-    const sorted = sort ? sortRows(metrics, row => sort.key === 'name' ? row.name : row.metrics?.[sort.key] ?? null, sort.direction) : metrics
+    const sorted = sort ? sortRows(
+        sortRows(metrics, row => row.name, 'asc'),
+        row => sort.key === 'name' ? row.name : row.metrics?.[sort.key] ?? null,
+        sort.direction
+    ) : metrics
     const comparisonKeys = comparedKeys(compareYear === null ? [year] : [year, compareYear])
 
     return (
