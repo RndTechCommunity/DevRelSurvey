@@ -22,3 +22,17 @@
 .focused td:first-child {
     font-weight: 600;
 }
+
+.table tbody tr {
+    cursor: pointer;
+}
+
+.name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}

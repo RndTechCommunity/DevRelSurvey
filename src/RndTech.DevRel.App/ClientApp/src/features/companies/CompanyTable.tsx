@@ -10,6 +10,7 @@ import { CompanyMetrics, toCompanyMetrics } from './companyMetrics'
 type Props = {
     rows: readonly CompanyResult[],
     focused: string | null,
+    onFocus: (name: string) => void,
     sort: SurveyState['sort'],
     onSort: (sort: NonNullable<SurveyState['sort']>) => void
 }
@@ -32,7 +33,7 @@ const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, re
     { key: 'brandRating', header: 'Рейтинг бренда', width: 140, render: row => index(row.brandRating) }
 ]
 
-export default function CompanyTable({ rows, sort, onSort, focused }: Props) {
+export default function CompanyTable({ rows, sort, onSort, focused, onFocus }: Props) {
     const tableRef = useRef<HTMLTableElement>(null)
     useLayoutEffect(() => {
         const table = tableRef.current!
@@ -73,7 +74,12 @@ export default function CompanyTable({ rows, sort, onSort, focused }: Props) {
                 ))}</tr></thead>
                 <tbody>{sorted.map(row => (
                     <tr key={row.name} className={row.name === focused ? styles.focused : undefined}
-                        aria-current={row.name === focused ? true : undefined}>{COLUMNS.map(column => <td key={column.key}>{column.render(row)}</td>)}</tr>
+                        aria-current={row.name === focused ? true : undefined}
+                        onClick={event => { if (!(event.target as Element).closest('button')) onFocus(row.name) }}>
+                        {COLUMNS.map(column => <td key={column.key}>{column.key === 'name'
+                            ? <button type='button' className={styles.name} onClick={() => onFocus(row.name)}>{row.name}</button>
+                            : column.render(row)}</td>)}
+                    </tr>
                 ))}</tbody>
             </table>
         </div>

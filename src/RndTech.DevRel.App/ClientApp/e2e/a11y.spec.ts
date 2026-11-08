@@ -40,6 +40,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
                 await scan()
                 await page.getByRole('option', { name: 'Тинькофф', exact: true }).click()
                 await expect(page.locator('[data-company] text')).toHaveText('Тинькофф')
+                await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Ответили на вопрос о компании: 6')
                 await scan()
                 await page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText('Таблица').click()
                 await scan()

@@ -29,7 +29,7 @@ const selectMetric = (page: Page, name: string) =>
     page.getByRole('radiogroup', { name: 'Показатель' }).getByText(name, { exact: true }).click()
 const selectView = (page: Page, name: string) =>
     page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText(name, { exact: true }).click()
-const filterPanel = (page: Page) => page.getByRole('complementary')
+const filterPanel = (page: Page) => page.getByRole('complementary', { name: '', exact: true })
 const sidebarButton = (page: Page, name: string) => filterPanel(page).getByRole('button', { name, exact: true })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
 const toggleCheckbox = (page: Page, name: string) => page.getByText(name, { exact: true }).click()
@@ -371,7 +371,7 @@ test.describe('desktop 1440', () => {
             await expect(ticks.last()).toHaveText(maximum)
             const zeroY = Number(await tickLines.first().getAttribute('y1'))
             const topY = Number(await tickLines.last().getAttribute('y1'))
-            const pointY = Number(await page.locator('[data-company="IBS Dunice"] circle').getAttribute('cy'))
+            const pointY = Number(await page.locator('[data-company="IBS Dunice"] circle').last().getAttribute('cy'))
             expect(pointY).toBeCloseTo(zeroY + (topY - zeroY) * share / (parseInt(maximum) / 100), 6)
             await expect(chart).toHaveAttribute('aria-label', new RegExp(label.replace('+', '\\+')))
         }
@@ -412,7 +412,7 @@ test.describe('desktop 1440', () => {
         const metric = page.getByRole('radiogroup', { name: 'Показатель' })
         await metric.getByRole('radio', { name: 'Рекомендуют', exact: true }).focus()
         await page.keyboard.press('Space')
-        await expect(page.locator('[data-company] circle')).toHaveCount(5)
+        await expect(page.locator('[data-company] circle[r="4"]')).toHaveCount(5)
         await expect(page.getByText('Показатель не выбран.')).toHaveCount(0)
         expect(new URL(page.url()).searchParams.has('error')).toBe(false)
         await selectYear(page, '2021')
@@ -769,8 +769,12 @@ test('resize keeps company selection and both sorts, without remounting main or 
     const companyTable = table(page, 'Компания')
     await companyTable.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
     await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
+    await companyTable.getByRole('button', { name: 'Тинькофф', exact: true }).press('Enter')
+    const card = page.getByRole('complementary', { name: 'Карточка компании' })
+    await expect(card).toContainText('Ответили на вопрос о компании: 20')
     const posts = api.posts().length
     await page.setViewportSize({ width: 1440, height: 900 })
+    await expect(card).toContainText('Ответили на вопрос о компании: 20')
     expect(await main!.evaluate(element => element.isConnected)).toBe(true)
     await expect(page.getByRole('combobox', { name: 'Компании', exact: true })).toHaveText('IBS Dunice, Тинькофф')
     await expect(firstColumn(companyTable)).toHaveText(['Тинькофф', 'IBS Dunice'])
@@ -909,6 +913,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await page.keyboard.press('ArrowDown')
         await page.keyboard.press('Enter')
         await expect(search).toBeFocused()
+        await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Ответили на вопрос о компании: 100')
         await expect(points).toHaveCount(40)
         const label = points.locator('text')
         await expect(label).toHaveCount(1)
@@ -921,7 +926,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await expect(label).toHaveCSS('font-size', '12px')
         await expect(points.last()).toHaveAttribute('data-company', 'Тинькофф')
         await expect(points.last().locator('circle').last()).toHaveAttribute('r', '7')
-        await expect(points.first().locator('circle')).toHaveAttribute('r', '4')
+        await expect(points.first().locator('circle').last()).toHaveAttribute('r', '4')
         expect(page.url()).toBe(url)
         expect(api.posts()).toHaveLength(posts)
         await search.press('Enter')
@@ -1005,5 +1010,107 @@ for (const colorScheme of ['light', 'dark'] as const) {
         })
         expect(geometry.tickCount).toBeGreaterThan(0)
         expect(geometry).toMatchObject({ insidePlot: true, overlaps: [] })
+    })
+}
+
+test('company card uses each company denominator, follows the year and opens from any table cell or name', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const errors = collectErrors(page)
+    const api = await mockApi(page)
+    await page.goto('/')
+    const card = page.getByRole('complementary', { name: 'Карточка компании' })
+    await expect(page.locator('[data-company]')).toHaveCount(6)
+    const posts = api.posts().length
+    const url = page.url()
+    await page.locator('[data-company="IBS Dunice"] circle').last().click()
+    await expect(card).toContainText('Ответили на вопрос о компании: 100')
+    await expect(card.locator('dd')).toHaveText(['40 (40%)', '10 (10%)', '5 (5%)'])
+    expect(page.url()).toBe(url)
+    await selectView(page, 'Таблица')
+    const companies = table(page, 'Компания')
+    await companies.getByRole('row').filter({ hasText: 'Контур' }).getByRole('cell').nth(1).click()
+    await expect(card.getByRole('heading', { name: 'Контур', exact: true })).toBeVisible()
+    await expect(card).toContainText('Ответили на вопрос о компании: 90')
+    await expect(card.locator('dd')).toHaveText(['45 (50%)', '9 (10%)', '9 (10%)'])
+    await companies.getByRole('button', { name: 'Тинькофф', exact: true }).click()
+    await expect(card).toContainText('Ответили на вопрос о компании: 6')
+    await companies.getByRole('button', { name: 'Контур', exact: true }).press('Enter')
+    await selectYear(page, '2021')
+    await expect(card).toContainText('Нет данных за 2021 год.')
+    await expect(card.locator('dd')).toHaveCount(0)
+    await expect(companies.getByRole('columnheader')).toHaveCount(7)
+    await selectYear(page, '2019')
+    await expect(card.locator('dd')).toHaveText(['10 (25%)', '2 (5%)', '1 (2.5%)'])
+    await card.getByRole('button', { name: 'Закрыть карточку компании' }).click()
+    await expect(card).toContainText('Выберите компанию на карте, в таблице или через поиск.')
+    expect(new URL(page.url()).searchParams.has('focused')).toBe(false)
+    expect(api.posts()).toHaveLength(posts)
+    expect(errors).toEqual([])
+})
+
+for (const touch of [false, true]) {
+    test.describe(touch ? 'tap nearby companies' : 'hover nearby companies', () => {
+        test.use({ hasTouch: touch, viewport: { width: 390, height: 900 } })
+        test('the tooltip keeps the current nearby list after focus, resize, metric and restriction changes', async ({ page }) => {
+            const errors = collectErrors(page)
+            const api = await mockApi(page)
+            await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
+            const points = page.locator('[data-company]')
+            await expect(points).toHaveCount(40)
+            const posts = api.posts().length
+            const target = points.filter({ has: page.locator('circle[cx]') }).nth(37)
+            const dot = target.locator('circle').last()
+            await dot.scrollIntoViewIfNeeded()
+            const center = await dot.boundingBox()
+            if (touch) await page.touchscreen.tap(center!.x + center!.width / 2, center!.y + center!.height / 2)
+            else await page.mouse.move(center!.x + center!.width / 2, center!.y + center!.height / 2)
+            const tooltip = page.getByRole('tooltip')
+            await expect(tooltip).toContainText('Рядом на карте:')
+            const actualName = (await tooltip.locator('div').first().textContent())!
+            expect(actualName).toBeTruthy()
+            if (touch) {
+                await expect(points.last()).toHaveAttribute('data-company', actualName)
+                await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toBeInViewport()
+            }
+            const checkNeighbors = async () => {
+                await expect.poll(async () => {
+                    const expected = await points.evaluateAll((groups, name) => {
+                        const target = groups.find(group => group.getAttribute('data-company') === name)!.querySelector('circle')!
+                        const x = Number(target.getAttribute('cx')), y = Number(target.getAttribute('cy'))
+                        return groups.filter(group => {
+                            const dot = group.querySelector('circle')!
+                            return (Number(dot.getAttribute('cx')) - x) ** 2 + (Number(dot.getAttribute('cy')) - y) ** 2 <= 144 + 1e-8
+                        }).map(group => group.getAttribute('data-company')).sort()
+                    }, (await tooltip.locator('div').first().textContent())!)
+                    return JSON.stringify((await tooltip.locator('li').allTextContents()).sort()) === JSON.stringify(expected)
+                }).toBe(true)
+            }
+            await checkNeighbors()
+            await page.setViewportSize({ width: 1440, height: 900 })
+            // Касание сохраняет открытую подсказку даже после перемонтирования shape.
+            if (!touch) await page.locator(`[data-company="${actualName}"] circle`).last().hover({ force: true })
+            await checkNeighbors()
+            await selectMetric(page, 'Хотят работать')
+            await expect(tooltip).toHaveCount(0)
+            await selectView(page, 'Таблица')
+            await page.setViewportSize({ width: 390, height: 900 })
+            const nameButton = table(page, 'Компания').getByRole('button', { name: actualName, exact: true })
+            await nameButton.press('Enter')
+            const card = page.getByRole('complementary', { name: 'Карточка компании' })
+            await expect(card).toBeInViewport()
+            await nameButton.scrollIntoViewIfNeeded()
+            await expect(card).not.toBeInViewport()
+            await nameButton.press('Enter')
+            await expect(card).toBeInViewport()
+            await page.setViewportSize({ width: 1440, height: 900 })
+            await selectView(page, 'Карта')
+            await page.getByRole('button', { name: 'Прежний набор: 29 компаний' }).click()
+            await expect(points).toHaveCount(2)
+            await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Выберите компанию')
+            await selectYear(page, '2021')
+            await expect(tooltip).toHaveCount(0)
+            expect(api.posts()).toHaveLength(posts)
+            expect(errors).toEqual([])
+        })
     })
 }

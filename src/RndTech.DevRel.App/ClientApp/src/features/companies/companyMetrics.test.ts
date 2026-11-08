@@ -5,6 +5,7 @@ import {
     chartMetric,
     hasWantedOnlyYear,
     metricValue,
+    nearbyCompanies,
     selectCompanyRows,
     restrictCompanies,
     toCompanyMetrics,
@@ -80,4 +81,15 @@ test('company restriction: an empty selection means all companies, names are the
     expect(restrictCompanies(rows2022, ['ИТРУМ (ex Exceed Team)', 'Контур', 'Zero Corp']).map(r => r.name))
         .toEqual(['Контур', 'ИТРУМ (ex Exceed Team)'])
     expect(restrictCompanies(rows2022, ['ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)'])).toEqual([])
+})
+
+test('nearby companies use an ellipse: coincidences and its boundary fit, points outside do not', () => {
+    const target = { knownLevel: 0, metricValue: 0 }
+    const coincident = { ...target }
+    const horizontal = { knownLevel: 2, metricValue: 0 }
+    const vertical = { knownLevel: 0, metricValue: 1 }
+    const diagonal = { knownLevel: 1.2, metricValue: 0.8 }
+    const outside = { knownLevel: 1.21, metricValue: 0.8 }
+    expect(nearbyCompanies([target, coincident, horizontal, vertical, diagonal, outside], target, { x: 2, y: 1 }))
+        .toEqual([target, coincident, horizontal, vertical, diagonal])
 })
