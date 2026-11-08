@@ -168,12 +168,37 @@ test.describe('small viewport and touch', () => {
         }))
         await page.goto('/')
         const scroll = page.getByRole('region', { name: 'Таблица компаний' })
-        await scroll.scrollIntoViewIfNeeded()
-        const rect = (await scroll.boundingBox())!
+        await scroll.getByRole('cell', { name: longName }).click({ trial: true })
+        const point = await scroll.evaluate(element => {
+            const rect = element.getBoundingClientRect()
+            return { x: Math.round(rect.x + rect.width * 0.8), y: Math.round(rect.y + 100) }
+        })
+        await expect.poll(() => scroll.evaluate((element, point) => {
+            const cell = document.elementFromPoint(point.x, point.y)?.closest('td')
+            return !!cell && element.contains(cell) && element.scrollWidth > element.clientWidth
+        }, point)).toBe(true)
+        await test.info().attach('touch-start.json', {
+            body: JSON.stringify({ point, browser: page.context().browser()?.version(), ...await scroll.evaluate(element => ({
+                rect: element.getBoundingClientRect().toJSON(), scrollLeft: element.scrollLeft,
+                width: element.clientWidth, contentWidth: element.scrollWidth
+            })) }), contentType: 'application/json'
+        })
         const cdp = await page.context().newCDPSession(page)
-        await cdp.send('Input.synthesizeScrollGesture', {
-            x: Math.round(rect.x + rect.width * 0.8), y: Math.round(rect.y + 100),
-            xDistance: -240, yDistance: 0, gestureSourceType: 'touch'
+        const touchStarted = scroll.evaluate(element => new Promise<boolean>(resolve => {
+            element.addEventListener('touchstart', event => resolve(event.isTrusted), { once: true, passive: true })
+        }))
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] })
+        expect(await touchStarted).toBe(true)
+        for (let step = 1; step <= 12; step++) {
+            await cdp.send('Input.dispatchTouchEvent', {
+                type: 'touchMove', touchPoints: [{ x: point.x - step * 20, y: point.y, id: 1 }]
+            })
+            await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+        }
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+        await test.info().attach('touch-end.json', {
+            body: JSON.stringify(await scroll.evaluate(element => ({ scrollLeft: element.scrollLeft }))),
+            contentType: 'application/json'
         })
         await expect.poll(() => scroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(100)
         const aligned = await scroll.evaluate(element => {

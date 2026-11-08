@@ -4,10 +4,12 @@ import type { PickerHandle } from 'rsuite'
 // RSuite 6 переводит фокус на пункт открытого списка и после Escape или Tab не возвращает его в поле.
 // wrapperProps — для обёртки пикера: нажатия в списке доходят до неё по дереву React, а display: contents
 // не меняет раскладку.
-export function usePickerFocusReturn() {
+export function usePickerFocusReturn(onEntered?: () => void) {
     const ref = useRef<PickerHandle>()
     const open = useRef(false)
     const pickerProps = {
+        responsive: false,
+        onEntered: () => { if (open.current) onEntered?.() },
         onOpen: () => { open.current = true },
         onClose: () => { open.current = false }
     }
