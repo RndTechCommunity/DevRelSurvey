@@ -1,6 +1,8 @@
 import { expect, Page, test } from '@playwright/test'
-import { companyResults } from '../src/test/fixtures'
-import { INITIAL_FILTER, isCompanies, mockApi } from './mockApi'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { companyResults, denseCompanyResults } from '../src/test/fixtures'
+import { INITIAL_FILTER, isCompanies, isMeta, mockApi } from './mockApi'
 
 // Инварианты, общие для исходного и переработанного интерфейса.
 
@@ -156,8 +158,11 @@ test('screenshots of the initial page', async ({ page }) => {
         } else {
             await expect(page.getByRole('button', { name: 'Фильтры · 2' })).toBeVisible()
         }
+        await page.getByRole('combobox', { name: 'Сравнить с', exact: true }).click()
+        await page.getByRole('option', { name: '2021', exact: true }).click()
         await page.getByRole('button', { name: 'Состав выборки' }).click()
         await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
+        await expect(page.getByRole('columnheader', { name: '2021 · 60 из 500' }).first()).toBeVisible()
         expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
         expect(await cutNames(page), `sample names ${width}`).toEqual([])
         expect(await page.locator('td [aria-hidden="true"] > span').evaluateAll(bars => bars.length > 0 && bars.every(bar => {
@@ -281,4 +286,66 @@ test.describe('small viewport and touch', () => {
                 .map(element => ({ text: element.textContent, height: element.getBoundingClientRect().height, width: element.getBoundingClientRect().width })))
         expect(sizes.filter(size => size.width < 44 || size.height < 44)).toEqual([])
     })
+})
+
+
+test('final design screenshots use synthetic dense data', async ({ page }) => {
+    test.setTimeout(90_000)
+    const api = await mockApi(page)
+    const denseComparison = [...denseCompanyResults, ...denseCompanyResults.slice(0, 20).map(row => ({
+        ...row, year: 2021, knownLevel: row.knownLevel + 0.1, knownVotes: row.knownVotes + 10
+    }))]
+    await page.route('**/api/results/known-and-wanted', route => route.fulfill({ json: denseComparison }))
+    const directory = process.env.DESIGN_SCREENSHOT_DIR
+    if (directory) await mkdir(directory, { recursive: true })
+    const capture = async (name: string, fullPage = true) => {
+        await page.evaluate(async () => {
+            await document.fonts.ready
+            const active = () => document.getAnimations().filter(animation =>
+                (animation.playState === 'running' || animation.pending) && animation.effect?.getComputedTiming().iterations !== Infinity)
+            while (active().length > 0) await Promise.allSettled(active().map(animation => animation.finished))
+        })
+        const body = await page.screenshot({ fullPage, path: directory ? join(directory, `${name}.png`) : undefined })
+        await test.info().attach(`${name}.png`, { body, contentType: 'image/png' })
+    }
+    for (const width of [390, 768, 1440]) {
+        await page.setViewportSize({ width, height: 900 })
+        await page.emulateMedia({ colorScheme: width === 1440 ? 'dark' : 'light' })
+        await page.goto('/')
+        await expect(page.locator('[data-company]')).toHaveCount(40)
+        await capture(`map-${width}`)
+        await selectTable(page)
+        await page.getByRole('table').getByRole('button', { name: 'Тинькофф', exact: true }).press('Enter')
+        await expect(page.getByRole('complementary', { name: 'Карточка компании' })).toContainText('Ответили на вопрос о компании: 100')
+        await capture(`table-card-${width}`)
+        await page.getByRole('button', { name: 'Состав выборки' }).click()
+        await page.getByRole('combobox', { name: 'Сравнить с' }).click()
+        await page.getByRole('option', { name: '2021', exact: true }).click()
+        await expect(page.getByRole('columnheader', { name: '2021 · 60 из 500' }).first()).toBeVisible()
+        await capture(`sample-${width}`)
+    }
+    await page.goto('/?v=1&year=2022&compareYear=2021&companies=[]')
+    await expect(page.locator('[data-company]')).toHaveCount(60)
+    await page.getByRole('combobox', { name: 'Найти компанию', exact: true }).click()
+    await page.getByRole('option', { name: 'Тинькофф', exact: true }).click()
+    await expect(page.locator('[data-company] text')).toHaveCount(1)
+    await capture('comparison-1440')
+    for (const width of [390, 768]) {
+        await page.setViewportSize({ width, height: 900 })
+        await page.goto('/')
+        await expect(page.locator('[data-company]')).toHaveCount(40)
+        await page.getByRole('button', { name: 'Фильтры · 2' }).click()
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await capture(`drawer-${width}`, false)
+    }
+    await page.unroute('**/api/results/known-and-wanted')
+    await page.setViewportSize({ width: 390, height: 900 })
+    await page.goto(`/?v=1&filter=${encodeURIComponent(JSON.stringify({ ...INITIAL_FILTER, cities: ['Нет-такого'] }))}`)
+    await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
+    await capture('empty-390')
+    api.override(call => isCompanies(call) || isMeta(call), 500)
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/')
+    await expect(page.getByText('Не удалось загрузить данные.').first()).toBeVisible()
+    await capture('error-1440')
 })

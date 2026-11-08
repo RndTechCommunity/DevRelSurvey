@@ -47,3 +47,7 @@
         --rs-segmented-control-height: 50px;
     }
 }
+
+.compare {
+    width: 110px;
+}

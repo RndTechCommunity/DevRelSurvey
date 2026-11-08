@@ -1,8 +1,9 @@
-import { Button, SegmentedControl } from 'rsuite'
+import { Button, SegmentedControl, SelectPicker } from 'rsuite'
 import { Split } from '@rsuite/icons'
 import { countOf, SURVEY_YEARS, SurveyMeta, SurveyYear } from '../api/types'
 import { describeFilter } from '../features/filters/model'
 import { RequestState } from '../shared/AsyncState'
+import { usePickerFocusReturn } from '../shared/usePickerFocusReturn'
 import styles from './SurveyBar.module.css'
 import { SurveyState } from './surveyState'
 import { UpdateSurveyState } from './useSurveyState'
@@ -27,12 +28,13 @@ function sampleSize(meta: RequestState<SurveyMeta>, year: SurveyYear) {
 }
 
 export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
+    const { ref, wrapperProps, pickerProps } = usePickerFocusReturn()
     const group = describeFilter(state.filter).map(restriction => restriction.value).join(', ') || 'Все участники'
 
     const selectYear = (value: string | number | null) => {
         const year = SURVEY_YEARS.find(y => y === value)
         if (year) {
-            update({ year }, 'push')
+            update({ year, compareYear: year === state.compareYear ? null : state.compareYear }, 'push')
         }
     }
 
@@ -47,6 +49,13 @@ export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
                     value={state.year}
                     onChange={selectYear}
                 />
+                <span id='compare-year-label' className={styles.label}>Сравнить с</span>
+                <div {...wrapperProps}>
+                    <SelectPicker ref={ref} {...pickerProps} className={styles.compare}
+                        aria-labelledby='compare-year-label' placeholder='нет' cleanable searchable={false}
+                        data={YEAR_OPTIONS.filter(option => option.value !== state.year)}
+                        value={state.compareYear} onChange={compareYear => update({ compareYear })} />
+                </div>
             </div>
             <div className={styles.summary}>
                 <p role='status'>{state.year} · {group} · Выборка: {sampleSize(meta, state.year)}</p>

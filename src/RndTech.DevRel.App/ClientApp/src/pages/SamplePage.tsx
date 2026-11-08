@@ -37,17 +37,18 @@ const SECTIONS: readonly { readonly source: MetaSourceKey, readonly header: stri
 type Props = {
     meta: RequestState<SurveyMeta>,
     year: SurveyYear,
+    compareYear: SurveyYear | null,
     onAbout: OpenAbout,
     onAllParticipants: () => void
 }
 
-export default function SamplePage({ meta, year, onAbout, onAllParticipants }: Props) {
+export default function SamplePage({ meta, year, compareYear, onAbout, onAllParticipants }: Props) {
     return (
         <AsyncState
             state={meta}
-            isEmpty={loaded => countOf(loaded.filtered, year) === 0}
+            isEmpty={loaded => countOf(loaded.filtered, year) === 0 && (compareYear === null || countOf(loaded.filtered, compareYear) === 0)}
             empty={<>
-                В выбранной группе нет респондентов за {year} год.{' '}
+                В выбранной группе нет респондентов за {compareYear === null ? `${year} год` : `${year} и ${compareYear} годы`}.{' '}
                 <Button appearance='link' onClick={onAllParticipants}>Все участники</Button>
             </>}
         >
@@ -64,6 +65,7 @@ export default function SamplePage({ meta, year, onAbout, onAllParticipants }: P
                             filteredTotal={loaded.filtered}
                             total={loaded.total}
                             year={year}
+                            compareYear={compareYear}
                             data={loaded.sources[source]}
                             header={header}
                         />

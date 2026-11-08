@@ -1,14 +1,16 @@
 import { ReactNode, useLayoutEffect, useRef } from 'react'
-import { CompanyResult } from '../../api/types'
+import { SurveyYear } from '../../api/types'
 import { CompanySortKey, SurveyState } from '../../app/surveyState'
-import { formatIndex, toPercentWithTenths } from '../../shared/format'
+import { formatDelta, formatIndex, toPercentWithTenths } from '../../shared/format'
 import { sortRows } from '../../shared/sort'
 import tableStyles from '../../shared/Table.module.css'
 import styles from './CompanyTable.module.css'
-import { CompanyMetrics, toCompanyMetrics } from './companyMetrics'
+import { CompanyMetrics, CompanyPair, comparedKeys, metricDelta, toCompanyMetrics } from './companyMetrics'
 
 type Props = {
-    rows: readonly CompanyResult[],
+    rows: readonly CompanyPair[],
+    year: SurveyYear,
+    compareYear: SurveyYear | null,
     focused: string | null,
     onFocus: (name: string) => void,
     sort: SurveyState['sort'],
@@ -33,7 +35,7 @@ const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, re
     { key: 'brandRating', header: 'Рейтинг бренда', width: 140, render: row => index(row.brandRating) }
 ]
 
-export default function CompanyTable({ rows, sort, onSort, focused, onFocus }: Props) {
+export default function CompanyTable({ rows, year, compareYear, sort, onSort, focused, onFocus }: Props) {
     const tableRef = useRef<HTMLTableElement>(null)
     useLayoutEffect(() => {
         const table = tableRef.current!
@@ -54,8 +56,9 @@ export default function CompanyTable({ rows, sort, onSort, focused, onFocus }: P
             window.removeEventListener('resize', affix)
         }
     }, [rows])
-    const metrics = rows.map(toCompanyMetrics)
-    const sorted = sort ? sortRows(metrics, row => row[sort.key], sort.direction) : metrics
+    const metrics = rows.map(row => ({ ...row, metrics: row.main ? toCompanyMetrics(row.main) : null }))
+    const sorted = sort ? sortRows(metrics, row => sort.key === 'name' ? row.name : row.metrics?.[sort.key] ?? null, sort.direction) : metrics
+    const comparisonKeys = comparedKeys(compareYear === null ? [year] : [year, compareYear])
 
     return (
         <div className={styles.scroll} role='region' aria-label='Таблица компаний' tabIndex={0}>
@@ -78,7 +81,14 @@ export default function CompanyTable({ rows, sort, onSort, focused, onFocus }: P
                         onClick={event => { if (!(event.target as Element).closest('button')) onFocus(row.name) }}>
                         {COLUMNS.map(column => <td key={column.key}>{column.key === 'name'
                             ? <button type='button' className={styles.name} onClick={() => onFocus(row.name)}>{row.name}</button>
-                            : column.render(row)}</td>)}
+                            : !row.metrics ? `Нет данных за ${year} год` : <>
+                                {column.render(row.metrics)}
+                                {compareYear !== null && comparisonKeys.includes(column.key) && <div className={styles.delta}>
+                                    {row.compare ? formatDelta(metricDelta(row.main, row.compare, column.key),
+                                        column.key !== 'brandPower' && column.key !== 'brandRating')
+                                        : `Нет данных за ${compareYear} год`}
+                                </div>}
+                            </>}</td>)}
                     </tr>
                 ))}</tbody>
             </table>

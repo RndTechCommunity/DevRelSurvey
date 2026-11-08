@@ -15,7 +15,7 @@ import { Tooltip, Whisper } from 'rsuite'
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
 import styles from './CompanyMap.module.css'
-import { ChartMetric, METRIC_LABELS, metricValue, nearbyCompanies, yAxisScale } from './companyMetrics'
+import { ChartMetric, companyNames, METRIC_LABELS, metricValue, nearbyCompanies, yAxisScale } from './companyMetrics'
 
 const companyFillColorMap: { readonly [name: string]: string } = {
     'OSSHelp': '#E34422',
@@ -55,6 +55,7 @@ type Props = {
     focused: string | null,
     onFocus: (name: string) => void,
     year: number,
+    compareYear: number | null,
     metric: ChartMetric,
     scale: ReturnType<typeof yAxisScale>
 }
@@ -72,14 +73,16 @@ function CompanyLabel({ name, cx, cy }: { name: string, cx: number, cy: number }
 
 const HIT_RADIUS = 12
 
-function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip, yMax }: {
+function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip, yMax, year, comparison }: {
     point: ScatterPointItem,
     points: readonly MapPoint[],
     focused: string | null,
     onFocus: (name: string) => void,
     tooltipName: string | null,
     onTooltip: (name: string | null) => void,
-    yMax: number
+    yMax: number,
+    year: number,
+    comparison: boolean
 }) {
     const plot = usePlotArea()
     const { payload, cx, cy } = point
@@ -87,33 +90,40 @@ function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip,
     const { name, knownVotes, goodVotes, wantedVotes, selectionCount } = target
     if (cx === undefined || cy === undefined) return null
     const selected = name === focused
+    const compared = target.year !== year
+    const pointKey = `${target.year}:${name}`
+    const label = selected && (!compared || !points.some(row => row.name === name && row.year === year))
+    const color = companyFillColorMap[name] || 'var(--chart-point)'
     const nearby = plot && Number.isFinite(plot.width) && Number.isFinite(plot.height) && plot.width > 0 && plot.height > 0
         ? nearbyCompanies(points, target, { x: HIT_RADIUS / plot.width, y: HIT_RADIUS / plot.height * yMax }) : []
     const tooltip = (
         <Tooltip className={styles.tooltip}>
-            <div>{name}</div>
+            <div>{name}{comparison && ` · ${target.year}`}</div>
             <div className={styles.number}>Знают: {knownVotes} человек, {toPercentWithTenths(knownVotes / selectionCount)}%</div>
             <div className={styles.number}>Рекомендуют: {goodVotes} человек, {toPercentWithTenths(goodVotes / selectionCount)}%</div>
             <div className={styles.number}>Хотят работать: {wantedVotes} человек, {toPercentWithTenths(wantedVotes / selectionCount)}%</div>
-            {nearby.length > 1 && <><div>Рядом на карте:</div><ul>{nearby.map(row => <li key={row.name}>{row.name}</li>)}</ul></>}
+            {nearby.length > 1 && <><div>Рядом на карте:</div><ul>{nearby.map(row => <li key={`${row.year}:${row.name}`}>{row.name}{comparison && ` · ${row.year}`}</li>)}</ul></>}
         </Tooltip>
     )
     return (
-        <Whisper placement='auto' trigger='none' open={tooltipName === name} speaker={tooltip}>
-            <g fill={companyFillColorMap[name] || 'var(--chart-point)'} data-company={name}
-                onPointerEnter={event => { if (event.pointerType === 'mouse') onTooltip(name) }}
+        <Whisper placement='auto' trigger='none' open={tooltipName === pointKey} speaker={tooltip}>
+            <g fill={color} data-company={name} data-year={target.year}
+                onPointerEnter={event => { if (event.pointerType === 'mouse') onTooltip(pointKey) }}
                 onPointerLeave={event => { if (event.pointerType === 'mouse') onTooltip(null) }}
-                onClick={() => { onTooltip(name); onFocus(name) }}>
+                onClick={() => { onTooltip(pointKey); onFocus(name) }}>
                 <circle cx={cx} cy={cy} r={HIT_RADIUS} fill='transparent' />
                 {selected && <Dot cx={cx} cy={cy} r={10} fill='none' stroke='var(--rs-text-primary)' strokeWidth={1.5} />}
-                <Dot cx={cx} cy={cy} r={selected ? 7 : 4} stroke='var(--rs-text-primary)' />
-                {selected && <CompanyLabel name={name} cx={cx} cy={cy} />}
+                {compared && <Dot cx={cx} cy={cy} r={selected ? 7 : 6} fill='none' stroke='var(--rs-text-primary)' strokeWidth={4} />}
+                <Dot cx={cx} cy={cy} r={selected ? 7 : compared ? 6 : 4}
+                    fill={compared ? 'none' : color} stroke={compared ? color : 'var(--rs-text-primary)'}
+                    strokeWidth={compared ? 2 : 1} />
+                {label && <CompanyLabel name={name} cx={cx} cy={cy} />}
             </g>
         </Whisper>
     )
 }
 
-export default function CompanyMap({ rows, year, metric, scale, focused, onFocus }: Props) {
+export default function CompanyMap({ rows, year, compareYear, metric, scale, focused, onFocus }: Props) {
     const [tooltipName, setTooltipName] = useState<string | null>(null)
     useEffect(() => {
         const close = (event: MouseEvent) => {
@@ -136,7 +146,7 @@ export default function CompanyMap({ rows, year, metric, scale, focused, onFocus
     return (
         <ResponsiveContainer width='100%' height='100%'>
             <ScatterChart margin={{ top: 12, left: 12, bottom: 10, right: 10 }} accessibilityLayer={false} role='img'
-                aria-label={`Карта компаний, ${year} год. ${METRIC_LABELS[metric]}. Компаний: ${rows.length}. Числа доступны в виде «Таблица».`}>
+                aria-label={`Карта компаний, ${year}${compareYear === null ? ' год' : ` и ${compareYear} годы`}. ${METRIC_LABELS[metric]}. Компаний: ${companyNames(rows).length}. Числа доступны в виде «Таблица».`}>
                 <CartesianGrid stroke='var(--chart-grid)' strokeDasharray='1 1' />
                 <XAxis
                     label={{
@@ -170,12 +180,13 @@ export default function CompanyMap({ rows, year, metric, scale, focused, onFocus
                     axisLine={false}
                     orientation='right'
                 />
-                <Scatter
-                    data={points}
+                {(compareYear === null ? [year] : [compareYear, year]).map(shownYear => <Scatter key={shownYear}
+                    data={points.filter(point => point.year === shownYear)}
                     shape={point => <CompanyPoint point={point} points={points} focused={focused} onFocus={onFocus}
+                        year={year} comparison={compareYear !== null}
                         tooltipName={tooltipName} onTooltip={setTooltipName} yMax={scale.max} />}
                     isAnimationActive={false}
-                />
+                />)}
             </ScatterChart>
         </ResponsiveContainer>
     )

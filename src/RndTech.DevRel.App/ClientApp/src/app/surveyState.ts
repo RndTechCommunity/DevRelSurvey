@@ -17,6 +17,7 @@ export const COMPANY_SORT_KEYS: readonly CompanySortKey[] =
 export type SurveyState = {
     readonly page: SurveyPage,
     readonly year: SurveyYear,
+    readonly compareYear: SurveyYear | null,
     readonly filter: RespondentFilter,
     // Пустой список — все компании.
     readonly companies: readonly string[],
@@ -62,6 +63,7 @@ export const LEGACY_COMPANIES: readonly string[] = [
 export const DEFAULT_STATE: SurveyState = {
     page: 'companies',
     year: LATEST_YEAR,
+    compareYear: null,
     filter: DEFAULT_FILTER,
     companies: [],
     showGood: true,

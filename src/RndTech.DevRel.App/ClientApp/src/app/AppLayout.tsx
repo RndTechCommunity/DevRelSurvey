@@ -89,7 +89,7 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
                         <main className={styles.main}>
                             <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
                             {state.page === 'sample'
-                                ? <SamplePage meta={meta} year={state.year} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
+                                ? <SamplePage meta={meta} year={state.year} compareYear={state.compareYear} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
                                 : <CompaniesPage state={state} update={update} companies={companies} onAbout={openAbout} />}
                         </main>
                     </div>

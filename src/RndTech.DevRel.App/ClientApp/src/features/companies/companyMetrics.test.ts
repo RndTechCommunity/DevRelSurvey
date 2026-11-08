@@ -3,6 +3,9 @@ import { formatIndex, toPercent } from '../../shared/format'
 import { companyResults } from '../../test/fixtures'
 import {
     chartMetric,
+    comparedKeys,
+    pairCompanies,
+    metricDelta,
     hasWantedOnlyYear,
     metricValue,
     nearbyCompanies,
@@ -45,6 +48,10 @@ test('the metric respects the 2019 rule without changing the stored flags', () =
     expect(chartMetric(both, [2019])).toBe('wanted')
     expect(chartMetric({ showGood: true, showWanted: false }, [2019])).toBe('wanted')
     expect(chartMetric(both, [2022, 2019])).toBe('wanted')
+    expect(chartMetric(both, [2019, 2022])).toBe('wanted')
+    expect(comparedKeys([2022, 2019])).toEqual(['wanted'])
+    expect(comparedKeys([2019, 2022])).toEqual(['wanted'])
+    expect(comparedKeys([2022, 2021])).toEqual(['known', 'good', 'wanted', 'goodAndWanted', 'brandPower', 'brandRating'])
     expect(chartMetric({ showGood: false, showWanted: false }, [2019])).toBeNull()
     expect(chartMetric({ showGood: false, showWanted: false }, [2022])).toBeNull()
     expect(hasWantedOnlyYear([2022, 2019])).toBe(true)
@@ -96,4 +103,17 @@ test('nearby companies keep the ellipse boundary and order by distance without m
     expect(nearbyCompanies(points, target, { x: 2, y: 1 }))
         .toEqual([coincident, target, near, farther, horizontal, vertical, diagonal])
     expect(points).toEqual([horizontal, farther, outside, coincident, near, vertical, target, diagonal])
+})
+
+test('comparison joins original names, keeps both missing sides absent and never replaces missing metrics with zero', () => {
+    const pairs = pairCompanies(companyResults, 2022, 2021, [])
+    expect(pairs.map(pair => pair.name)).toEqual(['IBS Dunice', 'Контур', 'Тинькофф', 'ИТРУМ (ex Exceed Team)', 'Почтатех', 'Gamma%', 'Zero Corp'])
+    expect(pairs.find(pair => pair.name === 'Контур')?.compare).toBeUndefined()
+    expect(pairs.find(pair => pair.name === 'Zero Corp')?.main).toBeUndefined()
+    expect(pairCompanies(companyResults, 2021, 2022, ['Контур'])).toEqual([{ name: 'Контур', main: undefined, compare: row('Контур', 2022) }])
+    expect(metricDelta(row('Контур', 2022), row('Контур', 2019), 'wanted')).toBeCloseTo(0.075)
+    expect(metricDelta(row('IBS Dunice', 2022), row('IBS Dunice', 2021), 'known')).toBeCloseTo(-0.1)
+    expect(metricDelta(row('Контур', 2022), undefined, 'wanted')).toBeNull()
+    expect(metricDelta(undefined, row('Контур', 2022), 'wanted')).toBeNull()
+    expect(metricDelta(row('Тинькофф', 2022), row('Тинькофф', 2021), 'brandRating')).toBeNull()
 })

@@ -8,7 +8,7 @@ import CompanyCard from '../features/companies/CompanyCard'
 import CompanyMap from '../features/companies/CompanyMap'
 import CompanyControls from '../features/companies/CompanyControls'
 import CompanyTable from '../features/companies/CompanyTable'
-import { chartMetric, companyNames, hasWantedOnlyYear, selectCompanyRows, restrictCompanies, yAxisScale } from '../features/companies/companyMetrics'
+import { chartMetric, companyNames, hasWantedOnlyYear, pairCompanies, restrictCompanies, yAxisScale } from '../features/companies/companyMetrics'
 import { AsyncState, RequestState } from '../shared/AsyncState'
 import styles from './CompaniesPage.module.css'
 import { AboutNote, OpenAbout } from './MethodologyPage'
@@ -29,12 +29,14 @@ export default function CompaniesPage({ state, update, companies, onAbout }: Pro
     }
     const availableFocus = state.companies.length === 0 || (focused !== null && state.companies.includes(focused))
         ? focused : null
-    const metric = chartMetric(state, [state.year])
+    const years: readonly number[] = state.compareYear === null ? [state.year] : [state.year, state.compareYear]
+    const metric = chartMetric(state, years)
+    const yearLabel = state.compareYear === null ? `${state.year} год` : `${state.year} и ${state.compareYear} годы`
 
     return (
         <AsyncState state={companies}>
             {rows => {
-                const yearRows = selectCompanyRows(rows, state.year)
+                const yearRows = rows.filter(row => years.includes(row.year))
                 const shownRows = restrictCompanies(yearRows, state.companies)
                 return (
                     <>
@@ -42,28 +44,36 @@ export default function CompaniesPage({ state, update, companies, onAbout }: Pro
                             shownNames={companyNames(shownRows)} focused={availableFocus} onFocus={focusCompany} />
                         <div className={styles.results}>
                             <CompanyCard cardRef={cardRef} name={availableFocus} year={state.year}
-                                row={shownRows.find(row => row.name === availableFocus)} onClose={() => setFocused(null)} />
+                                rows={shownRows} compareYear={state.compareYear} onClose={() => setFocused(null)} />
                             <div className={styles.view}>
                                 {yearRows.length === 0
                                     ? <Message type='info' showIcon>
-                                        Нет данных о компаниях за {state.year} год для выбранной группы.{' '}
+                                        Нет данных о компаниях за {yearLabel} для выбранной группы.{' '}
                                         <Button appearance='link' onClick={() => update({ filter: NO_RESTRICTIONS })}>Все участники</Button>
                                     </Message>
                                     : shownRows.length === 0
                                         ? <Message type='info'>
-                                            Для выбранных компаний нет данных за {state.year} год.{' '}
+                                            Для выбранных компаний нет данных за {yearLabel}.{' '}
                                             <Button appearance='link' onClick={() => update({ companies: [] })}>Показать все компании</Button>
                                         </Message>
                                         : state.view === 'table'
-                                            ? <CompanyTable rows={shownRows} focused={availableFocus} onFocus={focusCompany} sort={state.sort} onSort={sort => update({ sort })} />
+                                            ? <>
+                                                {state.compareYear !== null && hasWantedOnlyYear(years) && <AboutNote section='year-2019' onAbout={onAbout}>
+                                                    С 2019 годом сравнивается только «Хотят работать».
+                                                </AboutNote>}
+                                                <CompanyTable rows={pairCompanies(rows, state.year, state.compareYear, state.companies)}
+                                                    year={state.year} compareYear={state.compareYear} focused={availableFocus}
+                                                    onFocus={focusCompany} sort={state.sort} onSort={sort => update({ sort })} />
+                                            </>
                                             : metric === null
                                                 ? <Message type='info'>Показатель не выбран. Выберите показатель над картой.</Message>
                                                 : <>
-                                                    {hasWantedOnlyYear([state.year]) && <AboutNote section='year-2019' onAbout={onAbout}>
+                                                    {hasWantedOnlyYear(years) && <AboutNote section='year-2019' onAbout={onAbout}>
                                                         В 2019 году ось показывает только «Хотят работать».
                                                     </AboutNote>}
+                                                    {state.compareYear !== null && <p aria-label='Годы на карте'>● {state.year} — основной год · ○ {state.compareYear} — сравнение</p>}
                                                     <div className={styles.chart}>
-                                                        <CompanyMap rows={shownRows} focused={availableFocus} onFocus={focusCompany} year={state.year}
+                                                        <CompanyMap rows={shownRows} focused={availableFocus} onFocus={focusCompany} year={state.year} compareYear={state.compareYear}
                                                             metric={metric} scale={yAxisScale(yearRows, metric)} />
                                                     </div>
                                                 </>}

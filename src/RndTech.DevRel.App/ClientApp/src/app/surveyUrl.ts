@@ -2,7 +2,7 @@ import { LATEST_YEAR, SURVEY_YEARS, SurveyYear } from '../api/types'
 import { DEFAULT_FILTER, parseRespondentFilter, RespondentFilter } from '../features/filters/model'
 import { COMPANY_SORT_KEYS, DEFAULT_STATE, LEGACY_COMPANIES, SurveyState } from './surveyState'
 
-// v1: ?v=1&page&year&filter&companies&good&wanted&view[&sort&direction].
+// v1: ?v=1&page&year[&compareYear]&filter&companies&good&wanted&view[&sort&direction].
 // Старые ссылки: ?tab=<JSON-строка>&filter=<JSON-объект>.
 
 // Лимит строки запроса Kestrel и nginx — 8 KB: более длинный адрес не откроется после перезагрузки.
@@ -91,10 +91,15 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
         }
     }
 
+    const year = read('year', LATEST_YEAR, text => SURVEY_YEARS.find(year => year === Number(text)))
+    const compareYear = read<SurveyYear | null>('compareYear', null, text =>
+        SURVEY_YEARS.find(candidate => candidate === Number(text) && candidate !== year))
+
     return {
         page: read('page', DEFAULT_STATE.page, text =>
             text === 'companies' || text === 'sample' || text === 'methodology' ? text : undefined),
-        year: read('year', LATEST_YEAR, text => SURVEY_YEARS.find(year => year === Number(text))),
+        year,
+        compareYear,
         filter: decodeFilter(params.get('filter'), warnings),
         companies: read('companies', LINK_DEFAULTS.companies, text => {
             const companies = parseJson(text)
@@ -130,6 +135,7 @@ export function encodeSurveyUrl(state: SurveyState): string {
         wanted: flag(state.showWanted),
         view: state.view
     })
+    if (state.compareYear !== null) params.set('compareYear', String(state.compareYear))
     if (state.sort) {
         params.set('sort', state.sort.key)
         params.set('direction', state.sort.direction)
