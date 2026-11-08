@@ -116,11 +116,18 @@ function CompanyPoint({ point, points, focused, onFocus, tooltipName, onTooltip,
 export default function CompanyMap({ rows, year, metric, scale, focused, onFocus }: Props) {
     const [tooltipName, setTooltipName] = useState<string | null>(null)
     useEffect(() => {
-        const close = (event: PointerEvent) => {
-            if (!(event.target instanceof Element) || !event.target.closest('[data-company]')) setTooltipName(null)
+        const close = (event: MouseEvent) => {
+            if (!(event.target instanceof Element) || !event.target.closest(`[data-company], .${styles.tooltip}`)) setTooltipName(null)
         }
-        document.addEventListener('pointerdown', close)
-        return () => document.removeEventListener('pointerdown', close)
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setTooltipName(null)
+        }
+        document.addEventListener('click', close)
+        document.addEventListener('keyup', closeOnEscape)
+        return () => {
+            document.removeEventListener('click', close)
+            document.removeEventListener('keyup', closeOnEscape)
+        }
     }, [])
 
     const points: MapPoint[] = rows.map(row => ({ ...row, metricValue: metricValue(row, metric) }))

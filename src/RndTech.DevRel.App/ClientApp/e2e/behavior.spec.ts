@@ -1026,6 +1026,10 @@ test('company card uses each company denominator, follows the year and opens fro
     await expect(card).toContainText('Ответили на вопрос о компании: 100')
     await expect(card.locator('dd')).toHaveText(['40 (40%)', '10 (10%)', '5 (5%)'])
     expect(page.url()).toBe(url)
+    await expect(page.getByRole('tooltip')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
+    await expect(card).toContainText('Ответили на вопрос о компании: 100')
     await selectView(page, 'Таблица')
     const companies = table(page, 'Компания')
     await companies.getByRole('row').filter({ hasText: 'Контур' }).getByRole('cell').nth(1).click()
@@ -1076,13 +1080,18 @@ for (const touch of [false, true]) {
                 await expect.poll(async () => {
                     const expected = await points.evaluateAll((groups, name) => {
                         const target = groups.find(group => group.getAttribute('data-company') === name)!.querySelector('circle')!
-                        const x = Number(target.getAttribute('cx')), y = Number(target.getAttribute('cy'))
-                        return groups.filter(group => {
-                            const dot = group.querySelector('circle')!
-                            return (Number(dot.getAttribute('cx')) - x) ** 2 + (Number(dot.getAttribute('cy')) - y) ** 2 <= 144 + 1e-8
-                        }).map(group => group.getAttribute('data-company')).sort()
+                        const box = target.getBoundingClientRect()
+                        const x = box.x + box.width / 2, y = box.y + box.height / 2
+                        return groups.map(group => {
+                            const dot = group.querySelector('circle')!.getBoundingClientRect()
+                            return { name: group.getAttribute('data-company'),
+                                distance: (dot.x + dot.width / 2 - x) ** 2 + (dot.y + dot.height / 2 - y) ** 2 }
+                        }).filter(point => point.distance <= 144 + 1e-8)
                     }, (await tooltip.locator('div').first().textContent())!)
-                    return JSON.stringify((await tooltip.locator('li').allTextContents()).sort()) === JSON.stringify(expected)
+                    const names = await tooltip.locator('li').allTextContents()
+                    const distances = names.map(name => expected.find(point => point.name === name)?.distance ?? Infinity)
+                    return JSON.stringify([...names].sort()) === JSON.stringify(expected.map(point => point.name).sort())
+                        && distances.every((distance, i) => i === 0 || distance >= distances[i - 1] - 1e-8)
                 }).toBe(true)
             }
             await checkNeighbors()
@@ -1114,3 +1123,66 @@ for (const touch of [false, true]) {
         })
     })
 }
+
+test.describe('touch nearby list dismissal', () => {
+    test.use({ hasTouch: true, viewport: { width: 720, height: 450 }, deviceScaleFactor: 2 })
+    test('swipes inside and outside keep the clipped list; taps outside close only the tooltip', async ({ page }) => {
+        const errors = collectErrors(page)
+        const api = await mockApi(page)
+        for (const inside of [true, false]) {
+            await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Плотный'] }, '&companies=[]'))
+            const points = page.locator('[data-company]')
+            await expect(points).toHaveCount(40)
+            await points.nth(37).locator('circle').last().tap({ force: true })
+            const tooltip = page.getByRole('tooltip')
+            await expect(tooltip).toHaveCSS('opacity', '1')
+            const card = page.getByRole('complementary', { name: 'Карточка компании' })
+            const cardText = await card.textContent()
+            const posts = api.posts().length
+            await expect.poll(() => tooltip.locator('li').last().evaluate(el => el.getBoundingClientRect().bottom)).toBeGreaterThan(450)
+            if (!inside) {
+                await page.evaluate(() => new Promise<void>(resolve => {
+                    document.addEventListener('scrollend', () => resolve(), { once: true })
+                    scrollBy(0, -160)
+                }))
+                await expect.poll(() => tooltip.evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThan(450)
+            }
+            const box = await tooltip.boundingBox()
+            const start = inside ? { x: box!.x + box!.width / 2, y: box!.y + 40 } : { x: 680, y: 400 }
+            expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[role="tooltip"]'), start)).toBe(inside)
+            expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest('[data-company], button, input, a'), start)).toBe(false)
+            await page.evaluate(() => {
+                document.body.removeAttribute('data-scroll-ended')
+                document.addEventListener('scrollend', () => { document.body.dataset.scrollEnded = 'true' }, { once: true })
+                document.addEventListener('pointerdown', event => {
+                    document.body.dataset.trustedTouch = String(event.isTrusted && event.pointerType === 'touch')
+                }, { once: true, passive: true })
+            })
+            const cdp = await page.context().newCDPSession(page)
+            await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...start, id: 1 }] })
+            for (let step = 1; step <= (inside ? 10 : 24); step++) {
+                await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x, y: start.y - step * 12, id: 1 }] })
+                await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+            }
+            await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+            await expect(page.locator('body')).toHaveAttribute('data-scroll-ended', 'true')
+            await expect(page.locator('body')).toHaveAttribute('data-trusted-touch', 'true')
+            await expect(tooltip).toBeVisible()
+            const last = await tooltip.locator('li').last().boundingBox()
+            expect(last!.y).toBeGreaterThanOrEqual(0)
+            expect(last!.y + last!.height).toBeLessThanOrEqual(450)
+            await tooltip.locator('li').last().tap()
+            await expect(tooltip).toBeVisible()
+            await page.touchscreen.tap(680, 400)
+            await expect(tooltip).toHaveCount(0)
+            await expect(card).toHaveText(cardText!)
+            expect(api.posts()).toHaveLength(posts)
+            await test.info().attach(`swipe-${inside ? 'inside' : 'outside'}.json`, {
+                body: JSON.stringify({ before: box, start, lastAfterSwipe: last, cardPreserved: await card.textContent() === cardText,
+                    postDelta: api.posts().length - posts, browser: page.context().browser()?.version() }), contentType: 'application/json'
+            })
+            await cdp.detach()
+        }
+        expect(errors).toEqual([])
+    })
+})

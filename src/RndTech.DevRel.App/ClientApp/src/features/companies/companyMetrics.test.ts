@@ -83,13 +83,17 @@ test('company restriction: an empty selection means all companies, names are the
     expect(restrictCompanies(rows2022, ['ИТРУМ\u00A0(ex\u00A0Exceed\u00A0Team)'])).toEqual([])
 })
 
-test('nearby companies use an ellipse: coincidences and its boundary fit, points outside do not', () => {
+test('nearby companies keep the ellipse boundary and order by distance without mutating points', () => {
     const target = { knownLevel: 0, metricValue: 0 }
     const coincident = { ...target }
     const horizontal = { knownLevel: 2, metricValue: 0 }
     const vertical = { knownLevel: 0, metricValue: 1 }
     const diagonal = { knownLevel: 1.2, metricValue: 0.8 }
     const outside = { knownLevel: 1.21, metricValue: 0.8 }
-    expect(nearbyCompanies([target, coincident, horizontal, vertical, diagonal, outside], target, { x: 2, y: 1 }))
-        .toEqual([target, coincident, horizontal, vertical, diagonal])
+    const near = { knownLevel: 0.4, metricValue: 0.1 }
+    const farther = { knownLevel: 1, metricValue: 0.4 }
+    const points = Object.freeze([horizontal, farther, outside, coincident, near, vertical, target, diagonal].map(point => Object.freeze(point)))
+    expect(nearbyCompanies(points, target, { x: 2, y: 1 }))
+        .toEqual([coincident, target, near, farther, horizontal, vertical, diagonal])
+    expect(points).toEqual([horizontal, farther, outside, coincident, near, vertical, target, diagonal])
 })
