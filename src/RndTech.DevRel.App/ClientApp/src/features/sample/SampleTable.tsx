@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Table } from 'rsuite';
 import { countOf, MetaRow, SurveyYear } from '../../api/types';
 import { formatShare, shareOf } from '../../shared/format';
 import { sortRows, SortDirection } from '../../shared/sort';
+import tableStyles from '../../shared/Table.module.css'
 import styles from './SampleTable.module.css';
 
 type Props = {
@@ -22,10 +22,18 @@ export default function SampleTable({ data, header, year, filteredTotal, total }
         ? sortRows(data, row => sortColumn === 'count' ? countOf(row, year) : row.name, sortType)
         : data
 
-    const handleSortColumn = (sortColumn: string, sortType: SortDirection | undefined) => {
-        setSortColumn(sortColumn);
-        setSortType(sortType ?? 'desc');
-    };
+    const sort = (column: string) => {
+        setSortType(sortColumn === column && sortType === 'desc' ? 'asc' : 'desc')
+        setSortColumn(column)
+    }
+
+    const heading = (column: string, label: string) => (
+        <th scope='col' aria-sort={sortColumn === column ? (sortType === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type='button' onClick={() => sort(column)}>
+                {label} <span aria-hidden>{sortColumn === column ? (sortType === 'asc' ? '↑' : '↓') : '↕'}</span>
+            </button>
+        </th>
+    )
 
     const renderShare = (row: MetaRow) => {
         const count = countOf(row, year)
@@ -43,24 +51,17 @@ export default function SampleTable({ data, header, year, filteredTotal, total }
     }
 
     return (
-        <Table
-            autoHeight={true}
-            data={rows}
-            sortColumn={sortColumn}
-            sortType={sortType}
-            onSortColumn={handleSortColumn}
-            defaultSortType={'desc'}
-        >
-            {/* Названиям — две трети ширины: самые длинные помещаются в строку от 1224 px.
-                Перенос (wordWrap) не подходит: rsuite-table не пересчитывает высоту строк при изменении ширины. */}
-            <Table.Column flexGrow={2} sortable>
-                <Table.HeaderCell>{header}</Table.HeaderCell>
-                <Table.Cell dataKey='name'/>
-            </Table.Column>
-
-            <Table.Column flexGrow={1} sortable>
-                <Table.HeaderCell>{`${year} · ${yearTotal} из ${countOf(total, year)}`}</Table.HeaderCell>
-                <Table.Cell dataKey='count'>{renderShare}</Table.Cell>
-            </Table.Column>
-        </Table>);
+        <table className={`${tableStyles.table} ${styles.table}`}>
+            <thead><tr>
+                {heading('name', header)}
+                {heading('count', `${year} · ${yearTotal} из ${countOf(total, year)}`)}
+            </tr></thead>
+            <tbody>{rows.map(row => (
+                <tr key={row.name}>
+                    <td>{row.name}</td>
+                    <td>{renderShare(row)}</td>
+                </tr>
+            ))}</tbody>
+        </table>
+    )
 }

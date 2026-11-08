@@ -21,7 +21,7 @@ const QUICK_FILTERS = [
 
 export default function FilterPanel({ filter, options, onChange }: Props) {
     const change = (patch: Partial<RespondentFilter>) => onChange({ ...filter, ...patch })
-    const { ref, wrapperProps } = usePickerFocusReturn()
+    const { ref, wrapperProps, pickerProps } = usePickerFocusReturn()
     const id = useId()
 
     return (
@@ -53,6 +53,7 @@ export default function FilterPanel({ filter, options, onChange }: Props) {
                 <div {...wrapperProps}>
                     <SelectPicker
                         ref={ref}
+                        {...pickerProps}
                         block
                         searchable={false}
                         aria-labelledby={`${id}-community`}

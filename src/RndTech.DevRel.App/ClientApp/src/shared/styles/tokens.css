@@ -21,3 +21,10 @@
     outline: 2px solid var(--rs-focus-ring-color);
     outline-offset: -2px;
 }
+
+@media (pointer: coarse) {
+    button, [role='button'], [role='combobox'], label:has(input[type='checkbox']) {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}

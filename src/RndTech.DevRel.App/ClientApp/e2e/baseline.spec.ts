@@ -13,13 +13,13 @@ const selectYear = (page: Page, year: string) =>
     page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
 
 function rowCells(page: Page, name: string) {
-    return page.locator('.rs-table-row').filter({ hasText: name }).first().locator('.rs-table-cell')
+    return page.locator('tbody tr').filter({ hasText: name }).first().locator('td')
 }
 
 const horizontalOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
 
 // Названия в первой колонке таблиц, обрезанные многоточием.
-const cutNames = (page: Page) => page.locator('.rs-table-body-row-wrapper .rs-table-cell-first .rs-table-cell-content')
+const cutNames = (page: Page) => page.locator('tbody td:first-child')
     .evaluateAll(cells => cells.filter(cell => cell.scrollWidth > cell.clientWidth).map(cell => cell.textContent))
 
 // Координата деления оси графика с подписью label, в единицах SVG.
@@ -42,7 +42,7 @@ test.describe('desktop 1440', () => {
         await expect(rowCells(page, 'IBS Dunice')).toHaveText(['IBS Dunice', '40%', '10%', '5%', '15%', '95', '60'])
 
         // График не добавляет остановку Tab между controls и таблицей.
-        const companyHeader = page.getByRole('columnheader', { name: 'Компания' })
+        const companyHeader = page.getByRole('button', { name: 'Компания', exact: true })
         const focusedTags: string[] = []
         while (focusedTags.length < 60 && !await companyHeader.evaluate(header => header === document.activeElement)) {
             await page.keyboard.press('Tab')
@@ -115,43 +115,113 @@ test.describe('desktop 1440', () => {
     })
 })
 
-test('mobile 390 shows the summary of the initial group', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 800 })
-    const api = await mockApi(page)
-    await page.goto('/')
-
-    await expect(page.getByRole('heading', { name: 'Исследование Ростовского ИТ-сообщества' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('100')
-    await expect(page.getByRole('radiogroup', { name: 'Год исследования' })).toHaveCount(0)
-    expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
-})
-
 test('screenshots of the initial page', async ({ page }) => {
     await mockApi(page)
     for (const width of WIDTHS) {
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/')
         await expect(page.getByText(/Выборка: 100|Всего участников/).first()).toBeVisible()
-        if (width < 1224) {
-            await expect(page.locator('.recharts-pie-labels')).toHaveCount(2)
-            await expect(page.locator('.recharts-label-list')).toHaveCount(2)
-        } else {
-            // Карта и таблицы занимают ширину контейнера: страница не прокручивается по горизонтали.
-            await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
-            expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
+        await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
+        expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
+        if (width >= 1224) {
             expect(await page.getByRole('complementary').evaluate(aside => {
                 const right = aside.getBoundingClientRect().right
                 return [...aside.querySelectorAll('[role="combobox"]')].some(field => field.getBoundingClientRect().right > right)
             }), `filter fields ${width}`).toBe(false)
-            await page.getByRole('button', { name: 'Состав выборки' }).click()
-            await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
-            expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
-            expect(await cutNames(page), `sample names ${width}`).toEqual([])
-            await page.getByRole('button', { name: 'Компании', exact: true }).click()
+        } else {
+            await expect(page.getByRole('button', { name: 'Фильтры · 2' })).toBeVisible()
         }
+        await page.getByRole('button', { name: 'Состав выборки' }).click()
+        await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
+        expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
+        expect(await cutNames(page), `sample names ${width}`).toEqual([])
+        await page.getByRole('button', { name: 'Компании', exact: true }).click()
         await test.info().attach(`initial-${width}.png`, {
             body: await page.screenshot({ fullPage: true }),
             contentType: 'image/png'
         })
     }
+})
+
+test.describe('small viewport and touch', () => {
+    test.use({ viewport: { width: 720, height: 450 }, deviceScaleFactor: 2, hasTouch: true })
+
+    test('200% viewport keeps the page and filter actions within the screen', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        expect(await horizontalOverflow(page)).toBe(0)
+        await page.getByRole('button', { name: 'Фильтры · 2' }).tap()
+        const drawer = page.getByRole('dialog', { name: 'Фильтры', exact: true })
+        await expect(drawer.getByRole('button', { name: 'Показать результаты' })).toBeInViewport()
+        await expect(drawer.getByRole('button', { name: 'Отмена' })).toBeInViewport()
+        expect(await horizontalOverflow(page)).toBe(0)
+        await test.info().attach('zoom-drawer.png', { body: await page.screenshot(), contentType: 'image/png' })
+    })
+
+    test('touch scrolls the company table with its header, names remain readable after resize', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 900 })
+        await mockApi(page)
+        const longName = 'Компания с длинным названием для проверки переноса на телефоне'
+        await page.route('**/api/results/known-and-wanted', route => route.fulfill({
+            json: [...companyResults, { ...companyResults[0], name: longName }]
+        }))
+        await page.goto('/')
+        const scroll = page.getByRole('region', { name: 'Таблица компаний' })
+        await scroll.getByRole('cell', { name: longName }).click({ trial: true })
+        const point = await scroll.evaluate(element => {
+            const rect = element.getBoundingClientRect()
+            return { x: Math.round(rect.x + rect.width * 0.8), y: Math.round(rect.y + 100) }
+        })
+        await expect.poll(() => scroll.evaluate((element, point) => {
+            const cell = document.elementFromPoint(point.x, point.y)?.closest('td')
+            return !!cell && element.contains(cell) && element.scrollWidth > element.clientWidth
+        }, point)).toBe(true)
+        await test.info().attach('touch-start.json', {
+            body: JSON.stringify({ point, browser: page.context().browser()?.version(), ...await scroll.evaluate(element => ({
+                rect: element.getBoundingClientRect().toJSON(), scrollLeft: element.scrollLeft,
+                width: element.clientWidth, contentWidth: element.scrollWidth
+            })) }), contentType: 'application/json'
+        })
+        const cdp = await page.context().newCDPSession(page)
+        const touchStarted = scroll.evaluate(element => new Promise<boolean>(resolve => {
+            element.addEventListener('touchstart', event => resolve(event.isTrusted), { once: true, passive: true })
+        }))
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] })
+        expect(await touchStarted).toBe(true)
+        for (let step = 1; step <= 12; step++) {
+            await cdp.send('Input.dispatchTouchEvent', {
+                type: 'touchMove', touchPoints: [{ x: point.x - step * 20, y: point.y, id: 1 }]
+            })
+            await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+        }
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+        await test.info().attach('touch-end.json', {
+            body: JSON.stringify(await scroll.evaluate(element => ({ scrollLeft: element.scrollLeft }))),
+            contentType: 'application/json'
+        })
+        await expect.poll(() => scroll.evaluate(element => element.scrollLeft)).toBeGreaterThan(100)
+        const aligned = await scroll.evaluate(element => {
+            const header = element.querySelector('th')!.getBoundingClientRect()
+            const cell = element.querySelector('td')!.getBoundingClientRect()
+            return Math.abs(header.x - cell.x) <= 1 && header.x < element.getBoundingClientRect().x
+        })
+        expect(aligned).toBe(true)
+        for (const width of [1440, 390]) {
+            await page.setViewportSize({ width, height: 900 })
+            const name = scroll.getByRole('cell', { name: longName })
+            expect(await name.evaluate(element => element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
+            await expect.poll(() => horizontalOverflow(page)).toBe(0)
+        }
+        await cdp.detach()
+        const actions = await page.locator('button, [role="button"], [role="combobox"], label:has(input)')
+            .evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0)
+                .map(element => ({ text: element.textContent, height: element.getBoundingClientRect().height, width: element.getBoundingClientRect().width })))
+        expect(actions.filter(size => size.width < 44 || size.height < 44)).toEqual([])
+        await page.getByRole('button', { name: 'Фильтры · 2' }).tap()
+        const sizes = await page.getByRole('dialog', { name: 'Фильтры', exact: true }).locator('button, [role="combobox"]')
+            .evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0)
+                .map(element => ({ text: element.textContent, height: element.getBoundingClientRect().height, width: element.getBoundingClientRect().width })))
+        expect(sizes.filter(size => size.width < 44 || size.height < 44)).toEqual([])
+    })
 })

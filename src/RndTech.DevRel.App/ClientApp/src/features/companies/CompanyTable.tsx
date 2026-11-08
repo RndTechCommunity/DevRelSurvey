@@ -1,9 +1,10 @@
 import { ReactNode } from 'react'
-import { Table } from 'rsuite'
 import { CompanyResult } from '../../api/types'
-import { COMPANY_SORT_KEYS, CompanySortKey, SurveyState } from '../../app/surveyState'
+import { CompanySortKey, SurveyState } from '../../app/surveyState'
 import { formatIndex, toPercentWithTenths } from '../../shared/format'
 import { sortRows } from '../../shared/sort'
+import tableStyles from '../../shared/Table.module.css'
+import styles from './CompanyTable.module.css'
 import { CompanyMetrics, toCompanyMetrics } from './companyMetrics'
 
 type Props = {
@@ -33,28 +34,26 @@ const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, re
 export default function CompanyTable({ rows, sort, onSort }: Props) {
     const metrics = rows.map(toCompanyMetrics)
     const sorted = sort ? sortRows(metrics, row => row[sort.key], sort.direction) : metrics
-    const data = sorted.map(row => Object.fromEntries(COLUMNS.map(column => [column.key, column.render(row)])))
 
     return (
-        <Table
-            autoHeight={false}
-            height={500}
-            data={data}
-            sortColumn={sort?.key}
-            sortType={sort?.direction}
-            onSortColumn={(dataKey, direction) => {
-                const key = COMPANY_SORT_KEYS.find(k => k === dataKey)
-                if (key && direction) {
-                    onSort({ key, direction })
-                }
-            }}
-        >
-            {COLUMNS.map(column => (
-                <Table.Column key={column.key} width={column.width} flexGrow={column.key === 'name' ? 1 : undefined} minWidth={column.width} sortable>
-                    <Table.HeaderCell>{column.header}</Table.HeaderCell>
-                    <Table.Cell dataKey={column.key} />
-                </Table.Column>
-            ))}
-        </Table>
+        <div className={styles.scroll} role='region' aria-label='Таблица компаний' tabIndex={0}>
+            <table className={`${tableStyles.table} ${styles.table}`}>
+                <colgroup>{COLUMNS.map(column => <col key={column.key} style={{ width: column.width }} />)}</colgroup>
+                <thead><tr>{COLUMNS.map(column => (
+                    <th key={column.key} scope='col'
+                        aria-sort={sort?.key === column.key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button type='button' onClick={() => onSort({
+                            key: column.key,
+                            direction: sort?.key === column.key && sort.direction === 'desc' ? 'asc' : 'desc'
+                        })}>
+                            {column.header} <span aria-hidden>{sort?.key === column.key ? (sort.direction === 'asc' ? '↑' : '↓') : '↕'}</span>
+                        </button>
+                    </th>
+                ))}</tr></thead>
+                <tbody>{sorted.map(row => (
+                    <tr key={row.name}>{COLUMNS.map(column => <td key={column.key}>{column.render(row)}</td>)}</tr>
+                ))}</tbody>
+            </table>
+        </div>
     )
 }

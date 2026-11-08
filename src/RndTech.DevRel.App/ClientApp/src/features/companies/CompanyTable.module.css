@@ -1,0 +1,16 @@
+.scroll {
+    height: 500px;
+    overflow: auto;
+}
+
+.table {
+    min-width: 1050px;
+    font-variant-numeric: tabular-nums;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--rs-bg-card);
+}

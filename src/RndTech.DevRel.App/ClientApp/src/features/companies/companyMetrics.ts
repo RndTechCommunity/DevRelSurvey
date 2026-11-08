@@ -61,14 +61,3 @@ export function companyNames(rows: readonly CompanyResult[]): string[] {
         .filter((name, index, names) => names.indexOf(name) === index)
         .sort()
 }
-
-const TOP_SIZE = 10
-
-export function topCompanies(yearRows: readonly CompanyResult[]) {
-    const byKnown = [...yearRows].sort((a, b) => b.knownLevel - a.knownLevel)
-    const both = { showGood: true, showWanted: true }
-    return {
-        known: byKnown.slice(0, TOP_SIZE),
-        attractive: [...byKnown].sort((a, b) => chartY(b, both) - chartY(a, both)).slice(0, TOP_SIZE)
-    }
-}

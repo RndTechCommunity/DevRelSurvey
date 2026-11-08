@@ -34,3 +34,16 @@
 .summary p {
     margin: 0;
 }
+
+@media (max-width: 1223px) {
+    .bar {
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+}
+
+@media (pointer: coarse) {
+    .years {
+        --rs-segmented-control-height: 50px;
+    }
+}
