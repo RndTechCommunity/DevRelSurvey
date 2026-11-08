@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button, Message } from 'rsuite'
 import { CompanyResult } from '../api/types'
 import { SurveyState } from '../app/surveyState'
@@ -6,7 +7,7 @@ import { NO_RESTRICTIONS } from '../features/filters/model'
 import CompanyMap from '../features/companies/CompanyMap'
 import CompanyControls from '../features/companies/CompanyControls'
 import CompanyTable from '../features/companies/CompanyTable'
-import { chartMetric, companyNames, hasWantedOnlyYear, selectCompanyRows, selectMapRows, yAxisScale } from '../features/companies/companyMetrics'
+import { chartMetric, companyNames, hasWantedOnlyYear, selectCompanyRows, restrictCompanies, yAxisScale } from '../features/companies/companyMetrics'
 import { AsyncState, RequestState } from '../shared/AsyncState'
 import styles from './CompaniesPage.module.css'
 import { AboutNote, OpenAbout } from './MethodologyPage'
@@ -18,8 +19,10 @@ type Props = {
     onAbout: OpenAbout
 }
 
-// Выбор компаний влияет на карту, таблица показывает весь год.
 export default function CompaniesPage({ state, update, companies, onAbout }: Props) {
+    const [focused, setFocused] = useState<string | null>(null)
+    const availableFocus = state.companies.length === 0 || (focused !== null && state.companies.includes(focused))
+        ? focused : null
     const metric = chartMetric(state, [state.year])
 
     return (
@@ -33,11 +36,18 @@ export default function CompaniesPage({ state, update, companies, onAbout }: Pro
         >
             {rows => {
                 const yearRows = selectCompanyRows(rows, state.year)
+                const shownRows = restrictCompanies(yearRows, state.companies)
                 return (
                     <>
-                        <CompanyControls state={state} update={update} companyNames={companyNames(rows)} />
-                        {state.view === 'table'
-                            ? <CompanyTable rows={yearRows} sort={state.sort} onSort={sort => update({ sort })} />
+                        <CompanyControls state={state} update={update} companyNames={companyNames(rows)}
+                            shownNames={companyNames(shownRows)} focused={availableFocus} onFocus={setFocused} />
+                        {shownRows.length === 0
+                            ? <Message type='info'>
+                                Для выбранных компаний нет данных за {state.year} год.{' '}
+                                <Button appearance='link' onClick={() => update({ companies: [] })}>Показать все компании</Button>
+                            </Message>
+                            : state.view === 'table'
+                                ? <CompanyTable rows={shownRows} focused={availableFocus} sort={state.sort} onSort={sort => update({ sort })} />
                             : metric === null
                                 ? <Message type='info'>Показатель не выбран. Выберите показатель над картой.</Message>
                                 : <>
@@ -45,7 +55,7 @@ export default function CompaniesPage({ state, update, companies, onAbout }: Pro
                                         В 2019 году ось показывает только «Хотят работать».
                                     </AboutNote>}
                                     <div className={styles.chart}>
-                                        <CompanyMap rows={selectMapRows(yearRows, state.companies)} year={state.year}
+                                        <CompanyMap rows={shownRows} focused={availableFocus} year={state.year}
                                             metric={metric} scale={yAxisScale(yearRows, metric)} />
                                     </div>
                                 </>}

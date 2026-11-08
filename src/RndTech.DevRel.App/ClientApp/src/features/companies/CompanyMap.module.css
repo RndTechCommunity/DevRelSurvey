@@ -1,0 +1,14 @@
+.label {
+    stroke: var(--rs-text-primary);
+    stroke-width: 1.5px;
+    paint-order: stroke;
+}
+
+.tooltip {
+    max-width: 320px;
+    overflow-wrap: anywhere;
+}
+
+.number {
+    white-space: nowrap;
+}

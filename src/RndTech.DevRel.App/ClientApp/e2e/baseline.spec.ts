@@ -62,7 +62,7 @@ test.describe('desktop 1440', () => {
         await mockApi(page)
         await page.goto('/')
         const points = page.locator('[data-company]')
-        await expect(points).toHaveCount(5)
+        await expect(points).toHaveCount(6)
 
         const [x10, x100, y0, y120] = await Promise.all([
             tickAt(page, 'x', '10 %'), tickAt(page, 'x', '100 %'), tickAt(page, 'y', '0 %'), tickAt(page, 'y', '120 %')
@@ -78,7 +78,7 @@ test.describe('desktop 1440', () => {
 
         await page.locator('[data-company="IBS Dunice"]').hover()
         await expect(page.getByRole('tooltip')).toHaveText(
-            'Знают: 40 человек, 40%Рекомендуют: 10 человек, 10%Хотят работать: 5 человек, 5%')
+            'IBS DuniceЗнают: 40 человек, 40%Рекомендуют: 10 человек, 10%Хотят работать: 5 человек, 5%')
     })
 
     test('switches the year without a new request', async ({ page }) => {
