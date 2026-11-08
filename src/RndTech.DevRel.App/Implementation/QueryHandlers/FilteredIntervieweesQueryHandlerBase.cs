@@ -24,17 +24,7 @@ public abstract class FilteredIntervieweesQueryHandlerBase<TQuery, TResult> : IQ
 			{
 				var answers = dataProvider.GetAllIntervieweeAnswers();
 
-				var filteredAnswers = answers
-					.Where(kvp => query.Ages.Length == 0 || query.Ages.Contains(kvp.Key.Age))
-					.Where(kvp => query.Cities.Length == 0 || query.Cities.Contains(kvp.Key.City))
-					.Where(kvp => query.Educations.Length == 0 || query.Educations.Contains(kvp.Key.Education))
-					.Where(kvp => query.Experiences.Length == 0 || query.Experiences.Contains(kvp.Key.ProfessionLevel))
-					.Where(kvp => query.Professions.Length == 0 || query.Professions.Contains(kvp.Key.Profession))
-					.Where(kvp =>
-						query.ProgrammingLanguages.Length == 0 ||
-						query.ProgrammingLanguages.Any(filterValue => kvp.Key.Languages.Contains(filterValue)))
-					.Where(kvp => !query.IsCommunity.HasValue || query.IsCommunity.Value == kvp.Key.VisitMeetups)
-					.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+				var filteredAnswers = SurveyAggregation.Filter(answers, query);
 
 				return Task.FromResult(HandleInternal(answers, filteredAnswers));
 			});

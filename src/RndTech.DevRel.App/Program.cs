@@ -25,6 +25,7 @@ builder.Services.AddSingleton<IIntervieweesDataProvider, IntervieweesPreloadedDa
 
 // Add query handlers to handle client requests
 builder.Services.AddQueryHandler<GetCompanyModelsQuery, CompanyModel[], GetCompanyModelsQueryHandler>();
+builder.Services.AddQueryHandler<AudienceMatrixRequest, AudienceMatrixResponse, GetAudienceMatrixQueryHandler>();
 builder.Services.AddQueryHandler<GetMetaQuery, MetaModel, GetMetaQueryHandler>();
 builder.Services.AddQueryHandler<GetCitiesQuery, string[], GetCitiesQueryHandler>();
 builder.Services.AddQueryHandler<GetCommunitySourcesQuery, string[], GetCommunitySourcesQueryHandler>();

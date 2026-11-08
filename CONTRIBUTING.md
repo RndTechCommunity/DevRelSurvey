@@ -137,15 +137,19 @@ export default function FilterPanel({ filter, onChange }: Props) {
 
 ## Тестирование
 
-Проверки фронтенда и `docker build` автоматически запускает `.github/workflows/verify.yml` на каждом pull request; этот workflow ничего не деплоит. Перед созданием PR выполните их локально.
+Backend unit-тесты, проверки фронтенда и `docker build` автоматически запускает `.github/workflows/verify.yml` на каждом pull request; этот workflow ничего не деплоит. Перед созданием PR выполните их локально.
 
 ### Backend
 
 ```bash
 dotnet build RndTech.DevRel.sln -c Release
+dotnet test tests/RndTech.DevRel.App.Tests -c Release
 ```
 
-Тестового проекта в solution нет: `dotnet test` завершается без найденных тестов и корректность вычислений не проверяет. Изменения API проверяйте на smoke-стенде (ниже).
+`tests/RndTech.DevRel.App.Tests` — xUnit на .NET 8: настоящий обработчик и memory cache,
+маленький synthetic provider без БД. Проверяются восемь измерений матрицы, AND общего фильтра,
+исторический JS/TS, два разных N, полный каталог, null/empty грейд, cache collisions и прежние агрегаты.
+Проверяйте ненулевое число выполненных тестов. HTTP-контракт дополнительно проверяйте на smoke-стенде (ниже).
 
 ### Frontend
 
@@ -182,6 +186,15 @@ DEVRELAPP_CONFIG_DATABASE="Server=localhost;Port=3306;Database=devrel;User Id=ro
 ```
 
 Ожидаемый результат: `curl http://localhost:29500/api/filters/cities` возвращает `["Ростов-на-Дону","Таганрог"]`. После `npm start` в `ClientApp` интерфейс `http://localhost:44422` с исходным фильтром показывает сводку «2022 · Ростов-на-Дону, 20–44 года · Выборка: 100 из 116», а для 2021 года — «Выборка: 60 из 71».
+
+Для нового POST `/api/results/audience-matrix` (контракт в README) пустой фильтр 2022 даёт base N=116;
+`groupBy: "cities", groupValues: ["Тбилиси", "Нет-такого"]` — N=1/0, хотя старый GET городов не показывает Тбилиси.
+Источники Telegram/Митапы — N=58/38 с пересечением 19; N компаний сверяйте по строкам ответов.
+Перед merge изменений агрегации сравните старые два POST и шесть GET с master на одной синтетической БД:
+пустой, исходный Ростов/20–44, языковой и пустой результат; требуются 200 и одинаковые нормализованные JSON.
+Проверьте 400/415 для некорректного тела и 413 для >1 МиБ с Content-Length и chunked, затем корректный 200.
+Отдельно после parity добавьте в одноразовую копию БД synthetic NULL/empty грейды с ответами и перезапустите
+candidate: каталог и колонки должны различать null и пустую строку. Это не проверка старого meta на null.
 
 Удаление стенда: `docker rm -f devrel-smoke-db`.
 

@@ -6,7 +6,7 @@ public class Interviewee
 	public int Age { get; set; }
 	public string Education { get; set; }
 	public string Profession { get; set; }
-	public string ProfessionLevel { get; set; }
+	public string? ProfessionLevel { get; set; }
 	public string City { get; set; }
 	public bool VisitMeetups { get; set; }
 	public int Year { get; set; }

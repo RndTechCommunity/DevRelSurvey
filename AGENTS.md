@@ -26,7 +26,7 @@ DevRelSurvey публикует агрегированные результат�
 - `.github/workflows/deploy.yml` запускается вручную через `workflow_dispatch`. **Дополнительно** у работающей установки проверен отдельный GitHub push-webhook CapRover, настроенный на `master`. Поэтому push в `master` способен запустить production-сборку даже без запуска GitHub Actions.
 - Импортёр сейчас предназначен для CSV 2022 года; это не универсальная CLI с выбором года и параметрами подключения.
 - Фронтенд: `npm test` — unit-тесты чистых модулей (Vitest), `npm run test:e2e` — браузерные сценарии Playwright в системном Chrome с подменой `/api/**`. К production и БД тесты не обращаются. `.github/workflows/verify.yml` запускает проверки фронтенда и сборку Docker-образа на каждом pull request; секретов и деплоя в нём нет.
-- В solution нет backend test project. Завершение `dotnet test` без найденных тестов не доказывает корректность вычислений.
+- Backend-тесты `tests/RndTech.DevRel.App.Tests` (xUnit, .NET 8) проверяют матрицу и извлечённые агрегаты на synthetic provider с настоящим memory cache. CI запускает их без БД; ненулевое число выполненных тестов обязательно.
 - `year` в запросе присутствует в DTO, но **не переносится** `FilterMappers.ToQuery` в запрос обработчика. Выбор года сейчас происходит на клиенте.
 
 ## Карта кода
@@ -185,6 +185,7 @@ error = 0.0441
 | Метод | Путь | Результат |
 | --- | --- | --- |
 | POST | `/api/results/known-and-wanted` | `CompanyModel[]` для всех доступных в выборке лет |
+| POST | `/api/results/audience-matrix` | Один год, полный каталог, общий фильтр AND колонки, два N (см. README) |
 | POST | `/api/results/meta` | Состав выборки по четырём фиксированным годам |
 | GET | `/api/filters/cities` | `string[]` |
 | GET | `/api/filters/educations` | `string[]` |
@@ -194,6 +195,19 @@ error = 0.0441
 | GET | `/api/filters/communitySources` | `string[]` |
 
 POST принимает JSON; клиент отправляет `application/json`.
+
+Матрица — отдельный API, пока без страницы UI. `AudienceMatrixRequest` одновременно query,
+`GetAudienceMatrixQueryHandler` использует общий `SurveyAggregation.Filter/Companies` без изменения старых формул.
+Внешний year применяется только здесь; старые endpoints по-прежнему игнорируют UserFilter.year.
+Восемь точных groupBy, полный каталог всех лет и исходные companyNames; N базы/колонки — люди,
+selectionCount — строки ответов компании. Общий фильтр не заменяется колонкой. Языки/источники пересекаются,
+JS/TS включают историческое комбинированное значение. Грейд string? в DTO и EF соответствует существующей nullable схеме,
+null и empty различаются. Схема не меняется; старый meta на null остаётся отдельным долгом.
+`groupValues: null` — до шести положительных групп; [] — ни одной; явные значения сохраняют порядок и неизвестные имена.
+Лимит 256 элементов отдельно для выбранных колонок и суммарного фильтра; 1 МиБ тела до чтения JSON,
+включая chunked. Некорректные значения/типы — problem400, превышение тела — 413, Content-Type — 415.
+Ключ `AudienceMatrix_v1_` хеширует канонический JSON, сохраняя границы строк и порядок колонок;
+старые Data2022_ ключи не исправляются. Полный контракт и примеры — README.
 
 Пример запроса без ограничений:
 
@@ -219,6 +233,7 @@ POST принимает JSON; клиент отправляет `application/jso
 ```sh
 dotnet restore RndTech.DevRel.sln
 dotnet build RndTech.DevRel.sln -c Release
+dotnet test tests/RndTech.DevRel.App.Tests -c Release
 ```
 
 В `src/RndTech.DevRel.App/ClientApp`:
