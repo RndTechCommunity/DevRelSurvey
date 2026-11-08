@@ -74,11 +74,6 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
 
     const flag = (text: string) => text === '1' ? true : text === '0' ? false : undefined
 
-    if (read('error', false, flag)) {
-        warnings.push('Отображение «доверительного интервала» убрано: это была одна константа для всех компаний, '
-            + 'а не рассчитанный интервал. Подробнее — в разделе «О данных»')
-    }
-
     const sortKey = params.get('sort')
     const direction = params.get('direction')
     let sort = DEFAULT_STATE.sort

@@ -398,17 +398,16 @@ test.describe('desktop 1440', () => {
         await expect(metric.getByRole('radio', { name: 'Рекомендуют', exact: true })).toBeChecked()
     })
 
-    test('old interval and disabled flags explain the change; selecting a metric recovers the map', async ({ page }) => {
+    test('obsolete interval links stay quiet; selecting a metric recovers the map', async ({ page }) => {
         await mockApi(page)
         await page.goto('/?v=1&error=1&good=0&wanted=0')
-        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toBeVisible()
+        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toHaveCount(0)
         await expect(page.getByText('Показатель не выбран.')).toBeVisible()
         await expect(page.locator('.recharts-wrapper')).toHaveCount(0)
         await selectYear(page, '2019')
         await expect(page.getByText('Показатель не выбран.')).toBeVisible()
-        await page.getByRole('button', { name: 'Закрыть', exact: true }).click()
         await page.goBack()
-        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toBeVisible()
+        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toHaveCount(0)
         const metric = page.getByRole('radiogroup', { name: 'Показатель' })
         await metric.getByRole('radio', { name: 'Рекомендуют', exact: true }).focus()
         await page.keyboard.press('Space')
