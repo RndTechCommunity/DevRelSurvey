@@ -8,6 +8,7 @@ type Props = {
     value: readonly string[],
     placeholder: string,
     labelledBy?: string,
+    getLabel?: (value: string) => string,
     preset?: { label: string, values: readonly string[] },
     onChange: (value: readonly string[]) => void
 }
@@ -15,8 +16,8 @@ type Props = {
 const ALL = -1
 const PRESET = -2
 
-// «Выбрать все» записывает явный список значений; пустой список означает «все».
-export default function MultiSelect({ options, value, placeholder, labelledBy, preset, onChange }: Props) {
+// «Выбрать все» записывает явный список; смысл пустого списка задаёт владелец.
+export default function MultiSelect({ options, value, placeholder, labelledBy, preset, getLabel = value => value, onChange }: Props) {
     const [query, setQuery] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn(() => searchRef.current?.focus({ preventScroll: true }))
@@ -24,8 +25,8 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, p
     const allSelected = choices.length > 0 && choices.every(option => value.includes(option))
     const presetSelected = !!preset && value.length === preset.values.length
         && preset.values.every(option => value.includes(option))
-    const items = choices.map((label, index) => ({ value: index + 1, label }))
-    const selected = items.filter(item => value.includes(item.label)).map(item => item.value)
+    const items = choices.map((choice, index) => ({ value: index + 1, label: getLabel(choice) }))
+    const selected = items.filter(item => value.includes(choices[item.value - 1])).map(item => item.value)
     const shown = items.filter(item => item.label.toLowerCase().includes(query.toLowerCase()))
 
     return (
@@ -40,7 +41,7 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, p
                 block
                 searchable={false}
                 value={[...(allSelected ? [ALL] : []), ...(presetSelected ? [PRESET] : []), ...selected]}
-                renderValue={() => presetSelected ? preset?.label : value.join(', ')}
+                renderValue={() => presetSelected ? preset?.label : value.map(getLabel).join(', ')}
                 onClose={() => {
                     pickerProps.onClose()
                     setQuery('')

@@ -43,3 +43,10 @@
         padding: var(--space-4) var(--space-4) 0;
     }
 }
+
+.navigation {
+    display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
+    max-width: 100%;
+}

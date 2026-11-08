@@ -5,7 +5,7 @@ import { RequestState } from '../shared/AsyncState'
 
 type Settled<T> = { readonly key: string } & ({ readonly data: T } | { readonly error: unknown })
 
-function useRequest<A, T>(request: (arg: A, signal: AbortSignal) => Promise<T>, arg: A): RequestState<T> {
+export function useRequest<A, T>(request: (arg: A, signal: AbortSignal) => Promise<T>, arg: A): RequestState<T> {
     const [attempt, setAttempt] = useState(0)
     const [settled, setSettled] = useState<Settled<T>>()
     // Ключ — значение аргумента: тот же фильтр в другом объекте не вызывает запрос.

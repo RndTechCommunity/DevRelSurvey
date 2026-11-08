@@ -1,5 +1,6 @@
 import type { Page, Request, Route } from '@playwright/test'
 import {
+    audienceMatrixFixture,
     companyResults,
     denseCompanyResults,
     emptyCompanyResults,
@@ -43,12 +44,14 @@ export const INITIAL_FILTER = {
     isCommunity: null
 }
 
+export const isMatrix = (call: ApiCall) => call.path === '/api/results/audience-matrix'
 export const isCompanies = (call: ApiCall) => call.path === '/api/results/known-and-wanted'
 export const isMeta = (call: ApiCall) => call.path === '/api/results/meta'
 export const isFilterOptions = (call: ApiCall) => call.path.startsWith('/api/filters/')
 export const forCity = (city: string) => (call: ApiCall) => call.body?.includes(`"${city}"`) ?? false
 
 function responseFor(call: ApiCall, options: FilterOptions): unknown {
+    if (isMatrix(call)) return audienceMatrixFixture(JSON.parse(call.body ?? '{}'))
     if (isFilterOptions(call)) {
         return options[call.path.slice('/api/filters/'.length) as keyof FilterOptions]
     }

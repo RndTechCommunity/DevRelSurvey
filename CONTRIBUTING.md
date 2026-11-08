@@ -165,6 +165,11 @@ npm run test:e2e    # браузерные сценарии Playwright
 
 `npm run test:e2e` требует установленного Google Chrome. Playwright сам собирает приложение, запускает `vite preview` на порту 4173 (он должен быть свободен) и подменяет `/api/**` синтетическими ответами: БД и production не нужны.
 
+Матрицу дополнительно проверяют `audienceMatrix.test.ts`, расширенный `surveyUrl.test.ts` и
+`e2e/audience-matrix.spec.ts`: восемь измерений, ноль/нет данных, два N, сортировка, URL v2 и прежние ссылки,
+отмена/ошибки, отсутствие POST при локальных настройках, клавиатура/касание и обе темы на шести ширинах.
+Fixture содержит только вымышленные агрегаты. В браузере сверяйте N матрицы именно с batch, а не с meta.
+
 Упаковку проверяет `dotnet publish src/RndTech.DevRel.App -c Release`: он выполняет `npm ci` и `npm run build` и копирует сборку в `wwwroot`. `dotnet build` её не проверяет.
 
 ### Smoke-стенд с MariaDB
