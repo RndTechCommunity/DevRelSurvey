@@ -1,12 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 import { companyResults } from '../src/test/fixtures'
-import { mockApi } from './mockApi'
+import { INITIAL_FILTER, isCompanies, isMeta, mockApi } from './mockApi'
 
-for (const width of [390, 1440]) {
-    test(`accessible pages and filters at ${width}`, async ({ page }) => {
+for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light'], [1440, 'dark']] as const) {
+    test(`accessible ${colorScheme} pages and filters at ${width}`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
-        await mockApi(page)
+        await page.emulateMedia({ colorScheme })
+        const api = await mockApi(page)
         await page.route('**/api/results/known-and-wanted', route => route.fulfill({
             json: [...companyResults, ...Array.from({ length: 16 }, (_, i) => ({ ...companyResults[0], name: `Тестовая компания ${i}` }))]
         }))
@@ -43,5 +44,15 @@ for (const width of [390, 1440]) {
         await page.getByRole('combobox', { name: 'Город', exact: true }).click()
         await expect(page.getByRole('textbox', { name: 'Поиск' })).toBeFocused()
         await scan(true)
+        await page.keyboard.press('Escape')
+        if (width < 1224) await page.keyboard.press('Escape')
+        await page.unroute('**/api/results/known-and-wanted')
+        await page.goto(`/?v=1&filter=${encodeURIComponent(JSON.stringify({ ...INITIAL_FILTER, cities: ['Нет-такого'] }))}`)
+        await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
+        await scan()
+        api.override(call => isCompanies(call) || isMeta(call), 500)
+        await page.goto('/')
+        await expect(page.getByText('Не удалось загрузить данные.').first()).toBeVisible()
+        await scan()
     })
 }

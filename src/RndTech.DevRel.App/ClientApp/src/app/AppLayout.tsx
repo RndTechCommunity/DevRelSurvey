@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Nav } from 'rsuite'
+import { Button, Nav } from 'rsuite'
 import { CompanyResult, FilterOptions, SurveyMeta } from '../api/types'
 import FilterDrawer from '../features/filters/FilterDrawer'
 import FilterChips from '../features/filters/FilterChips'
@@ -15,6 +15,8 @@ import { SurveyPage, SurveyState } from './surveyState'
 import { UpdateSurveyState } from './useSurveyState'
 
 type Props = {
+    theme: 'light' | 'dark',
+    onToggleTheme: () => void,
     isWide: boolean,
     state: SurveyState,
     update: UpdateSurveyState,
@@ -30,7 +32,7 @@ const SECTIONS = [
     { page: 'methodology', label: 'О данных' }
 ] as const
 
-export default function AppLayout({ isWide, state, update, onDuplicate, companies, meta, options }: Props) {
+export default function AppLayout({ theme, onToggleTheme, isWide, state, update, onDuplicate, companies, meta, options }: Props) {
     // Раздел «О данных», на который ведёт «Подробнее»; в адрес не пишется.
     const [aboutSection, setAboutSection] = useState<MethodologySection>()
 
@@ -63,6 +65,10 @@ export default function AppLayout({ isWide, state, update, onDuplicate, companie
                         </Nav.Item>
                     ))}
                 </Nav>
+                <Button className={styles.theme} appearance={theme === 'dark' ? 'primary' : 'default'}
+                    aria-pressed={theme === 'dark'} onClick={onToggleTheme}>
+                    Тёмная тема
+                </Button>
             </header>
             {state.page === 'methodology'
                 ? (

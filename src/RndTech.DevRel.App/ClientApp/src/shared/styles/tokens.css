@@ -1,4 +1,4 @@
-/* Общие значения оформления: отступы с шагом 4/8 px, радиус, шрифт, фокус, цвет полос.
+/* Общие значения оформления: отступы с шагом 4/8 px, радиус, шрифт, фокус, цвета графика и полос.
    Цвета берутся из переменных темы RSuite (--rs-*). Токен со ссылкой на --rs-* вычисляется там, где объявлен,
    поэтому он объявлен и для .rs-theme-dark: иначе в тёмной теме остались бы светлые значения :root. */
 :root {
@@ -10,16 +10,50 @@
 }
 
 :root,
+.rs-theme-light {
+    color-scheme: light;
+    --chart-axis: #52606d;
+    --chart-grid: #d6dbe1;
+    --chart-point: #595959;
+    --focus-color: #075b8f;
+    --rs-text-tertiary: #646464;
+    --rs-btn-link-text: #0a5dc2;
+    --rs-listbox-option-hover-text: #0a5dc2;
+    --rs-listbox-option-selected-text: #0a5dc2;
+}
+
+.rs-theme-dark {
+    color-scheme: dark;
+    --chart-axis: #b6c6d6;
+    --chart-grid: #465364;
+    --chart-point: #b8b8b8;
+    --focus-color: #75d6ff;
+    --rs-btn-default-active-bg: var(--rs-gray-700);
+    --rs-btn-subtle-active-bg: var(--rs-gray-600);
+    --rs-message-info-bg: var(--rs-blue-900);
+    --rs-message-error-bg: var(--rs-red-900);
+}
+
+:root,
+.rs-theme-light,
 .rs-theme-dark {
     /* В RSuite контур фокуса — цвет акцента с прозрачностью 25 %: на тёмном фоне он почти не виден. */
-    --rs-focus-ring-color: var(--rs-primary-500);
-    --bar-color: var(--rs-primary-500);
+    --rs-focus-ring-color: var(--focus-color);
+    --rs-btn-primary-bg: #0069a8;
+    --rs-btn-primary-hover-bg: #00588c;
+    --rs-btn-primary-active-bg: #00456f;
+    --bar-color: var(--focus-color);
 }
 
 /* Внутренний контур: у ячеек таблицы и элементов с прокруткой внешний обрезается. */
 :focus-visible {
     outline: 2px solid var(--rs-focus-ring-color);
     outline-offset: -2px;
+}
+
+.rs-btn[data-appearance='primary']:focus-visible {
+    outline-color: var(--rs-btn-primary-text);
+    outline-offset: -4px;
 }
 
 @media (pointer: coarse) {

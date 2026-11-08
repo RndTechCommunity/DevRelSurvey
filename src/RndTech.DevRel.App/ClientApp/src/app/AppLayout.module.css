@@ -7,6 +7,10 @@
     border-bottom: 1px solid var(--rs-border-primary);
 }
 
+.theme {
+    margin-left: auto;
+}
+
 .brand {
     font-weight: 600;
 }

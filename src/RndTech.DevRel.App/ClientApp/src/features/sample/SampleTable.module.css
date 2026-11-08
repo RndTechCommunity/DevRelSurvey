@@ -43,7 +43,7 @@
         gap: 4px;
     }
 
-    .value {
+    .value, .track {
         flex: none;
     }
 }

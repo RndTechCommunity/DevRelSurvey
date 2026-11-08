@@ -135,6 +135,10 @@ test('screenshots of the initial page', async ({ page }) => {
         await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
         expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
         expect(await cutNames(page), `sample names ${width}`).toEqual([])
+        expect(await page.locator('td [aria-hidden="true"] > span').evaluateAll(bars => bars.length > 0 && bars.every(bar => {
+            const { width, height } = bar.getBoundingClientRect()
+            return width > 0 && height > 0
+        })), `sample bars ${width}`).toBe(true)
         await page.getByRole('button', { name: 'Компании', exact: true }).click()
         await test.info().attach(`initial-${width}.png`, {
             body: await page.screenshot({ fullPage: true }),
