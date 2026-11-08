@@ -22,6 +22,7 @@ type Props = {
 export default function CompanyControls({ state, update, companyNames, shownNames, focused, onFocus }: Props) {
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn(picker =>
         picker.overlay?.querySelector<HTMLInputElement>('[role="searchbox"]')?.focus({ preventScroll: true }))
+    const years = state.compareYear === null ? [state.year] : [state.year, state.compareYear]
     const isLegacy = state.companies.length === LEGACY_COMPANIES.length
         && LEGACY_COMPANIES.every(name => state.companies.includes(name))
     return (
@@ -42,16 +43,16 @@ export default function CompanyControls({ state, update, companyNames, shownName
                 <div {...wrapperProps}>
                     <SelectPicker ref={ref} {...pickerProps} block cleanable
                         aria-labelledby='company-search-label' placeholder='Найти компанию'
-                        data={shownNames.map(name => ({ value: name, label: name }))}
-                        value={focused !== null && shownNames.includes(focused) ? focused : null}
-                        onChange={onFocus} />
+                        data={shownNames.map((name, index) => ({ value: index + 1, label: name }))}
+                        value={focused !== null && shownNames.includes(focused) ? shownNames.indexOf(focused) + 1 : null}
+                        onChange={index => onFocus(index === null ? null : shownNames[index - 1])} />
                 </div>
             </div>
             <div className={styles.field}>
                 <span id='company-metric-label'>Показатель</span>
                 <SegmentedControl aria-labelledby='company-metric-label' className={styles.metrics}
-                    data={hasWantedOnlyYear([state.year]) ? METRICS.filter(metric => metric.value === 'wanted') : METRICS}
-                    value={chartMetric(state, [state.year])}
+                    data={hasWantedOnlyYear(years) ? METRICS.filter(metric => metric.value === 'wanted') : METRICS}
+                    value={chartMetric(state, years)}
                     onChange={value => update({ showGood: value !== 'wanted', showWanted: value !== 'good' })} />
             </div>
             <div className={styles.field}>

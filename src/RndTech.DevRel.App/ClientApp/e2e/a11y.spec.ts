@@ -11,7 +11,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await page.route('**/api/results/known-and-wanted', route => route.fulfill({
             json: [...companyResults, ...Array.from({ length: 16 }, (_, i) => ({ ...companyResults[0], name: `Тестовая компания ${i}` }))]
         }))
-        await page.goto('/')
+        await page.goto('/?v=1&companies=[]&compareYear=2021')
         await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
         const scan = async (openCheckPicker = false) => {
             const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
@@ -65,7 +65,7 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
         await expect(page.getByText('Нет данных о компаниях за 2022 год')).toBeVisible()
         await scan()
         api.override(call => isCompanies(call) || isMeta(call), 500)
-        await page.goto('/')
+        await page.goto('/?v=1&companies=[]&compareYear=2021')
         await expect(page.getByText('Не удалось загрузить данные.').first()).toBeVisible()
         await scan()
     })

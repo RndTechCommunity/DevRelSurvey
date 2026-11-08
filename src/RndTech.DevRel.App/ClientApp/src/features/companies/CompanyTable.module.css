@@ -36,3 +36,7 @@
     text-align: left;
     cursor: pointer;
 }
+
+.delta {
+    margin-top: var(--space-2);
+}

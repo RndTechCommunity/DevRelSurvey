@@ -1,4 +1,4 @@
-import { CompanyResult } from '../../api/types'
+import { CompanyResult, SurveyYear } from '../../api/types'
 
 // Показатели компаний. Доли — 0…1 от selectionCount компании; умножение на 100 — при выводе.
 
@@ -86,4 +86,32 @@ export function nearbyCompanies<T extends { knownLevel: number, metricValue: num
         + ((point.metricValue - target.metricValue) / tolerance.y) ** 2
     return points.filter(point => distance(point) <= 1)
         .sort((a, b) => distance(a) - distance(b))
+}
+
+export type CompanyPair = {
+    readonly name: string,
+    readonly main?: CompanyResult,
+    readonly compare?: CompanyResult
+}
+
+export function pairCompanies(rows: readonly CompanyResult[], year: SurveyYear, compareYear: SurveyYear | null,
+    companies: readonly string[]): CompanyPair[] {
+    const main = new Map(selectCompanyRows(rows, year).map(row => [row.name, row]))
+    const compare = new Map(rows.filter(row => row.year === compareYear).map(row => [row.name, row]))
+    return [...new Set([...main.keys(), ...compare.keys()])]
+        .filter(name => companies.length === 0 || companies.includes(name))
+        .map(name => ({ name, main: main.get(name), compare: compare.get(name) }))
+}
+
+export type MetricKey = Exclude<keyof CompanyMetrics, 'name'>
+
+export function comparedKeys(years: readonly number[]): readonly MetricKey[] {
+    return hasWantedOnlyYear(years) ? ['wanted'] : ['known', 'good', 'wanted', 'goodAndWanted', 'brandPower', 'brandRating']
+}
+
+export function metricDelta(main: CompanyResult | undefined, compare: CompanyResult | undefined, key: MetricKey): number | null {
+    if (!main || !compare) return null
+    const a = toCompanyMetrics(main)[key]
+    const b = toCompanyMetrics(compare)[key]
+    return a === null || b === null || !Number.isFinite(a) || !Number.isFinite(b) ? null : a - b
 }

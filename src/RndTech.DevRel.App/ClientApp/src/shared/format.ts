@@ -19,3 +19,9 @@ export function formatShare(count: number, total: number): string {
     const share = shareOf(count, total)
     return share === null ? `${count} (—)` : `${count} (${toPercentWithTenths(share)}%)`
 }
+
+export function formatDelta(value: number | null, percentagePoints: boolean): string {
+    if (value === null || !Number.isFinite(value)) return '—'
+    const rounded = toPercentWithTenths(value)
+    return `Δ ${rounded > 0 ? '+' : ''}${rounded}${percentagePoints ? ' п. п.' : ''}`
+}

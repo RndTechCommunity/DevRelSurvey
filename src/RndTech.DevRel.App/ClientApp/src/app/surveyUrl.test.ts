@@ -68,6 +68,9 @@ describe('invalid parameters fall back to defaults with a warning', () => {
         ['an unknown tab', '?tab=%22selection-factors%22', 'tab'],
         ['a tab that is not JSON', '?tab=not-json', 'tab'],
         ['a year out of the catalog', '?v=1&year=2031', 'year'],
+        ['a comparison outside the catalog', '?v=1&compareYear=2031', 'compareYear'],
+        ['comparison with the main year', '?v=1&year=2022&compareYear=2022', 'compareYear'],
+        ['a fractional comparison year', '?v=1&compareYear=2020.5', 'compareYear'],
         ['a fractional year', '?v=1&year=2020.5', 'year'],
         ['an unknown page', '?v=1&page=foo', 'page'],
         ['companies that are not a list', '?v=1&companies=oops', 'companies'],
@@ -89,6 +92,7 @@ describe('v1 links', () => {
         const state: SurveyState = {
             page: 'sample',
             year: 2020,
+            compareYear: 2021,
             filter: { ...TAGANROG, professions: ['QA'], isCommunity: 'Нет' },
             companies: ['IBS Dunice', 'Gamma%', 'ИТРУМ (ex Exceed Team)'],
             showGood: false,
@@ -118,6 +122,7 @@ describe('v1 links', () => {
     test('an address without parameters opens all companies and the encoder makes this explicit', () => {
         expect(decodeSurveyUrl('').state.companies).toEqual([])
         expect(new URLSearchParams(encodeSurveyUrl(DEFAULT_STATE)).get('companies')).toBe('[]')
+        expect(new URLSearchParams(encodeSurveyUrl(DEFAULT_STATE)).has('compareYear')).toBe(false)
         expect(decodeSurveyUrl('')).toEqual({ state: DEFAULT_STATE, warnings: [] })
     })
 })

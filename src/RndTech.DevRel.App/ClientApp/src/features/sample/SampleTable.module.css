@@ -47,3 +47,13 @@
         flex: none;
     }
 }
+
+.table[data-comparison='true'] th:first-child {
+    width: 50%;
+}
+
+@media (max-width: 575px) {
+    .table[data-comparison='true'] th:first-child {
+        width: 40%;
+    }
+}
