@@ -1,6 +1,6 @@
 import { expect, Locator, Page, test } from '@playwright/test'
 import { NO_RESTRICTIONS } from '../src/features/filters/model'
-import { filterOptions } from '../src/test/fixtures'
+import { companyResults, filterOptions } from '../src/test/fixtures'
 import { forCity, INITIAL_FILTER, isCompanies, isFilterOptions, isMeta, mockApi } from './mockApi'
 
 // Исправленное поведение (разрешённые изменения issue #19).
@@ -970,5 +970,40 @@ for (const [width, colorScheme] of [[390, 'light'], [390, 'dark'], [1440, 'light
             })).toBe(true)
         }
         expect(api.posts()).toHaveLength(posts)
+    })
+}
+
+for (const colorScheme of ['light', 'dark'] as const) {
+    test(`long company labels stay inside the plot at 390 in ${colorScheme}`, async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 900 })
+        await page.emulateMedia({ colorScheme })
+        await mockApi(page)
+        const name = 'НИИ "Спецвузавтоматика"'
+        await page.route('**/api/results/known-and-wanted', route => route.fulfill({ json: [{
+            ...companyResults[0], name, year: 2022, selectionCount: 100,
+            knownVotes: 50, knownLevel: 0.5, goodVotes: 10, goodLevel: 0.1, wantedVotes: 8, wantedLevel: 0.08
+        }] }))
+        await page.goto('/')
+        await page.getByRole('combobox', { name: 'Найти компанию', exact: true }).click()
+        await page.getByRole('option', { name, exact: true }).click()
+        const label = page.locator('[data-company] text')
+        await expect(page.locator('[data-company]')).toHaveAttribute('data-company', name)
+        await expect(label).toBeVisible()
+        const geometry = await label.evaluate(element => {
+            const box = element.getBoundingClientRect()
+            const svg = element.closest('svg')!
+            const plot = svg.querySelector('.recharts-cartesian-grid')!.getBoundingClientRect()
+            const ticks = [...svg.querySelectorAll('.recharts-yAxis-tick-labels text')]
+            return {
+                insidePlot: box.left >= plot.left && box.right <= plot.right && box.top >= plot.top && box.bottom <= plot.bottom,
+                tickCount: ticks.length,
+                overlaps: ticks.filter(tick => {
+                    const other = tick.getBoundingClientRect()
+                    return box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top
+                }).map(tick => tick.textContent)
+            }
+        })
+        expect(geometry.tickCount).toBeGreaterThan(0)
+        expect(geometry).toMatchObject({ insidePlot: true, overlaps: [] })
     })
 }

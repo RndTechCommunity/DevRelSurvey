@@ -1,6 +1,4 @@
 .label {
-    font-weight: 600;
-    font-size: 12px;
     stroke: var(--rs-text-primary);
     stroke-width: 1.5px;
     paint-order: stroke;

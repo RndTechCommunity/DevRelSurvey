@@ -65,7 +65,7 @@ function CompanyLabel({ name, cx, cy }: { name: string, cx: number, cy: number }
     const width = left ? cx - plot.x - 12 : plot.x + plot.width - cx - 12
     return <Text x={cx + (left ? -12 : 12)} y={cy + (below ? 12 : -12)}
         width={width} textAnchor={left ? 'end' : 'start'} verticalAnchor={below ? 'start' : 'end'}
-        fill='inherit' className={styles.label}>{name}</Text>
+        breakAll style={{ fontSize: 12, fontWeight: 600 }} fill='inherit' className={styles.label}>{name}</Text>
 }
 
 export default function CompanyMap({ rows, year, metric, scale, focused }: Props) {
