@@ -256,13 +256,12 @@ test('touch cell and horizontal gesture retain full labels and a bounded page', 
     await context.close()
 })
 
-test('125 companies and 81 columns remain complete; long URL and excessive selection are explicit', async ({ page, context }) => {
+test('125 companies and 81 columns remain complete; a long URL keeps the full state', async ({ page, context }) => {
     const api = await mockApi(page)
-    let catalogSize = 81
     await page.route('**/api/results/audience-matrix', async route => {
         const request = route.request().postDataJSON()
         const response = audienceMatrixFixture(request)
-        const availableValues = Array.from({ length: catalogSize }, (_, i) => ({ value: `Город ${i}`, label: `Город ${i}`, respondentCount: 1 }))
+        const availableValues = Array.from({ length: 81 }, (_, i) => ({ value: `Город ${i}`, label: `Город ${i}`, respondentCount: 1 }))
         const values: string[] = request.groupValues ?? availableValues.slice(0, 6).map(option => option.value)
         const companyNames = Array.from({ length: 125 }, (_, i) => `Полное название компании ${i}`)
         await route.fulfill({ json: { ...response, availableValues, companyNames,
@@ -283,14 +282,28 @@ test('125 companies and 81 columns remain complete; long URL and excessive selec
     await page.getByRole('button', { name: 'Дублировать' }).click()
     expect(context.pages()).toHaveLength(1)
     await expect(table(page).getByRole('row')).toHaveCount(126)
-    catalogSize = 257
-    await page.reload()
-    await expect(table(page)).toBeVisible()
+    expect(api.posts(isMatrix)).toHaveLength(0)
+})
+
+test('an excessive column selection preserves the current columns and URL without a request', async ({ page }) => {
+    await mockApi(page)
+    let requests = 0
+    await page.route('**/api/results/audience-matrix', async route => {
+        requests++
+        const response = audienceMatrixFixture(route.request().postDataJSON())
+        const availableValues = Array.from({ length: 257 }, (_, i) => ({ value: `Город ${i}`, label: `Город ${i}`, respondentCount: 1 }))
+        await route.fulfill({ json: { ...response, availableValues } })
+    })
+    const groupValues = ['Город 0', 'Город 1']
+    await page.goto(url({ matrix: { ...initial.matrix, groupBy: 'cities', groupValues } }))
+    await expect(table(page).getByRole('columnheader')).toHaveCount(3)
+    const before = page.url()
     await page.getByRole('combobox', { name: 'Колонки', exact: true }).click()
     await page.getByRole('option', { name: 'Выбрать все', exact: true }).click()
     await closePicker(page)
     await expect(page.getByText('Можно выбрать не более 256 колонок. Прежний выбор сохранён.')).toBeVisible()
-    await expect(table(page).getByRole('columnheader')).toHaveCount(82)
+    await expect(table(page).getByRole('columnheader')).toHaveCount(3)
+    expect(JSON.parse(matrixState(page)!).groupValues).toEqual(groupValues)
     expect(page.url()).toBe(before)
-    expect(api.posts(isMatrix)).toHaveLength(0)
+    expect(requests).toBe(1)
 })
