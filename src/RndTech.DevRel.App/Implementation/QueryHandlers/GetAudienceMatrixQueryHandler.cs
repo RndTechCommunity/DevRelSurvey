@@ -141,15 +141,23 @@ public class GetAudienceMatrixQueryHandler : IQueryHandler<AudienceMatrixRequest
 		_ => Values(person, group).Contains(value, StringComparer.Ordinal)
 	};
 
-	private static string Label(string group, string? value) => value switch
+	private static string Label(string group, string? value)
 	{
-		null => "Не указан",
-		"" => "Пустое значение",
-		_ => group switch
+		if (group == "ages" && value is not null and not "")
 		{
-			"ages" => $"{value}–{int.Parse(value, CultureInfo.InvariantCulture) + 4} года",
-			"isCommunity" => value == "true" ? "Да" : "Нет",
-			_ => value
+			var end = int.Parse(value, CultureInfo.InvariantCulture) + 4;
+			var age = Math.Abs(end);
+			var unit = age % 100 is >= 11 and <= 14 ? "лет" : (age % 10) switch
+			{
+				1 => "год", 2 or 3 or 4 => "года", _ => "лет"
+			};
+			return $"{value}–{end} {unit}";
 		}
-	};
+		return value switch
+		{
+			null => "Не указан",
+			"" => "Пустое значение",
+			_ => group == "isCommunity" ? value == "true" ? "Да" : "Нет" : value
+		};
+	}
 }

@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using RndTech.DevRel.App.Implementation.QueryHandlers;
 using RndTech.DevRel.App.Mapping;
 using RndTech.DevRel.App.Model;
@@ -43,6 +45,20 @@ public static class IEndpointRouteBuilderExtensions
 			bodyLimit.MaxRequestBodySize = AudienceMatrixRequest.MaxBodyBytes;
 		if (!request.HasJsonContentType())
 			return Results.Problem(statusCode: StatusCodes.Status415UnsupportedMediaType);
+		var contentType = MediaTypeHeaderValue.Parse(request.ContentType);
+		if (contentType.Charset.HasValue)
+		{
+			try
+			{
+				contentType.Encoding = Encoding.GetEncoding(
+					HeaderUtilities.UnescapeAsQuotedString(contentType.Charset).Value!);
+			}
+			catch (Exception error) when (error is ArgumentException or NotSupportedException)
+			{
+				return Results.Problem(statusCode: StatusCodes.Status415UnsupportedMediaType);
+			}
+			request.ContentType = contentType.ToString();
+		}
 		try
 		{
 			var matrix = await request.ReadFromJsonAsync<AudienceMatrixRequest>(ct);

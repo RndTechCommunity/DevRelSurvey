@@ -1,8 +1,14 @@
 using System.Collections.ObjectModel;
+using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Options;
+using RndTech.DevRel.App.Configuration;
 using RndTech.DevRel.App.Implementation;
 using RndTech.DevRel.App.Implementation.QueryHandlers;
 using RndTech.DevRel.App.Mapping;
@@ -103,6 +109,9 @@ public class AudienceMatrixTests
 		Assert.Empty(none.Columns);
 		Assert.Empty(none.BaseCompanies);
 		Assert.Contains(none.AvailableValues, v => v.Value == "C#" && v.RespondentCount == 0);
+		var ages = await handler.Handle(Request("ages", ["10", "20", "25"]), default);
+		Assert.Equal(["10–14 лет", "20–24 года", "25–29 лет"], ages.Columns.Select(c => c.Label));
+		Assert.Contains(ages.AvailableValues, v => v.Value == "25" && v.Label == "25–29 лет");
 	}
 
 	[Fact]
@@ -193,6 +202,38 @@ public class AudienceMatrixTests
 		var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 		Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<AudienceMatrixRequest>("{\"year\":\"2022\"}", options));
 		Assert.Equal(2022, JsonSerializer.Deserialize<AudienceMatrixRequest>("{\"year\":2022}", options)!.Year);
+	}
+
+	[Fact]
+	public async Task JsonCharsetAcceptsQuotedValuesAndRejectsUnsupportedEncodings()
+	{
+		var builder = WebApplication.CreateBuilder();
+		builder.Services.AddSingleton<IQueryHandler<AudienceMatrixRequest, AudienceMatrixResponse>>(Handler());
+		await using var app = builder.Build();
+		app.MapResultRoutes();
+		var endpoint = ((IEndpointRouteBuilder)app).DataSources.SelectMany(source => source.Endpoints)
+			.OfType<RouteEndpoint>().Single(route => route.RoutePattern.RawText == "api/results/audience-matrix");
+		var json = JsonSerializer.Serialize(Request("cities", ["Québec"]));
+		foreach (var (contentType, encoding, status) in new[] {
+			("application/json; charset=\"utf-8\"", Encoding.UTF8, 200),
+			("application/json; charset=\"ut\\f-8\"", Encoding.UTF8, 200),
+			("application/json; charset=\"utf-16\"", Encoding.Unicode, 200),
+			("application/json; charset=unsupported-charset", Encoding.UTF8, 415),
+			("application/json; charset=\"\"", Encoding.UTF8, 415),
+			("application/json; charset=utf-7", Encoding.UTF8, 415) })
+		{
+			var context = new DefaultHttpContext { RequestServices = app.Services };
+			context.Request.ContentType = contentType;
+			context.Request.Body = new MemoryStream(encoding.GetBytes(json));
+			context.Response.Body = new MemoryStream();
+			await endpoint.RequestDelegate!(context);
+			Assert.Equal(status, context.Response.StatusCode);
+			using var response = JsonDocument.Parse(((MemoryStream)context.Response.Body).ToArray());
+			if (status == 200)
+				Assert.Equal("Québec", response.RootElement.GetProperty("columns")[0].GetProperty("value").GetString());
+			else
+				Assert.Equal("application/problem+json", context.Response.ContentType);
+		}
 	}
 
 	private sealed class Provider : IIntervieweesDataProvider
