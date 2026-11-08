@@ -25,6 +25,10 @@ const yearRadio = (page: Page, year: string) =>
 // Поле radio скрыто библиотекой, щёлкаем по подписи года.
 const selectYear = (page: Page, year: string) =>
     page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
+const selectMetric = (page: Page, name: string) =>
+    page.getByRole('radiogroup', { name: 'Показатель' }).getByText(name, { exact: true }).click()
+const selectView = (page: Page, name: string) =>
+    page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText(name, { exact: true }).click()
 const filterPanel = (page: Page) => page.getByRole('complementary')
 const sidebarButton = (page: Page, name: string) => filterPanel(page).getByRole('button', { name, exact: true })
 // Поле флажка RSuite скрыто, щёлкаем по подписи.
@@ -92,7 +96,7 @@ test.describe('desktop 1440', () => {
 
     test('sorts company names descending, then ascending', async ({ page }) => {
         await mockApi(page)
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
         const companies = table(page, 'Компания')
 
         await companies.getByRole('button', { name: 'Компания' }).click()
@@ -117,7 +121,7 @@ test.describe('desktop 1440', () => {
 
     test('an invalid link keeps the page working, warns and sends the initial filter', async ({ page }) => {
         const api = await mockApi(page)
-        for (const [search, parameter] of [['?filter=not-json', 'filter'], ['?tab=%22unknown%22', 'tab'], ['?v=1&year=2031', 'year']]) {
+        for (const [search, parameter] of [['?filter=not-json', 'filter'], ['?tab=%22unknown%22', 'tab'], ['?v=1&year=2031', 'year'], ['?v=1&view=other', 'view']]) {
             await page.goto(`/${search}`)
             await expect(page.getByText(`«${parameter}»`)).toBeVisible()
             await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
@@ -181,7 +185,8 @@ test.describe('desktop 1440', () => {
         await page.goto('/')
         await sidebarButton(page, 'Таганрог, 20–44 года').click()
         await selectYear(page, '2021')
-        await toggleCheckbox(page, 'Отображать доверительный интервал')
+        await selectMetric(page, 'Рекомендуют')
+        await selectView(page, 'Таблица')
         await page.waitForLoadState('networkidle')
         const loaded = api.calls.length
 
@@ -192,7 +197,8 @@ test.describe('desktop 1440', () => {
         await page.setViewportSize({ width: 1440, height: 900 })
         await expect(yearRadio(page, '2021')).toBeChecked()
         await expect(sidebarButton(page, 'Таганрог, 20–44 года')).toBeDisabled()
-        await expect(page.getByRole('checkbox', { name: 'Отображать доверительный интервал' })).toBeChecked()
+        await expect(page.getByRole('radiogroup', { name: 'Показатель' }).getByRole('radio', { name: 'Рекомендуют', exact: true })).toBeChecked()
+        await expect(page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByRole('radio', { name: 'Таблица' })).toBeChecked()
         expect(api.calls).toHaveLength(loaded)
     })
 
@@ -337,13 +343,81 @@ test.describe('desktop 1440', () => {
         await mockApi(page)
         await page.goto('/')
         await selectYear(page, '2020')
-        await toggleCheckbox(page, 'Знаю и рекомендую')
+        await selectMetric(page, 'Хотят работать')
+        await selectView(page, 'Таблица')
 
         await page.getByRole('button', { name: 'Дублировать' }).click()
 
         const search = await page.evaluate(() => location.search)
         expect(search).toContain('good=0')
+        expect(search).toContain('view=table')
+        expect(search).not.toContain('error=')
         expect(await openedUrl(page)).toBe(search)
+    })
+
+    test('metric, view and legacy flags survive year changes, reload and history without requests', async ({ page }) => {
+        const api = await mockApi(page)
+        await page.goto('/?v=1&companies=%5B%22IBS%20Dunice%22%5D')
+        const metric = page.getByRole('radiogroup', { name: 'Показатель' })
+        const chart = page.getByRole('img', { name: /^Карта компаний/ })
+        const ticks = page.locator('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value')
+        const tickLines = page.locator('.recharts-yAxis-tick-lines .recharts-cartesian-axis-tick-line')
+        await expect(chart).toHaveAttribute('aria-label', /2022 год.*Рекомендуют \+ хотят работать.*Компаний: 1.*Таблица/)
+        await expect(ticks.last()).toHaveText('140 %')
+        await expect(page.getByRole('table')).toHaveCount(0)
+        const posts = api.posts().length
+        for (const [label, maximum, share] of [['Рекомендуют', '70 %', 0.1], ['Хотят работать', '70 %', 0.05], ['Рекомендуют + хотят работать', '140 %', 0.15]] as const) {
+            await selectMetric(page, label)
+            await expect(ticks.last()).toHaveText(maximum)
+            const zeroY = Number(await tickLines.first().getAttribute('y1'))
+            const topY = Number(await tickLines.last().getAttribute('y1'))
+            const pointY = Number(await page.locator('[data-company="IBS Dunice"] circle').getAttribute('cy'))
+            expect(pointY).toBeCloseTo(zeroY + (topY - zeroY) * share / (parseInt(maximum) / 100), 6)
+            await expect(chart).toHaveAttribute('aria-label', new RegExp(label.replace('+', '\\+')))
+        }
+        await selectMetric(page, 'Рекомендуют')
+        await selectYear(page, '2019')
+        await expect(metric.getByRole('radio')).toHaveCount(1)
+        await expect(metric.getByRole('radio', { name: 'Хотят работать' })).toBeChecked()
+        await expect(ticks.last()).toHaveText('25 %')
+        await expect(page.getByText('В 2019 году ось показывает только «Хотят работать».')).toBeVisible()
+        expect(new URL(page.url()).searchParams.get('wanted')).toBe('0')
+        await selectYear(page, '2022')
+        await expect(metric.getByRole('radio', { name: 'Рекомендуют', exact: true })).toBeChecked()
+        await selectView(page, 'Таблица')
+        await expect(chart).toHaveCount(0)
+        await expect(table(page, 'Компания').getByRole('columnheader')).toHaveCount(7)
+        await page.goBack()
+        await expect(yearRadio(page, '2019')).toBeChecked()
+        await expect(chart).toBeVisible()
+        await page.goForward()
+        await expect(table(page, 'Компания')).toBeVisible()
+        expect(api.posts()).toHaveLength(posts)
+        await page.reload()
+        await expect(table(page, 'Компания')).toBeVisible()
+        await expect(metric.getByRole('radio', { name: 'Рекомендуют', exact: true })).toBeChecked()
+    })
+
+    test('old interval and disabled flags explain the change; selecting a metric recovers the map', async ({ page }) => {
+        await mockApi(page)
+        await page.goto('/?v=1&error=1&good=0&wanted=0')
+        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toBeVisible()
+        await expect(page.getByText('Показатель не выбран.')).toBeVisible()
+        await expect(page.locator('.recharts-wrapper')).toHaveCount(0)
+        await selectYear(page, '2019')
+        await expect(page.getByText('Показатель не выбран.')).toBeVisible()
+        await page.getByRole('button', { name: 'Закрыть', exact: true }).click()
+        await page.goBack()
+        await expect(page.getByText('Отображение «доверительного интервала» убрано:')).toBeVisible()
+        const metric = page.getByRole('radiogroup', { name: 'Показатель' })
+        await metric.getByRole('radio', { name: 'Рекомендуют', exact: true }).focus()
+        await page.keyboard.press('Space')
+        await expect(page.locator('[data-company] circle')).toHaveCount(5)
+        await expect(page.getByText('Показатель не выбран.')).toHaveCount(0)
+        expect(new URL(page.url()).searchParams.has('error')).toBe(false)
+        await selectYear(page, '2021')
+        await page.goBack()
+        await expect(metric.getByRole('radio', { name: 'Рекомендуют', exact: true })).toBeChecked()
     })
 
     test('a too long address is neither written nor duplicated', async ({ page }) => {
@@ -365,7 +439,7 @@ test.describe('desktop 1440', () => {
     })
 
     // Счёт ведётся после начальной загрузки: в dev-сборке StrictMode повторяет эффекты при монтировании.
-    test('the year, companies, chart flags, sorting and Back send no requests, a preset sends two', async ({ page }) => {
+    test('the year, companies, metric, view, sorting and Back send no requests, a preset sends two', async ({ page }) => {
         const api = await mockApi(page)
         await page.goto('/')
         await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
@@ -373,7 +447,8 @@ test.describe('desktop 1440', () => {
         const loaded = api.calls.length
 
         await selectYear(page, '2021')
-        await toggleCheckbox(page, 'Знаю и хочу работать')
+        await selectMetric(page, 'Рекомендуют')
+        await selectView(page, 'Таблица')
         await table(page, 'Компания').getByRole('button', { name: 'Знают' }).click()
         await page.locator('.rs-picker-toggle', { hasText: 'IBS Dunice' }).click()
         await toggleCheckbox(page, 'Выбрать все')
@@ -394,7 +469,7 @@ test.describe('desktop 1440', () => {
         const api = await mockApi(page)
         let release = () => {}
         api.override(forCity('Тбилиси'), new Promise<void>(resolve => { release = resolve }))
-        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }))
+        await page.goto(linkTo({ ...INITIAL_FILTER, cities: ['Тбилиси'] }, '&view=table'))
         await expect(page.getByText('Загрузка данных').first()).toBeVisible()
 
         await sidebarButton(page, 'Исходная выборка').click()
@@ -410,7 +485,7 @@ test.describe('desktop 1440', () => {
     test('a failed sample request shows an error and recovers on retry, companies keep working', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isMeta, 500)
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
         await expect(page.getByText('Выборка: не удалось загрузить')).toBeVisible()
         await navButton(page, 'Состав выборки').click()
@@ -425,7 +500,7 @@ test.describe('desktop 1440', () => {
     test('a network error of the company request recovers on retry', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isCompanies, 'abort')
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
 
         await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
         restore()
@@ -436,7 +511,7 @@ test.describe('desktop 1440', () => {
     test('returning to a group with a failed request shows loading, not the old error', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isCompanies, 500)
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
         await expect(page.getByText('Не удалось загрузить данные')).toBeVisible()
         restore()
         let release = () => {}
@@ -454,7 +529,7 @@ test.describe('desktop 1440', () => {
     test('a dictionary error stays in the filter panel', async ({ page }) => {
         const api = await mockApi(page)
         const restore = api.override(isFilterOptions, 500)
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
 
         await expect(filterPanel(page).getByText('Не удалось загрузить данные')).toBeVisible()
         await expect(firstColumn(table(page, 'Компания'))).toHaveCount(6)
@@ -488,7 +563,7 @@ test.describe('desktop 1440', () => {
 
     test('an undefined brand rating is shown as a dash and sorted last', async ({ page }) => {
         await mockApi(page)
-        await page.goto('/')
+        await page.goto('/?v=1&view=table')
         const companies = table(page, 'Компания')
 
         await companies.getByRole('button', { name: 'Рейтинг бренда' }).click()
@@ -517,7 +592,7 @@ test('mobile keeps the selected year and renders a late sample independently of 
     const api = await mockApi(page)
     let release = () => {}
     api.override(isMeta, new Promise<void>(resolve => { release = resolve }))
-    await page.goto('/?v=1&year=2021')
+    await page.goto('/?v=1&year=2021&view=table')
     await expect(yearRadio(page, '2021')).toBeChecked()
     await expect(firstColumn(table(page, 'Компания'))).toHaveCount(3)
     await expect(page.getByText('Выборка: …')).toBeVisible()
@@ -689,7 +764,7 @@ for (const width of [390, 768, 1223]) {
 test('resize keeps company selection and both sorts, without remounting main or requesting data', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 900 })
     const api = await mockApi(page)
-    await page.goto('/?v=1&year=2021&companies=%5B%22IBS%20Dunice%22%5D')
+    await page.goto('/?v=1&view=table&year=2021&companies=%5B%22IBS%20Dunice%22%5D')
     const main = await page.getByRole('main').elementHandle()
     const companyTable = table(page, 'Компания')
     await companyTable.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
@@ -722,7 +797,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         await page.setViewportSize({ width: colorScheme === 'light' ? 390 : 1440, height: 900 })
         await page.emulateMedia({ colorScheme })
         const api = await mockApi(page)
-        await page.goto(linkTo(TAGANROG, '&year=2021'))
+        await page.goto(linkTo(TAGANROG, '&year=2021&view=table'))
         await expect(page.getByText('Выборка: 60 из 500')).toBeVisible()
         const themeButton = page.getByRole('button', { name: 'Тёмная тема', exact: true })
         await expect(page.locator('body')).toHaveClass(`rs-theme-${colorScheme}`)

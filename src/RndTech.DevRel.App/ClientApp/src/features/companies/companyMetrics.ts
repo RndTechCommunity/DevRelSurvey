@@ -29,17 +29,34 @@ export function selectMapRows(yearRows: readonly CompanyResult[], companies: rea
         : yearRows
 }
 
-// В 2019 году ось Y показывает только «хотят работать»: любой включённый флаг даёт wantedLevel.
-export function chartY(row: CompanyResult, flags: ChartFlags): number {
-    return row.year === 2019
-        ? (flags.showGood || flags.showWanted ? 1 : 0) * row.wantedLevel
-        : (flags.showGood ? 1 : 0) * row.goodLevel + (flags.showWanted ? 1 : 0) * row.wantedLevel
+export type ChartMetric = 'goodAndWanted' | 'good' | 'wanted'
+
+export const METRIC_LABELS: Record<ChartMetric, string> = {
+    goodAndWanted: 'Рекомендуют + хотят работать',
+    good: 'Рекомендуют',
+    wanted: 'Хотят работать'
 }
 
-// Для года без строк — конечная шкала вместо −Infinity.
-export function yAxisMax(yearRows: readonly CompanyResult[], flags: ChartFlags): number {
-    return Math.max(0, ...yearRows.map(row =>
-        (flags.showGood ? 1 : 0) * row.goodLevel + (flags.showWanted ? 1 : 0) * row.wantedLevel)) + 0.05
+export const hasWantedOnlyYear = (years: readonly number[]) => years.includes(2019)
+
+export function chartMetric(flags: ChartFlags, years: readonly number[]): ChartMetric | null {
+    if (!flags.showGood && !flags.showWanted) return null
+    if (hasWantedOnlyYear(years)) return 'wanted'
+    return flags.showGood ? (flags.showWanted ? 'goodAndWanted' : 'good') : 'wanted'
+}
+
+export function metricValue(row: CompanyResult, metric: ChartMetric): number {
+    return metric === 'goodAndWanted' ? row.goodLevel + row.wantedLevel
+        : metric === 'good' ? row.goodLevel : row.wantedLevel
+}
+
+export function yAxisScale(rows: readonly CompanyResult[], metric: ChartMetric): { max: number, ticks: number[] } {
+    const dataMax = Math.max(0, ...rows.map(row => metricValue(row, metric)))
+    const steps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5]
+    const step = steps.find(step => Math.floor(dataMax / step + 1e-9) + 1 <= 10) ?? 0.5
+    const count = dataMax === 0 ? 5 : Math.floor(dataMax / step + 1e-9) + 1
+    const ticks = Array.from({ length: count + 1 }, (_, i) => i * step)
+    return { max: count * step, ticks }
 }
 
 export function toCompanyMetrics(row: CompanyResult): CompanyMetrics {

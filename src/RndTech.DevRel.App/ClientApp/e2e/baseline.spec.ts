@@ -12,6 +12,9 @@ const yearRadio = (page: Page, year: string) =>
 const selectYear = (page: Page, year: string) =>
     page.getByRole('radiogroup', { name: 'Год исследования' }).getByText(year, { exact: true }).click()
 
+const selectTable = (page: Page) =>
+    page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText('Таблица', { exact: true }).click()
+
 function rowCells(page: Page, name: string) {
     return page.locator('tbody tr').filter({ hasText: name }).first().locator('td')
 }
@@ -39,9 +42,12 @@ test.describe('desktop 1440', () => {
         await expect(page.getByText('2022 · Ростов-на-Дону, 20–44 года · Выборка: 100 из 600')).toBeVisible()
         expect(api.posts(isCompanies)[0].body).toBe(JSON.stringify(INITIAL_FILTER))
         await expect(yearRadio(page, '2022')).toBeChecked()
+        await expect(page.getByRole('img', { name: /^Карта компаний/ })).toBeVisible()
+        expect(await page.getByRole('img', { name: /^Карта компаний/ }).getAttribute('tabindex')).toBeNull()
+        await selectTable(page)
         await expect(rowCells(page, 'IBS Dunice')).toHaveText(['IBS Dunice', '40%', '10%', '5%', '15%', '95', '60'])
 
-        // График не добавляет остановку Tab между controls и таблицей.
+        // Заголовки сортировки доступны с клавиатуры.
         const companyHeader = page.getByRole('button', { name: 'Компания', exact: true })
         const focusedTags: string[] = []
         while (focusedTags.length < 60 && !await companyHeader.evaluate(header => header === document.activeElement)) {
@@ -84,6 +90,7 @@ test.describe('desktop 1440', () => {
         await selectYear(page, '2019')
 
         await expect(page.getByText('Выборка: 50 из 300')).toBeVisible()
+        await selectTable(page)
         await expect(rowCells(page, 'Контур')).toHaveText(['Контур', '25%', '5%', '2.5%', '7.5%', '52.5', '42.9'])
         expect(api.posts()).toHaveLength(posts)
     })
@@ -121,6 +128,18 @@ test('screenshots of the initial page', async ({ page }) => {
         await page.setViewportSize({ width, height: 900 })
         await page.goto('/')
         await expect(page.getByText(/Выборка: 100|Всего участников/).first()).toBeVisible()
+        await expect(page.getByRole('img', { name: /^Карта компаний/ })).toBeVisible()
+        expect(await horizontalOverflow(page), `map ${width}`).toBe(0)
+        const metric = page.getByRole('radiogroup', { name: 'Показатель' })
+        for (const name of ['Рекомендуют', 'Хотят работать', 'Рекомендуют + хотят работать']) {
+            await metric.getByText(name, { exact: true }).click()
+            await expect.poll(() => metric.evaluate(element => {
+                const active = element.querySelector('label:has(input:checked)')!.getBoundingClientRect()
+                const indicator = element.querySelector('.rs-segmented-control-indicator')!.getBoundingClientRect()
+                return Math.max(...(['x', 'y', 'width', 'height'] as const).map(key => Math.abs(active[key] - indicator[key])))
+            }), `selected metric ${width}`).toBeLessThanOrEqual(2)
+        }
+        await selectTable(page)
         await expect(page.getByRole('columnheader', { name: 'Компания' })).toBeVisible()
         expect(await horizontalOverflow(page), `companies ${width}`).toBe(0)
         if (width >= 1224) {
@@ -168,14 +187,19 @@ test.describe('small viewport and touch', () => {
         await mockApi(page)
         const longName = 'Компания с длинным названием для проверки переноса на телефоне'
         await page.route('**/api/results/known-and-wanted', route => route.fulfill({
-            json: [...companyResults, { ...companyResults[0], name: longName }]
+            json: [...companyResults, { ...companyResults[0], name: longName },
+                ...Array.from({ length: 20 }, (_, i) => ({ ...companyResults[0], name: `Тестовая компания ${i}` }))]
         }))
         await page.goto('/')
+        await selectTable(page)
         const scroll = page.getByRole('region', { name: 'Таблица компаний' })
-        await scroll.getByRole('cell', { name: longName }).click({ trial: true })
+        expect(await scroll.evaluate(element => element.clientHeight)).toBeGreaterThan(500)
+        expect(await scroll.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1)
+        await scroll.locator('tbody tr').nth(12).scrollIntoViewIfNeeded()
+        await expect.poll(() => scroll.locator('thead').evaluate(header => Math.abs(header.getBoundingClientRect().top))).toBeLessThanOrEqual(1)
         const point = await scroll.evaluate(element => {
             const rect = element.getBoundingClientRect()
-            return { x: Math.round(rect.x + rect.width * 0.8), y: Math.round(rect.y + 100) }
+            return { x: Math.round(rect.x + rect.width * 0.8), y: Math.round(Math.max(0, rect.y) + 100) }
         })
         await expect.poll(() => scroll.evaluate((element, point) => {
             const cell = document.elementFromPoint(point.x, point.y)?.closest('td')
@@ -213,12 +237,33 @@ test.describe('small viewport and touch', () => {
             return Math.abs(header.x - cell.x) <= 1 && header.x < element.getBoundingClientRect().x
         })
         expect(aligned).toBe(true)
+        await expect.poll(() => scroll.locator('thead').evaluate(header => Math.abs(header.getBoundingClientRect().top))).toBeLessThanOrEqual(1)
         for (const width of [1440, 390]) {
             await page.setViewportSize({ width, height: 900 })
             const name = scroll.getByRole('cell', { name: longName })
             expect(await name.evaluate(element => element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
             await expect.poll(() => horizontalOverflow(page)).toBe(0)
         }
+        // Шапка остаётся одной и доступна клавиатуре после изменения ширины и сортировки.
+        await scroll.getByRole('button', { name: 'Компания', exact: true }).press('Enter')
+        await expect(scroll.getByRole('columnheader', { name: 'Компания' })).toHaveAttribute('aria-sort', 'descending')
+        await expect(scroll.getByRole('columnheader')).toHaveCount(7)
+        await page.setViewportSize({ width: 390, height: 200 })
+        await page.mouse.move(380, 180)
+        await page.mouse.wheel(0, 5000)
+        await expect.poll(() => scroll.locator('thead').evaluate(header => header.getBoundingClientRect().top)).toBeLessThan(0)
+        expect(await scroll.evaluate(element => {
+            const header = element.querySelector('thead')!.getBoundingClientRect()
+            const table = element.querySelector('table')!.getBoundingClientRect()
+            return Math.abs(header.bottom - table.bottom)
+        })).toBeLessThanOrEqual(1)
+        await page.setViewportSize({ width: 390, height: 900 })
+        await selectYear(page, '2021')
+        await expect(scroll.locator('tbody tr')).toHaveCount(3)
+        expect(await scroll.evaluate(element => element.scrollHeight - element.clientHeight)).toBeLessThanOrEqual(1)
+        await page.getByRole('radiogroup', { name: 'Вид', exact: true }).getByText('Карта', { exact: true }).click()
+        await selectTable(page)
+        await expect(scroll.locator('thead')).toHaveCount(1)
         await cdp.detach()
         const actions = await page.locator('button, [role="button"], [role="combobox"], label:has(input)')
             .evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0)

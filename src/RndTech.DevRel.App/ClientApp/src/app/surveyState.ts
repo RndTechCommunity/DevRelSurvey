@@ -7,6 +7,8 @@ import { SortDirection } from '../shared/sort'
 
 export type SurveyPage = 'companies' | 'sample' | 'methodology'
 
+export type CompanyView = 'map' | 'table'
+
 export type CompanySortKey = keyof CompanyMetrics
 
 export const COMPANY_SORT_KEYS: readonly CompanySortKey[] =
@@ -20,7 +22,7 @@ export type SurveyState = {
     readonly companies: readonly string[],
     readonly showGood: boolean,
     readonly showWanted: boolean,
-    readonly showLegacyError: boolean,
+    readonly view: CompanyView,
     readonly sort: { readonly key: CompanySortKey, readonly direction: SortDirection } | null
 }
 
@@ -64,6 +66,6 @@ export const DEFAULT_STATE: SurveyState = {
     companies: DEFAULT_COMPANIES,
     showGood: true,
     showWanted: true,
-    showLegacyError: false,
+    view: 'map',
     sort: null
 }
