@@ -76,7 +76,6 @@ describe('invalid parameters fall back to defaults with a warning', () => {
         ['companies that are not a list', '?v=1&companies=oops', 'companies'],
         ['a flag other than 0 and 1', '?v=1&good=2', 'good'],
         ['an unknown view', '?v=1&view=other', 'view'],
-        ['an unknown error flag', '?v=1&error=2', 'error'],
         ['an unknown sort key', '?v=1&sort=revenue&direction=asc', 'sort']
     ])('%s', (_, search, parameter) => {
         const { state, warnings } = decodeSurveyUrl(search)
@@ -104,14 +103,15 @@ describe('v1 links', () => {
         expect(decodeSurveyUrl(encodeSurveyUrl(state))).toEqual({ state, warnings: [] })
     })
 
-    test('legacy interval links explain its removal and both disabled flags remain disabled', () => {
+    test('obsolete interval parameters are ignored and disabled flags remain disabled', () => {
         const { state, warnings } = decodeSurveyUrl('?v=1&error=1&good=0&wanted=0')
         expect(state).toEqual({ ...LINK_DEFAULTS, showGood: false, showWanted: false })
-        expect(warnings).toEqual(['Отображение «доверительного интервала» убрано: это была одна константа для всех компаний, а не рассчитанный интервал. Подробнее — в разделе «О данных»'])
+        expect(warnings).toEqual([])
         const params = new URLSearchParams(encodeSurveyUrl(state))
         expect(params.has('error')).toBe(false)
         expect(params.get('view')).toBe('map')
         expect(decodeSurveyUrl('?v=1&error=0').warnings).toEqual([])
+        expect(decodeSurveyUrl('?v=1&error=2').warnings).toEqual([])
     })
 
     test('missing companies mean the legacy set, an empty list means all companies', () => {

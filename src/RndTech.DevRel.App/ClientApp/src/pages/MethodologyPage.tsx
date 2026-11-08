@@ -3,7 +3,7 @@ import { LATEST_YEAR, SURVEY_YEARS } from '../api/types'
 import styles from './MethodologyPage.module.css'
 
 export type MethodologySection =
-    'about' | 'filters' | 'denominators' | 'overlap' | 'year-2019' | 'indexes' | 'interval' | 'comparison' | 'sample'
+    'about' | 'filters' | 'denominators' | 'overlap' | 'year-2019' | 'indexes' | 'comparison' | 'sample'
 
 export type OpenAbout = (section: MethodologySection) => void
 
@@ -144,15 +144,6 @@ const SECTIONS: readonly { readonly id: MethodologySection, readonly title: stri
                 в таблице стоит «—», а при сортировке такие строки идут последними.
             </p>
         </>
-    },
-    {
-        id: 'interval',
-        title: '«Доверительный интервал» на карте',
-        content: <p>
-            Отображение «доверительного интервала» убрано. Прежние круги вычислялись из одной константы 0,0441
-            для всех компаний, лет и групп. Это не рассчитанный интервал: по кругам нельзя судить ни о точности
-            долей, ни о том, значимо ли различаются компании. Для настоящих интервалов нужна отдельная методика.
-        </p>
     },
     {
         id: 'comparison',
