@@ -1,5 +1,4 @@
 .scroll {
-    height: 500px;
     overflow: auto;
 }
 
@@ -8,9 +7,8 @@
     font-variant-numeric: tabular-nums;
 }
 
-.table th {
-    position: sticky;
-    top: 0;
+.table thead {
+    position: relative;
     z-index: 1;
     background: var(--rs-bg-card);
 }

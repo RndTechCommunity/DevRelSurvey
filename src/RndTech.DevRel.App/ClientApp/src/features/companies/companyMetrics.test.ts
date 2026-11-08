@@ -1,12 +1,14 @@
 import { CompanyResult } from '../../api/types'
-import { formatIndex } from '../../shared/format'
+import { formatIndex, toPercent } from '../../shared/format'
 import { companyResults } from '../../test/fixtures'
 import {
-    chartY,
+    chartMetric,
+    hasWantedOnlyYear,
+    metricValue,
     selectCompanyRows,
     selectMapRows,
     toCompanyMetrics,
-    yAxisMax
+    yAxisScale
 } from './companyMetrics'
 
 const both = { showGood: true, showWanted: true }
@@ -35,22 +37,36 @@ test('the brand rating is undefined when its denominator is not positive', () =>
     expect(toCompanyMetrics(row('Тинькофф', 2022)).brandRating).toBeNull()
 })
 
-test('chartY sums enabled shares in 2022 and uses only wanted in 2019', () => {
+test('the metric respects the 2019 rule without changing the stored flags', () => {
+    expect(chartMetric(both, [2022])).toBe('goodAndWanted')
+    expect(chartMetric({ showGood: true, showWanted: false }, [2022])).toBe('good')
+    expect(chartMetric({ showGood: false, showWanted: true }, [2022])).toBe('wanted')
+    expect(chartMetric(both, [2019])).toBe('wanted')
+    expect(chartMetric({ showGood: true, showWanted: false }, [2019])).toBe('wanted')
+    expect(chartMetric(both, [2022, 2019])).toBe('wanted')
+    expect(chartMetric({ showGood: false, showWanted: false }, [2019])).toBeNull()
+    expect(chartMetric({ showGood: false, showWanted: false }, [2022])).toBeNull()
+    expect(hasWantedOnlyYear([2022, 2019])).toBe(true)
+    expect(hasWantedOnlyYear([2022])).toBe(false)
     const company = row('IBS Dunice', 2022)
-    const company2019 = { ...company, year: 2019 }
-
-    expect(chartY(company, both)).toBeCloseTo(0.15, 10)
-    expect(chartY(company2019, both)).toBe(0.05)
-    expect(chartY(company2019, { showGood: true, showWanted: false })).toBe(0.05)
-    expect(chartY(company, { showGood: false, showWanted: false })).toBe(0)
+    expect(metricValue(company, 'goodAndWanted')).toBeCloseTo(0.15, 10)
+    expect(metricValue(company, 'good')).toBe(0.1)
+    expect(metricValue(company, 'wanted')).toBe(0.05)
 })
 
-test('the 2019 axis domain still uses good + wanted', () => {
-    expect(yAxisMax(selectCompanyRows(companyResults, 2019), both)).toBeCloseTo(0.2 + 0.24 + 0.05, 10)
-})
-
-test('the axis domain of a year without rows is finite', () => {
-    expect(yAxisMax([], both)).toBe(0.05)
+test('axis ticks are even, distinct and end strictly above the shown metric, including exact step multiples', () => {
+    const rows2019 = selectCompanyRows(companyResults, 2019)
+    expect(yAxisScale(rows2019, 'wanted').max).toBe(0.25)
+    for (const maximum of [0.3, 0.24, 0, 4 / 3]) {
+        const scale = yAxisScale([{ ...row('IBS Dunice', 2022), goodLevel: maximum / 2, wantedLevel: maximum / 2 }], 'goodAndWanted')
+        expect(scale.max - maximum).toBeGreaterThan(1e-9)
+        expect(scale.ticks.at(-1)).toBe(scale.max)
+        expect(scale.ticks.length).toBeLessThanOrEqual(11)
+        expect(new Set(scale.ticks.map(toPercent)).size).toBe(scale.ticks.length)
+        scale.ticks.slice(1).forEach((tick, i) => expect(tick - scale.ticks[i]).toBeCloseTo(scale.ticks[1], 10))
+    }
+    expect(yAxisScale([{ ...row('IBS Dunice', 2022), wantedLevel: 0.3 }], 'wanted').max).toBeCloseTo(0.35, 10)
+    expect(yAxisScale([], 'wanted')).toEqual({ max: 0.05, ticks: [0, 0.01, 0.02, 0.03, 0.04, 0.05] })
 })
 
 test('rows of a year keep absent companies absent and do not mutate the input', () => {

@@ -2,7 +2,7 @@ import { LATEST_YEAR, SURVEY_YEARS, SurveyYear } from '../api/types'
 import { DEFAULT_FILTER, parseRespondentFilter, RespondentFilter } from '../features/filters/model'
 import { COMPANY_SORT_KEYS, DEFAULT_STATE, SurveyState } from './surveyState'
 
-// v1: ?v=1&page&year&filter&companies&good&wanted&error[&sort&direction].
+// v1: ?v=1&page&year&filter&companies&good&wanted&view[&sort&direction].
 // Старые ссылки: ?tab=<JSON-строка>&filter=<JSON-объект>.
 
 // Лимит строки запроса Kestrel и nginx — 8 KB: более длинный адрес не откроется после перезагрузки.
@@ -72,6 +72,11 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
 
     const flag = (text: string) => text === '1' ? true : text === '0' ? false : undefined
 
+    if (read('error', false, flag)) {
+        warnings.push('Отображение «доверительного интервала» убрано: это была одна константа для всех компаний, '
+            + 'а не рассчитанный интервал. Подробнее — в разделе «О данных»')
+    }
+
     const sortKey = params.get('sort')
     const direction = params.get('direction')
     let sort = DEFAULT_STATE.sort
@@ -97,7 +102,7 @@ function decodeV1(params: URLSearchParams, warnings: string[]): SurveyState {
         }),
         showGood: read('good', DEFAULT_STATE.showGood, flag),
         showWanted: read('wanted', DEFAULT_STATE.showWanted, flag),
-        showLegacyError: read('error', DEFAULT_STATE.showLegacyError, flag),
+        view: read('view', DEFAULT_STATE.view, text => text === 'map' || text === 'table' ? text : undefined),
         sort
     }
 }
@@ -121,7 +126,7 @@ export function encodeSurveyUrl(state: SurveyState): string {
         companies: JSON.stringify(state.companies),
         good: flag(state.showGood),
         wanted: flag(state.showWanted),
-        error: flag(state.showLegacyError)
+        view: state.view
     })
     if (state.sort) {
         params.set('sort', state.sort.key)

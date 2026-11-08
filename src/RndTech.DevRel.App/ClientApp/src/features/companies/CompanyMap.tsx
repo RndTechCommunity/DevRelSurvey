@@ -11,7 +11,7 @@ import {
 import { Tooltip, Whisper } from 'rsuite'
 import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
-import { chartY, ChartFlags } from './companyMetrics'
+import { ChartMetric, METRIC_LABELS, metricValue, yAxisScale } from './companyMetrics'
 
 // Ключи — подписи с неразрывными пробелами; исходное имя компании остаётся идентификатором.
 const companyFillColorMap: { readonly [label: string]: string } = {
@@ -47,18 +47,18 @@ const companyFillColorMap: { readonly [label: string]: string } = {
 
 const nbspLabel = (text: string) => text.split(' ').join('\u00A0')
 
-type MapPoint = CompanyResult & { readonly chartY: number }
+type MapPoint = CompanyResult & { readonly metricValue: number }
 
 type Props = {
     rows: readonly CompanyResult[],
-    yAxisMax: number,
-    flags: ChartFlags,
-    showLegacyError: boolean
+    year: number,
+    metric: ChartMetric,
+    scale: ReturnType<typeof yAxisScale>
 }
 
-export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: Props) {
+export default function CompanyMap({ rows, year, metric, scale }: Props) {
     const renderCompanyEntry = ({ payload, cx, cy }: ScatterPointItem) => {
-        const { name, error, knownLevel, knownVotes, goodVotes, wantedVotes, selectionCount }: MapPoint = payload
+        const { name, knownVotes, goodVotes, wantedVotes, selectionCount }: MapPoint = payload
         if (cx === undefined || cy === undefined) {
             return null
         }
@@ -74,15 +74,9 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
             </Tooltip>
         );
 
-        // При нулевой узнаваемости формула даёт Infinity или NaN — круг не рисуется.
-        const radius = (showLegacyError ? error : 0) * cx / knownLevel
-
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
                 <g fill={companyFillColorMap[nbspLabel(name)] || 'var(--chart-point)'} data-company={name}>
-                    <g fillOpacity={0.1}>
-                        <Dot cx={cx} cy={cy} r={Number.isFinite(radius) ? radius : 0} />
-                    </g>
                     <Dot cx={cx} cy={cy} r={1.5} />
                     <g transform={`translate(${cx},${cy})`}>
                         <text x={6} y={0} dy={-2} textAnchor='left' style={{ fontWeight: 600 }}>
@@ -94,11 +88,12 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
         )
     }
 
-    const points: MapPoint[] = rows.map(row => ({ ...row, chartY: chartY(row, flags) }))
+    const points: MapPoint[] = rows.map(row => ({ ...row, metricValue: metricValue(row, metric) }))
 
     return (
         <ResponsiveContainer width='100%' height='100%'>
-            <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false}>
+            <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false} role='img'
+                aria-label={`Карта компаний, ${year} год. ${METRIC_LABELS[metric]}. Компаний: ${rows.length}. Числа доступны в виде «Таблица».`}>
                 <CartesianGrid stroke='var(--chart-grid)' strokeDasharray='1 1' />
                 <XAxis
                     label={{
@@ -117,16 +112,16 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
                 />
                 <YAxis
                     label={{
-                        value: 'Привлекательность',
+                        value: METRIC_LABELS[metric],
                         position: 'center',
                         angle: -90,
                         dx: 20,
                         fill: 'var(--chart-axis)'
                     }}
-                    dataKey='chartY'
+                    dataKey='metricValue'
                     type='number'
-                    domain={[0, yAxisMax]}
-                    tickCount={11}
+                    domain={[0, scale.max]}
+                    ticks={scale.ticks}
                     stroke='var(--chart-axis)'
                     tickFormatter={toPercent}
                     axisLine={false}

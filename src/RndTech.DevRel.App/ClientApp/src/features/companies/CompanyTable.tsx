@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, useLayoutEffect, useRef } from 'react'
 import { CompanyResult } from '../../api/types'
 import { CompanySortKey, SurveyState } from '../../app/surveyState'
 import { formatIndex, toPercentWithTenths } from '../../shared/format'
@@ -32,12 +32,32 @@ const COLUMNS: readonly { key: CompanySortKey, header: string, width: number, re
 ]
 
 export default function CompanyTable({ rows, sort, onSort }: Props) {
+    const tableRef = useRef<HTMLTableElement>(null)
+    useLayoutEffect(() => {
+        const table = tableRef.current!
+        const header = table.tHead!
+        const affix = () => {
+            const rect = table.getBoundingClientRect()
+            const offset = Math.max(0, Math.min(-rect.top, rect.height - header.offsetHeight))
+            header.style.transform = `translateY(${offset}px)`
+        }
+        const observer = new ResizeObserver(affix)
+        observer.observe(table)
+        window.addEventListener('scroll', affix, { passive: true })
+        window.addEventListener('resize', affix)
+        affix()
+        return () => {
+            observer.disconnect()
+            window.removeEventListener('scroll', affix)
+            window.removeEventListener('resize', affix)
+        }
+    }, [rows])
     const metrics = rows.map(toCompanyMetrics)
     const sorted = sort ? sortRows(metrics, row => row[sort.key], sort.direction) : metrics
 
     return (
         <div className={styles.scroll} role='region' aria-label='Таблица компаний' tabIndex={0}>
-            <table className={`${tableStyles.table} ${styles.table}`}>
+            <table ref={tableRef} className={`${tableStyles.table} ${styles.table}`}>
                 <colgroup>{COLUMNS.map(column => <col key={column.key} style={{ width: column.width }} />)}</colgroup>
                 <thead><tr>{COLUMNS.map(column => (
                     <th key={column.key} scope='col'
