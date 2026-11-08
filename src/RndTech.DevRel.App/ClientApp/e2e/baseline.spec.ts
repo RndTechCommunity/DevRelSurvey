@@ -135,6 +135,10 @@ test('screenshots of the initial page', async ({ page }) => {
         await expect(page.getByRole('columnheader', { name: 'Город' })).toBeVisible()
         expect(await horizontalOverflow(page), `sample ${width}`).toBe(0)
         expect(await cutNames(page), `sample names ${width}`).toEqual([])
+        expect(await page.locator('td [aria-hidden="true"] > span').evaluateAll(bars => bars.length > 0 && bars.every(bar => {
+            const { width, height } = bar.getBoundingClientRect()
+            return width > 0 && height > 0
+        })), `sample bars ${width}`).toBe(true)
         await page.getByRole('button', { name: 'Компании', exact: true }).click()
         await test.info().attach(`initial-${width}.png`, {
             body: await page.screenshot({ fullPage: true }),
@@ -184,11 +188,13 @@ test.describe('small viewport and touch', () => {
             })) }), contentType: 'application/json'
         })
         const cdp = await page.context().newCDPSession(page)
-        const touchStarted = scroll.evaluate(element => new Promise<boolean>(resolve => {
-            element.addEventListener('touchstart', event => resolve(event.isTrusted), { once: true, passive: true })
-        }))
+        await scroll.evaluate(element => {
+            element.addEventListener('touchstart', event => {
+                element.setAttribute('data-trusted-touch', String(event.isTrusted))
+            }, { once: true, passive: true })
+        })
         await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...point, id: 1 }] })
-        expect(await touchStarted).toBe(true)
+        await expect(scroll).toHaveAttribute('data-trusted-touch', 'true')
         for (let step = 1; step <= 12; step++) {
             await cdp.send('Input.dispatchTouchEvent', {
                 type: 'touchMove', touchPoints: [{ x: point.x - step * 20, y: point.y, id: 1 }]

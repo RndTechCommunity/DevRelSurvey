@@ -13,9 +13,6 @@ import { CompanyResult } from '../../api/types'
 import { toPercent, toPercentWithTenths } from '../../shared/format'
 import { chartY, ChartFlags } from './companyMetrics'
 
-const defaultFillColor = '#AAAAAA'
-const axesColor = '#81E2E7'
-
 // Ключи — подписи с неразрывными пробелами; исходное имя компании остаётся идентификатором.
 const companyFillColorMap: { readonly [label: string]: string } = {
     'OSSHelp': '#E34422',
@@ -82,7 +79,7 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
 
         return (
             <Whisper placement='auto' trigger='hover' speaker={tooltip}>
-                <g fill={companyFillColorMap[nbspLabel(name)] || defaultFillColor} data-company={name}>
+                <g fill={companyFillColorMap[nbspLabel(name)] || 'var(--chart-point)'} data-company={name}>
                     <g fillOpacity={0.1}>
                         <Dot cx={cx} cy={cy} r={Number.isFinite(radius) ? radius : 0} />
                     </g>
@@ -102,18 +99,19 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
     return (
         <ResponsiveContainer width='100%' height='100%'>
             <ScatterChart margin={{ bottom: 10, right: 10 }} accessibilityLayer={false}>
-                <CartesianGrid strokeDasharray='1 1' />
+                <CartesianGrid stroke='var(--chart-grid)' strokeDasharray='1 1' />
                 <XAxis
                     label={{
                         value: 'Узнаваемость',
                         position: 'center',
                         dy: 20,
-                        fill: axesColor
+                        fill: 'var(--chart-axis)'
                     }}
                     dataKey='knownLevel'
                     type='number'
                     domain={[0, 1]}
                     tickCount={11}
+                    stroke='var(--chart-axis)'
                     tickFormatter={toPercent}
                     axisLine={false}
                 />
@@ -123,12 +121,13 @@ export default function CompanyMap({ rows, yAxisMax, flags, showLegacyError }: P
                         position: 'center',
                         angle: -90,
                         dx: 20,
-                        fill: axesColor
+                        fill: 'var(--chart-axis)'
                     }}
                     dataKey='chartY'
                     type='number'
                     domain={[0, yAxisMax]}
                     tickCount={11}
+                    stroke='var(--chart-axis)'
                     tickFormatter={toPercent}
                     axisLine={false}
                     orientation='right'

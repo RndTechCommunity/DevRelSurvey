@@ -508,6 +508,7 @@ test.describe('desktop 1440', () => {
         await selectYear(page, '2021')
         await expect(page.getByText('В выбранной группе нет респондентов за 2021 год.')).toBeVisible()
         await expect(page.getByText('Выборка: 0 из 500')).toBeVisible()
+        await expect(page.locator('td [aria-hidden="true"]')).toHaveCount(0)
     })
 })
 
@@ -705,7 +706,71 @@ test('resize keeps company selection and both sorts, without remounting main or 
     for (const width of [390, 1440]) {
         await page.setViewportSize({ width, height: 900 })
         await expect(firstColumn(languages)).toHaveText(['TypeScript', 'JavaScript', 'C#'])
+        expect(await languages.locator('td [aria-hidden="true"] > span').first().evaluate(bar => {
+            const rect = bar.getBoundingClientRect()
+            const track = bar.parentElement!.getBoundingClientRect()
+            return rect.width > 0 && rect.height > 0 && rect.left >= track.left && rect.right <= track.right
+                && rect.top >= track.top && rect.bottom <= track.bottom
+        })).toBe(true)
         await expect(yearRadio(page, '2021')).toBeChecked()
     }
     expect(api.posts()).toHaveLength(posts)
 })
+
+for (const colorScheme of ['light', 'dark'] as const) {
+    test(`theme follows ${colorScheme} system preference and preserves an explicit choice`, async ({ page }) => {
+        await page.setViewportSize({ width: colorScheme === 'light' ? 390 : 1440, height: 900 })
+        await page.emulateMedia({ colorScheme })
+        const api = await mockApi(page)
+        await page.goto(linkTo(TAGANROG, '&year=2021'))
+        await expect(page.getByText('Выборка: 60 из 500')).toBeVisible()
+        const themeButton = page.getByRole('button', { name: 'Тёмная тема', exact: true })
+        await expect(page.locator('body')).toHaveClass(`rs-theme-${colorScheme}`)
+        expect(await page.evaluate(() => localStorage.getItem('devrel-theme'))).toBeNull()
+        const other = colorScheme === 'light' ? 'dark' : 'light'
+        await page.emulateMedia({ colorScheme: other })
+        await expect(page.locator('body')).toHaveClass(`rs-theme-${other}`)
+        const url = page.url()
+        const contents = await table(page, 'Компания').innerText()
+        await page.waitForLoadState('networkidle')
+        const posts = api.posts().length
+        await themeButton.focus()
+        await page.keyboard.press('Space')
+        await expect(themeButton).toHaveAttribute('aria-pressed', String(colorScheme === 'dark'))
+        await expect(page.locator('body')).toHaveClass(`rs-theme-${colorScheme}`)
+        await expect(themeButton).toBeFocused()
+        await page.waitForLoadState('networkidle')
+        expect(page.url()).toBe(url)
+        expect(await table(page, 'Компания').innerText()).toBe(contents)
+        expect(api.posts()).toHaveLength(posts)
+        expect(await page.evaluate(() => localStorage.getItem('devrel-theme'))).toBe(colorScheme)
+        await page.reload()
+        await expect(page.locator('body')).toHaveClass(`rs-theme-${colorScheme}`)
+        await expect(yearRadio(page, '2021')).toBeChecked()
+        await expect(page.getByText('2021 · Таганрог, 20–44 года · Выборка: 60 из 500')).toBeVisible()
+    })
+}
+
+for (const failure of ['read', 'write'] as const) {
+    test(`unavailable theme storage (${failure}) falls back to the system without crashing`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: 'light' })
+        await page.addInitScript(failure => {
+            localStorage.setItem('devrel-theme', 'dark')
+            if (failure === 'read') Object.defineProperty(window, 'localStorage', { get() { throw new Error('Storage unavailable') } })
+            else Storage.prototype.setItem = () => { throw new Error('Storage full') }
+        }, failure)
+        const errors = collectErrors(page)
+        const api = await mockApi(page)
+        await page.goto('/')
+        await expect(page.getByText('Выборка: 100 из 600')).toBeVisible()
+        await expect(page.locator('body')).toHaveClass(`rs-theme-${failure === 'read' ? 'light' : 'dark'}`)
+        const posts = api.posts().length
+        await page.getByRole('button', { name: 'Тёмная тема', exact: true }).click()
+        await expect(page.locator('body')).toHaveClass('rs-theme-light')
+        await page.emulateMedia({ colorScheme: 'dark' })
+        await expect(page.locator('body')).toHaveClass('rs-theme-dark')
+        await page.waitForLoadState('networkidle')
+        expect(api.posts()).toHaveLength(posts)
+        expect(errors).toEqual([])
+    })
+}
