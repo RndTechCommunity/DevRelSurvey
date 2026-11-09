@@ -1,6 +1,6 @@
 import { Button, SegmentedControl, SelectPicker } from 'rsuite'
 import { Split } from '@rsuite/icons'
-import { countOf, SURVEY_YEARS, SurveyMeta, SurveyYear } from '../api/types'
+import { AudienceMatrixResponse, countOf, SURVEY_YEARS, SurveyMeta, SurveyYear } from '../api/types'
 import { describeFilter } from '../features/filters/model'
 import { RequestState } from '../shared/AsyncState'
 import { usePickerFocusReturn } from '../shared/usePickerFocusReturn'
@@ -12,6 +12,7 @@ type Props = {
     state: SurveyState,
     update: UpdateSurveyState,
     meta: RequestState<SurveyMeta>,
+    matrixRequest?: RequestState<AudienceMatrixResponse>,
     onDuplicate: () => void
 }
 
@@ -27,7 +28,7 @@ function sampleSize(meta: RequestState<SurveyMeta>, year: SurveyYear) {
         : '…'
 }
 
-export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
+export default function SurveyBar({ state, update, meta, matrixRequest, onDuplicate }: Props) {
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn()
     const group = describeFilter(state.filter).map(restriction => restriction.value).join(', ') || 'Все участники'
 
@@ -61,7 +62,10 @@ export default function SurveyBar({ state, update, meta, onDuplicate }: Props) {
                 </>}
             </div>
             <div className={styles.summary}>
-                <p role='status'>{state.year} · {group}{state.page !== 'audience-matrix' && <> · Выборка: {sampleSize(meta, state.year)}</>}</p>
+                <p role='status'>{state.year} · {group} · Выборка: {matrixRequest
+                    ? matrixRequest.status === 'error' ? 'не удалось загрузить'
+                        : matrixRequest.status === 'ready' ? matrixRequest.data?.baseRespondentCount : '…'
+                    : sampleSize(meta, state.year)}</p>
                 <Button appearance='link' onClick={onDuplicate}>
                     <Split />&nbsp;
                     Дублировать

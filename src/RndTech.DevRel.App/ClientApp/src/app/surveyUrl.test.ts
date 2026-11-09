@@ -129,6 +129,17 @@ describe('v1 links', () => {
 })
 
 describe('v2 matrix links', () => {
+    test.each(['asc', 'desc'])('legacy base %s becomes name asc without losing the selection', direction => {
+        const original = { ...DEFAULT_STATE, page: 'audience-matrix' as const, companies: ['Missing'],
+            matrix: { ...DEFAULT_STATE.matrix, groupValues: ['Backend', 'Unknown'] } }
+        const params = new URLSearchParams(encodeSurveyUrl(original))
+        params.set('matrix', JSON.stringify({ ...original.matrix, sort: { by: 'base', direction } }))
+        const decoded = decodeSurveyUrl(params.toString())
+        expect(decoded).toEqual({ state: original, warnings: [] })
+        expect(decodeSurveyUrl(encodeSurveyUrl(decoded.state))).toEqual(decoded)
+        expect(encodeSurveyUrl(decoded.state)).not.toContain('base')
+    })
+
     test.each([null, [], [null, '', 'null', 'Новый грейд', '100% + "A"']])('round trip preserves selection %j and latent comparison', groupValues => {
         const state: SurveyState = { ...DEFAULT_STATE, page: 'audience-matrix', compareYear: 2022,
             matrix: { groupBy: 'experiences', groupValues, metric: 'good', sort: { by: 'name', direction: 'desc' } } }

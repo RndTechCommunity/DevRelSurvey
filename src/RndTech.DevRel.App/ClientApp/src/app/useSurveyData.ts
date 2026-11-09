@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getCompanyResults, getFilterOptions, getSurveyMeta } from '../api/client'
 import { RespondentFilter } from '../features/filters/model'
 import { RequestState } from '../shared/AsyncState'
 
-type Settled<T> = { readonly key: string } & ({ readonly data: T } | { readonly error: unknown })
+type Settled<T> = { readonly key: object } & ({ readonly data: T } | { readonly error: unknown })
 
 export function useRequest<A, T>(request: (arg: A, signal: AbortSignal) => Promise<T>, arg: A): RequestState<T> {
     const [attempt, setAttempt] = useState(0)
     const [settled, setSettled] = useState<Settled<T>>()
     // Ключ — значение аргумента: тот же фильтр в другом объекте не вызывает запрос.
     const argKey = JSON.stringify(arg)
-    const key = `${argKey}#${attempt}`
+    const key = useMemo(() => ({ request, argKey, attempt }), [request, argKey, attempt])
 
     useEffect(() => {
         const controller = new AbortController()

@@ -131,20 +131,24 @@ function decodeMatrix(text: string | null, warnings: string[]): AudienceMatrixSt
     if (!validMetric) warnings.push(invalidParameter('matrix.metric'))
     const metric = validMetric ? input.metric as AudienceMatrixState['metric'] : DEFAULT_MATRIX.metric
     let sort = DEFAULT_MATRIX.sort
+    let validSort = false
     const rawSort = input.sort
     if (rawSort && typeof rawSort === 'object' && !Array.isArray(rawSort)) {
         const candidate = rawSort as Record<string, unknown>
         const direction = candidate.direction
         if (direction === 'asc' || direction === 'desc') {
-            if (candidate.by === 'name' || candidate.by === 'base') sort = { by: candidate.by, direction }
+            if (candidate.by === 'name' || candidate.by === 'base') {
+                sort = candidate.by === 'base' ? DEFAULT_MATRIX.sort : { by: 'name', direction }
+                validSort = true
+            }
             else if (candidate.by === 'column' && validMatrixValue(groupBy, candidate.value)) {
                 sort = groupValues === null || groupValues.includes(candidate.value)
                     ? { by: 'column', value: candidate.value, direction } : { by: 'name', direction: 'asc' }
-                if (sort.by === 'name') warnings.push(invalidParameter('matrix.sort'))
+                validSort = sort.by === 'column'
             }
         }
     }
-    if (sort === DEFAULT_MATRIX.sort) warnings.push(invalidParameter('matrix.sort'))
+    if (!validSort) warnings.push(invalidParameter('matrix.sort'))
     return { groupBy, groupValues, metric, sort }
 }
 

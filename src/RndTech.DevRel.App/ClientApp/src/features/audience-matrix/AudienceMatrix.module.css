@@ -15,8 +15,8 @@
 
 .controls {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
     margin: 16px 0;
 }
 
@@ -31,6 +31,10 @@
     font-weight: 600;
 }
 
+.field :global([role='combobox']) {
+    min-height: 44px;
+}
+
 .field select {
     width: 100%;
     min-height: 44px;
@@ -42,41 +46,10 @@
     font: inherit;
 }
 
-.actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.base {
-    font-size: 16px;
-    font-weight: 600;
-    margin: 24px 0 12px;
-}
-
-.legend {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 16px 0;
-}
-
-.legend > span:last-child {
-    flex-basis: 100%;
-}
-
-.gradient {
-    width: 140px;
-    height: 14px;
-    border-radius: 4px;
-}
-
 .scroll {
     overflow: auto;
     max-width: 100%;
-    max-height: min(70vh, 720px);
-    scroll-padding: 0 4px 4px calc(var(--matrix-name-width) + 6px);
+    scroll-padding-inline: calc(var(--matrix-name-width) + 6px) 4px;
     border: 1px solid var(--rs-border-primary);
     border-radius: 4px;
 }
@@ -94,15 +67,12 @@
 .table th {
     box-sizing: border-box;
     background: var(--rs-bg-card);
-    padding: 12px;
+    padding: 6px;
     overflow-wrap: anywhere;
     text-align: left;
 }
 
 .table thead th {
-    position: var(--matrix-header-position, sticky);
-    top: 0;
-    z-index: 2;
     width: 150px;
     vertical-align: top;
 }
@@ -115,11 +85,10 @@
 }
 
 .table thead tr > th:first-child {
-    position: var(--matrix-header-position, sticky);
     z-index: 3;
 }
 
-.table th span {
+.table th .count {
     display: block;
     font-weight: 400;
     margin-top: 6px;
@@ -129,62 +98,66 @@
     padding: 0;
 }
 
-.cell {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 5px;
+.table thead {
+    position: relative;
+    z-index: 2;
+}
+
+.table thead button {
     width: 100%;
-    min-height: 70px;
+    min-height: 44px;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cell {
+    display: block;
+    width: 100%;
+    min-height: 36px;
     border: 0;
     border-radius: 4px;
-    padding: 10px;
-    background: var(--rs-bg-well);
-    color: var(--rs-text-primary);
-    font: inherit;
+    padding: 6px;
+    background: rgb(224, 228, 232);
+    color: #000;
+    font-weight: 600;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 20px;
     text-align: center;
     cursor: pointer;
 }
 
-.cell strong {
-    font-size: 17px;
-}
-
 .cell:focus-visible {
-    outline: 3px solid currentColor;
+    outline: 3px solid #000;
     outline-offset: -4px;
 }
 
-.details {
-    margin-top: 16px;
-    padding: 16px;
-    background: var(--rs-bg-card);
-    border: 1px solid var(--rs-border-primary);
-    border-radius: 4px;
+.tooltip {
+    --rs-tooltip-bg: #20252b;
+    --rs-tooltip-text: #fff;
+    font-size: 14px;
+    max-width: min(360px, calc(100vw - 16px));
     overflow-wrap: anywhere;
 }
 
-.close {
-    float: right;
-    min-width: 44px;
-    min-height: 44px;
-    background: transparent;
-    border: 0;
-    color: inherit;
-    font-size: 24px;
-    cursor: pointer;
+@media (pointer: coarse) {
+    .cell { min-height: 44px; }
+}
+
+@media (max-width: 1223px) {
+    .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 767px) {
-    .controls {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
+    .controls { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 480px) {
-    .page {
-        --matrix-name-width: 150px;
-    }
-
+    .page { --matrix-name-width: 150px; }
 }
