@@ -95,7 +95,8 @@ export default function AudienceMatrixTable({ data, companies, metric, sort, onS
             if (event.target instanceof Node && !anchorRef.current?.contains(event.target) && !speakerRef.current?.contains(event.target)) setSelection(null)
         }
         const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelection(null) }
-        const position = () => {
+        let positionTimer: ReturnType<typeof setTimeout>
+        const updatePosition = () => {
             const anchor = anchorRef.current
             if (!anchor) return
             const rect = anchor.getBoundingClientRect()
@@ -105,6 +106,11 @@ export default function AudienceMatrixTable({ data, companies, metric, sort, onS
             if (rect.right <= Math.max(0, region.left, name.right) || rect.left >= Math.min(innerWidth, region.right)
                 || rect.bottom <= Math.max(0, header.bottom) || rect.top >= Math.min(innerHeight, region.bottom)) setSelection(null)
             else whisperRef.current?.updatePosition()
+        }
+        const position = () => {
+            updatePosition()
+            clearTimeout(positionTimer)
+            positionTimer = setTimeout(updatePosition, 100)
         }
         const observer = new ResizeObserver(position)
         observer.observe(scroll)
@@ -116,6 +122,7 @@ export default function AudienceMatrixTable({ data, companies, metric, sort, onS
         window.addEventListener('resize', position)
         return () => {
             observer.disconnect()
+            clearTimeout(positionTimer)
             document.removeEventListener('pointerdown', closeOutside)
             document.removeEventListener('keydown', escape)
             scroll.removeEventListener('scroll', position)

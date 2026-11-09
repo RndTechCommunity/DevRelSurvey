@@ -434,6 +434,34 @@ test('empty auto can be cleared and restored with the keyboard action', async ({
 })
 
 for (const theme of ['light', 'dark'] as const) {
+    for (const openingDelay of [0, 240]) test(`tooltip survives resize at ${openingDelay} ms and repeated resize in ${theme}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: theme })
+        const api = await mockApi(page)
+        await page.goto(url({ matrix: { ...initial.matrix, groupValues: ['Backend', 'Unknown', 'Frontend'] } }))
+        await cell(page).click()
+        if (openingDelay) await page.waitForTimeout(openingDelay)
+        await page.setViewportSize({ width: 390, height: 900 })
+        await cell(page).focus()
+        await cell(page).press('Enter')
+        for (const repeated of [false, true]) {
+            if (repeated) {
+                for (const width of [430, 390, 420, 390]) await page.setViewportSize({ width, height: 900 })
+            }
+            await expect(tooltip(page)).toHaveCSS('opacity', '1')
+            await page.waitForTimeout(1200)
+            const bounds = (await tooltip(page).boundingBox())!
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+            expect(await tooltip(page).boundingBox()).toEqual(bounds)
+            expect(bounds.x).toBeGreaterThanOrEqual(0)
+            expect(bounds.y).toBeGreaterThanOrEqual(0)
+            expect(bounds.x + bounds.width).toBeLessThanOrEqual(390)
+            expect(bounds.y + bounds.height).toBeLessThanOrEqual(900)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+            await expect(tooltip(page)).toContainText('50,0% · Отметок: 1 · Ответов о компании: 2')
+            await expectCellVisible(cell(page))
+        }
+        expect(api.posts(isMatrix)).toHaveLength(1)
+    })
     test(`tooltip lifecycle and palette in ${theme}`, async ({ page }) => {
         await page.emulateMedia({ colorScheme: theme })
         await mockApi(page)
