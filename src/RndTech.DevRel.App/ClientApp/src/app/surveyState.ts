@@ -16,7 +16,7 @@ export const COMPANY_SORT_KEYS: readonly CompanySortKey[] =
 
 export type MatrixMetric = 'wanted' | 'known' | 'good'
 export type MatrixSort =
-    | { readonly by: 'name' | 'base', readonly direction: SortDirection }
+    | { readonly by: 'name', readonly direction: SortDirection }
     | { readonly by: 'column', readonly value: MatrixValue, readonly direction: SortDirection }
 export type AudienceMatrixState = {
     readonly groupBy: AudienceGroupBy,
@@ -25,7 +25,7 @@ export type AudienceMatrixState = {
     readonly sort: MatrixSort
 }
 export const DEFAULT_MATRIX: AudienceMatrixState = {
-    groupBy: 'professions', groupValues: null, metric: 'wanted', sort: { by: 'base', direction: 'desc' }
+    groupBy: 'professions', groupValues: null, metric: 'wanted', sort: { by: 'name', direction: 'asc' }
 }
 
 export type SurveyState = {

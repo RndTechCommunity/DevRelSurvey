@@ -37,7 +37,7 @@ export function effectiveMatrixMetric(metric: MatrixMetric, year: SurveyYear): M
     return year === 2019 && metric === 'good' ? 'wanted' : metric
 }
 export type MatrixCell = { readonly votes: number, readonly companyN: number, readonly share: number } | null
-export type MatrixRow = { readonly name: string, readonly base: MatrixCell, readonly cells: readonly MatrixCell[] }
+export type MatrixRow = { readonly name: string, readonly cells: readonly MatrixCell[] }
 function cell(company: CompanyResult | undefined, peopleN: number, metric: MatrixMetric): MatrixCell {
     if (!company || peopleN <= 0 || company.selectionCount <= 0) return null
     const votes = company[`${metric}Votes`]
@@ -46,27 +46,25 @@ function cell(company: CompanyResult | undefined, peopleN: number, metric: Matri
         ? { votes, companyN: company.selectionCount, share } : null
 }
 export function matrixRows(data: AudienceMatrixResponse, companies: readonly string[], metric: MatrixMetric, sort: MatrixSort): MatrixRow[] {
-    const base = new Map(data.baseCompanies.map(company => [company.name, company]))
     const columns = data.columns.map(column => new Map(column.companies.map(company => [company.name, company])))
     const rows = [...new Set(companies.length ? companies : data.companyNames)].map(name => ({
-        name, base: cell(base.get(name), data.baseRespondentCount, metric),
+        name,
         cells: data.columns.map((column, i) => cell(columns[i].get(name), column.respondentCount, metric))
     }))
     if (sort.by === 'name') return sortRows(rows, row => row.name, sort.direction)
-    const column = sort.by === 'column' ? data.columns.findIndex(column => column.value === sort.value) : -1
+    const column = data.columns.findIndex(column => column.value === sort.value)
     return sortRows(sortRows(rows, row => row.name, 'asc'),
-        row => (sort.by === 'base' ? row.base : row.cells[column])?.share ?? null, sort.direction)
+        row => row.cells[column]?.share ?? null, sort.direction)
 }
 export function matrixMaximum(rows: readonly MatrixRow[]): number | null {
     const shares = rows.flatMap(row => row.cells.flatMap(cell => cell === null ? [] : [cell.share]))
     return shares.length ? shares.reduce((max, value) => Math.max(max, value), 0) : null
 }
 export const matrixPercent = (share: number) => `${(100 * share).toFixed(1).replace('.', ',')}%`
-export function matrixColor(share: number, max: number, theme: 'light' | 'dark') {
-    const [from, to] = theme === 'light' ? [[239, 246, 243], [8, 126, 139]] : [[26, 47, 53], [94, 234, 212]]
+export function matrixColor(share: number, max: number) {
+    const from = [236, 246, 243]
+    const to = [91, 184, 170]
     const q = max > 0 ? Math.max(0, Math.min(1, share / max)) : 0
     const rgb = from.map((value, index) => Math.round(value + q * (to[index] - value)))
-    const linear = rgb.map(value => value / 255 <= 0.04045 ? value / 255 / 12.92 : ((value / 255 + 0.055) / 1.055) ** 2.4)
-    const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
-    return { backgroundColor: `rgb(${rgb.join(', ')})`, color: (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? '#000' : '#fff' }
+    return { backgroundColor: `rgb(${rgb.join(', ')})`, color: '#000' }
 }

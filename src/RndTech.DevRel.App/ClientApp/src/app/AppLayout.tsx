@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { ReactNode, useState } from 'react'
 import { Button, Nav } from 'rsuite'
-import { CompanyResult, FilterOptions, SurveyMeta } from '../api/types'
+import { AudienceMatrixResponse, CompanyResult, FilterOptions, SurveyMeta } from '../api/types'
+import { getAudienceMatrix } from '../api/client'
+import { useRequest } from './useSurveyData'
 import FilterDrawer from '../features/filters/FilterDrawer'
 import FilterChips from '../features/filters/FilterChips'
 import { NO_RESTRICTIONS } from '../features/filters/model'
@@ -34,6 +36,14 @@ const SECTIONS = [
     { page: 'methodology', label: 'О данных' }
 ] as const
 
+function MatrixRequest({ state, children }: { state: SurveyState, children: (request: RequestState<AudienceMatrixResponse>) => ReactNode }) {
+    const { matrix } = state
+    const request = useRequest(getAudienceMatrix, {
+        year: state.year, filter: state.filter, groupBy: matrix.groupBy, groupValues: matrix.groupValues
+    })
+    return <>{children(request)}</>
+}
+
 export default function AppLayout({ theme, onToggleTheme, isWide, state, update, onDuplicate, companies, meta, options }: Props) {
     // Раздел «О данных», на который ведёт «Подробнее»; в адрес не пишется.
     const [aboutSection, setAboutSection] = useState<MethodologySection>()
@@ -44,6 +54,29 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
     }
     const effectiveCompareYear = state.compareYear === state.year ? null : state.compareYear
     const openAbout = (section: MethodologySection) => openPage('methodology', section)
+
+    const renderSurvey = (matrixRequest?: RequestState<AudienceMatrixResponse>) => (
+        <>
+            <SurveyBar state={state} update={update} meta={meta} matrixRequest={matrixRequest} onDuplicate={onDuplicate} />
+            <div className={styles.body}>
+                <div className={styles.filters}>
+                    {isWide
+                        ? <aside className={styles.aside}>
+                            <FilterPanel filter={state.filter} options={options} onChange={filter => update({ filter })} />
+                        </aside>
+                        : <FilterDrawer filter={state.filter} options={options} onChange={filter => update({ filter })} />}
+                </div>
+                <main className={styles.main}>
+                    <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
+                    {matrixRequest
+                        ? <AudienceMatrixPage state={state} update={update} request={matrixRequest} />
+                        : state.page === 'sample'
+                            ? <SamplePage meta={meta} year={state.year} compareYear={effectiveCompareYear} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
+                            : <CompaniesPage state={{ ...state, compareYear: effectiveCompareYear }} update={update} companies={companies} onAbout={openAbout} />}
+                </main>
+            </div>
+        </>
+    )
 
     return (
         <>
@@ -80,26 +113,9 @@ export default function AppLayout({ theme, onToggleTheme, isWide, state, update,
                         <MethodologyPage section={aboutSection} />
                     </main>
                 )
-                : <>
-                    <SurveyBar state={state} update={update} meta={meta} onDuplicate={onDuplicate} />
-                    <div className={styles.body}>
-                        <div className={styles.filters}>
-                            {isWide
-                                ? <aside className={styles.aside}>
-                                    <FilterPanel filter={state.filter} options={options} onChange={filter => update({ filter })} />
-                                </aside>
-                                : <FilterDrawer filter={state.filter} options={options} onChange={filter => update({ filter })} />}
-                        </div>
-                        <main className={styles.main}>
-                            <FilterChips filter={state.filter} onChange={filter => update({ filter })} />
-                            {state.page === 'audience-matrix'
-                                ? <AudienceMatrixPage state={state} update={update} theme={theme} />
-                                : state.page === 'sample'
-                                    ? <SamplePage meta={meta} year={state.year} compareYear={effectiveCompareYear} onAbout={openAbout} onAllParticipants={() => update({ filter: NO_RESTRICTIONS })} />
-                                    : <CompaniesPage state={{ ...state, compareYear: effectiveCompareYear }} update={update} companies={companies} onAbout={openAbout} />}
-                        </main>
-                    </div>
-                </>}
+                : state.page === 'audience-matrix'
+                    ? <MatrixRequest state={state}>{request => renderSurvey(request)}</MatrixRequest>
+                    : renderSurvey()}
         </>
     )
 }

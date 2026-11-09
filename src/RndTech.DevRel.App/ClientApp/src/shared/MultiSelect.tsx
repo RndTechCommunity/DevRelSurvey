@@ -10,14 +10,16 @@ type Props = {
     labelledBy?: string,
     getLabel?: (value: string) => string,
     preset?: { label: string, values: readonly string[] },
+    action?: { label: string, onSelect: () => void },
     onChange: (value: readonly string[]) => void
 }
 
 const ALL = -1
 const PRESET = -2
+const ACTION = -3
 
 // «Выбрать все» записывает явный список; смысл пустого списка задаёт владелец.
-export default function MultiSelect({ options, value, placeholder, labelledBy, preset, getLabel = value => value, onChange }: Props) {
+export default function MultiSelect({ options, value, placeholder, labelledBy, preset, action, getLabel = value => value, onChange }: Props) {
     const [query, setQuery] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
     const { ref, wrapperProps, pickerProps } = usePickerFocusReturn(() => searchRef.current?.focus({ preventScroll: true }))
@@ -35,7 +37,8 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, p
                 ref={ref}
                 {...pickerProps}
                 data={[{ value: ALL, label: 'Выбрать все' },
-                    ...(preset ? [{ value: PRESET, label: preset.label }] : []), ...shown]}
+                    ...(preset ? [{ value: PRESET, label: preset.label }] : []),
+                    ...(action ? [{ value: ACTION, label: action.label }] : []), ...shown]}
                 placeholder={placeholder}
                 aria-labelledby={labelledBy}
                 block
@@ -47,6 +50,10 @@ export default function MultiSelect({ options, value, placeholder, labelledBy, p
                     setQuery('')
                 }}
                 onChange={next => {
+                    if (next.includes(ACTION)) {
+                        action?.onSelect()
+                        return
+                    }
                     const nextAll = next.includes(ALL)
                     const nextPreset = next.includes(PRESET)
                     if (nextAll !== allSelected) onChange(nextAll ? choices : [])

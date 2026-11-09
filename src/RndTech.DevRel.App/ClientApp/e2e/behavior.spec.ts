@@ -1141,7 +1141,19 @@ for (const touch of [false, true]) {
             await checkNeighbors()
             await page.setViewportSize({ width: 1440, height: 900 })
             // Касание сохраняет открытую подсказку даже после перемонтирования shape.
-            if (!touch) await page.locator(`[data-company="${actualName}"] circle`).last().hover({ force: true })
+            if (!touch) {
+                const resizedDot = page.locator(`[data-company="${actualName}"] circle`).last()
+                await expect.poll(() => resizedDot.evaluate(async dot => {
+                    const svg = dot.closest('svg')
+                    const container = svg?.closest('.recharts-responsive-container')?.getBoundingClientRect()
+                    if (!svg || !container) return false
+                    if ((['width', 'height'] as const).some(size => Number(svg.getAttribute(size)) !== Math.round(container[size]))) return false
+                    const bounds = JSON.stringify(dot.getBoundingClientRect())
+                    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+                    return dot.isConnected && JSON.stringify(dot.getBoundingClientRect()) === bounds
+                })).toBe(true)
+                await resizedDot.hover({ force: true })
+            }
             await checkNeighbors()
             await selectMetric(page, 'Хотят работать')
             await expect(tooltip).toHaveCount(0)
