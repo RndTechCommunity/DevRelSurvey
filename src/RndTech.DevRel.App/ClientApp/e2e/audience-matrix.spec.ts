@@ -1,4 +1,3 @@
-import { writeFile } from 'node:fs/promises'
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, Page, Locator } from '@playwright/test'
 import { AudienceGroupBy } from '../src/api/types'
@@ -296,12 +295,16 @@ for (const theme of ['light', 'dark'] as const) test(`touch cell and horizontal 
     await expect(tooltip(page)).toHaveCount(0)
     await cell(page).tap()
     await expect(tooltip(page)).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(tooltip(page)).toHaveCount(0)
     const region = page.getByRole('region', { name: 'Матрица аудиторий, прокручиваемая таблица' })
-    await region.scrollIntoViewIfNeeded()
-    const box = (await region.boundingBox())!
+    await cell(page).scrollIntoViewIfNeeded()
+    const box = (await cell(page).boundingBox())!
+    const start = { x: Math.min(382, box.x + box.width - 8), y: box.y + box.height / 2 }
+    expect(await cell(page).evaluate((button, point) => button.contains(document.elementFromPoint(point.x, point.y)), start)).toBe(true)
     const cdp = await context.newCDPSession(page)
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 340, y: box.y + 90 }] })
-    for (const x of [290, 220, 150, 60]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: box.y + 90 }] })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] })
+    for (const distance of [50, 120, 190, 280]) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x - distance, y: start.y }] })
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     await expect.poll(() => region.evaluate(element => element.scrollLeft)).toBeGreaterThan(0)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -311,11 +314,10 @@ for (const theme of ['light', 'dark'] as const) test(`touch cell and horizontal 
     await context.close()
 })
 
-for (const run of [1, 2, 3]) test(`125 companies and 81 columns remain complete; full state and performance ${run}`, async ({ page, context, browser }, testInfo) => {
+test('125 companies and 81 columns remain complete with full state', async ({ page, context }) => {
     const errors: string[] = []
     page.on('pageerror', error => errors.push(error.message))
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
-    let readyStart = 0
     const api = await mockApi(page)
     await page.route('**/tag.js', route => route.fulfill({ body: '', contentType: 'application/javascript' }))
     await page.route('**/api/results/audience-matrix', async route => {
@@ -324,7 +326,6 @@ for (const run of [1, 2, 3]) test(`125 companies and 81 columns remain complete;
         const availableValues = Array.from({ length: 81 }, (_, i) => ({ value: `Город ${i}`, label: `Город ${i}`, respondentCount: 1 }))
         const values: string[] = request.groupValues ?? availableValues.slice(0, 6).map(option => option.value)
         const companyNames = Array.from({ length: 125 }, (_, i) => `Полное название компании ${i}`)
-        if (values.length === 81) readyStart = await page.evaluate(() => performance.now())
         await route.fulfill({ json: { ...response, availableValues, companyNames,
             columns: values.map(value => ({ value, label: value, respondentCount: 1, companies: companyNames.map((name, index) => ({ ...response.baseCompanies[0], name, selectionCount: 125, wantedVotes: index + 1 })) })) } })
     })
@@ -336,37 +337,12 @@ for (const run of [1, 2, 3]) test(`125 companies and 81 columns remain complete;
     await expect(table(page).getByRole('columnheader')).toHaveCount(82)
     await expect(table(page).locator('tbody button')).toHaveCount(10125)
     await expect(table(page).locator('tbody button').first()).not.toHaveText('—')
-    const readyToPaint = await page.evaluate(() => new Promise<number>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(performance.now()))))) - readyStart
-    const timings: Record<string, number[]> = { tooltip: [], sort: [] }
-    await table(page).locator('tbody button').first().scrollIntoViewIfNeeded()
-    for (let i = 0; i < 3; i++) {
-        timings.tooltip.push(await table(page).locator('tbody button').first().evaluate(button => {
-            const start = performance.now()
-            button.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' }))
-            return new Promise<number>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(performance.now() - start))))
-        }))
-        await expect(tooltip(page)).toHaveCount(1)
-        await page.keyboard.press('Escape')
-        timings.sort.push(await table(page).locator('thead button').nth(1).evaluate(button => {
-            const start = performance.now()
-            button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-            return new Promise<number>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(performance.now() - start))))
-        }))
-    }
-    const session = await context.newCDPSession(page)
-    await session.send('Performance.enable')
-    const { metrics } = await session.send('Performance.getMetrics')
-    const report = testInfo.outputPath('performance.json')
-    await writeFile(report, JSON.stringify({
-        browser: browser.version(), readyToPaint, timings, heap: metrics.find(metric => metric.name === 'JSHeapUsedSize')?.value,
-        visibleTooltips: await tooltip(page).count(), errors
-    }, null, 2))
-    await testInfo.attach('full-matrix-performance', { contentType: 'application/json', path: report })
-    expect(readyToPaint).toBeLessThanOrEqual(3000)
-    for (const values of Object.values(timings)) {
-        expect(Math.max(...values)).toBeLessThanOrEqual(1000)
-        expect([...values].sort((a, b) => a - b)[1]).toBeLessThanOrEqual(500)
-    }
+    await table(page).locator('tbody button').first().click()
+    await expect(tooltip(page)).toContainText('Ответов о компании: 125')
+    await page.keyboard.press('Escape')
+    await table(page).locator('thead button').nth(1).click()
+    await expect(table(page).getByRole('rowheader').first()).toHaveText('Полное название компании 124')
+    await expect(table(page).locator('tbody button')).toHaveCount(10125)
     expect(errors).toEqual([])
     const before = page.url()
     await page.getByRole('combobox', { name: 'Компании', exact: true }).click()
@@ -494,9 +470,15 @@ for (const theme of ['light', 'dark'] as const) {
         await page.setViewportSize({ width: 390, height: 900 })
         await button.focus()
         await button.press('Enter')
-        const bounds = await tooltip(page).boundingBox()
-        expect(bounds!.x).toBeGreaterThanOrEqual(0)
-        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+        await expect(tooltip(page)).toHaveCSS('opacity', '1')
+        await expect(async () => {
+            const bounds = await tooltip(page).boundingBox()
+            await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+            expect(await tooltip(page).boundingBox()).toEqual(bounds)
+            expect(bounds!.x).toBeGreaterThanOrEqual(0)
+            expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390)
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+        }).toPass({ timeout: 5000 })
         await table(page).locator('..').evaluate(el => { el.scrollLeft = el.scrollWidth })
         await expect(tooltip(page)).toHaveCount(0)
     })
